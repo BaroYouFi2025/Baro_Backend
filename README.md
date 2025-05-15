@@ -23,3 +23,18 @@
 ```
     feat(#123) :: 로그인 기능 추가
 ```
+
+### 브랜치 컨벤션
+| Prefix        | 사용 상황          | 예시                           |
+| ------------- | -------------- | ---------------------------- |
+| **feature/**  | 새로운 기능 개발      | `feature/123-login-api`      |
+| **fix/**      | 버그 수정          | `fix/45-login-bug`           |
+| **hotfix/**   | 급한 버그/패치       | `hotfix/urgent-deploy-error` |
+| **refactor/** | 리팩토링           | `refactor/72-user-service`   |
+| **docs/**     | 문서 작업          | `docs/README-update`         |
+| **chore/**    | 설정 변경, 스크립트 작업 | `chore/docker-setup`         |
+
+### 예시
+```
+    feature/이슈번호
+```
