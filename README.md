@@ -27,7 +27,7 @@
 ### 브랜치 컨벤션
 | Prefix        | 사용 상황          | 예시                           |
 | ------------- | -------------- | ---------------------------- |
-| **feature/**  | 새로운 기능 개발      | `feature/123-login-api`      |
+| **feat/**  | 새로운 기능 개발      | `feat/123-login-api`      |
 | **fix/**      | 버그 수정          | `fix/45-login-bug`           |
 | **hotfix/**   | 급한 버그/패치       | `hotfix/urgent-deploy-error` |
 | **refactor/** | 리팩토링           | `refactor/72-user-service`   |
