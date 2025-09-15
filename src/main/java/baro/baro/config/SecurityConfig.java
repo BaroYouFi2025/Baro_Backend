@@ -11,13 +11,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable()
-                .authorizeHttpRequests()
-                .requestMatchers("/api/**").permitAll() // ✅ API는 인증 필요 없음
-                .anyRequest().authenticated()
-                .and()
-                .formLogin().disable(); // 필요 없으면 .disable() 해도 됨
-
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/users/register").permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
+                )
+                .formLogin(form -> form.disable()); // 필요 없으면 disable
         return http.build();
     }
 }
