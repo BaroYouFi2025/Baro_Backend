@@ -1,4 +1,4 @@
-package baro.baro.domain.user.entity.request;
+package baro.baro.domain.user.dto.req;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

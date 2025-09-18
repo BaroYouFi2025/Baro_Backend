@@ -1,4 +1,4 @@
-package baro.baro.domain.user.entity.response;
+package baro.baro.domain.user.dto.res;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
