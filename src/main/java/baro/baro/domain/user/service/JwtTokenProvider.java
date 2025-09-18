@@ -1,4 +1,4 @@
-package baro.baro.domain.auth.service;
+package baro.baro.domain.user.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
