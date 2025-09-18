@@ -1,8 +1,8 @@
-package baro.baro.domain.auth.controller;
+package baro.baro.domain.user.controller;
 
-import baro.baro.domain.auth.dto.request.SignupRequest;
-import baro.baro.domain.auth.dto.response.AuthTokensResponse;
-import baro.baro.domain.auth.service.AuthService;
+import baro.baro.domain.user.entity.request.SignupRequest;
+import baro.baro.domain.user.entity.response.AuthTokensResponse;
+import baro.baro.domain.user.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
