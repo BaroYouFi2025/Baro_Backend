@@ -1,7 +1,10 @@
 package baro.baro.domain.user.service;
 
+import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
+import baro.baro.domain.user.dto.res.AuthTokensResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -9,14 +12,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
-    public UserServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public User createUser(String uid, String rawPassword, String phone, String name, String birthDateIso) {
@@ -34,5 +35,23 @@ public class UserServiceImpl implements UserService {
                 .birthDate(LocalDate.parse(birthDateIso))
                 .build();
         return userRepository.save(user);
+    }
+
+    @Override
+    public AuthTokensResponse signup(SignupRequest request) {
+        User user = createUser
+                (
+                request.getUid(),
+                request.getPassword(),
+                request.getPhone(),
+                request.getUsername(),
+                request.getBirthDate()
+        );
+
+        String access = jwtTokenProvider.createAccessToken(user.getUid());
+        String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
+        long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
+
+        return new AuthTokensResponse(access, refresh, expiresIn);
     }
 }
