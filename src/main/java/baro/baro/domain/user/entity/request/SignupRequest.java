@@ -1,4 +1,4 @@
-package baro.baro.domain.auth.dto.request;
+package baro.baro.domain.user.entity.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

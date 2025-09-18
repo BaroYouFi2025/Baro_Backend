@@ -1,4 +1,4 @@
-package baro.baro.domain.auth.service;
+package baro.baro.domain.user.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -19,7 +19,7 @@ public class JwtTokenProvider {
     private final long refreshTokenValidityMs;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret}") String base64Secret, //Base64로 인코딩된 비밀 키 문자열
+            @Value("${jwt.secret-key}") String base64Secret, //Base64로 인코딩된 비밀 키 문자열
             @Value("${jwt.access-validity-seconds:900}") long accessSeconds, //Access Token 유효시간(초 단위 : 60분)
             @Value("${jwt.refresh-validity-seconds:1209600}") long refreshSeconds //Refresh Token 유효시간(초단위 : 14일)
     ) {
