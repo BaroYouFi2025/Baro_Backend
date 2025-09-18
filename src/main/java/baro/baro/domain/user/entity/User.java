@@ -36,7 +36,7 @@ public class User {
     private String phoneE164;
     
     @Column(nullable = false, length = 100)
-    private String nickname;
+    private String name;
     
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;

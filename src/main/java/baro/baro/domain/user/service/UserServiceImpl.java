@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User createUser(String uid, String rawPassword, String phone, String nickname, String birthDateIso) {
+    public User createUser(String uid, String rawPassword, String phone, String name, String birthDateIso) {
         userRepository.findByUid(uid).ifPresent(u -> { throw new IllegalArgumentException("UID already exists"); });
         String digits = phone.replaceAll("[^0-9]", "");
         String e164 = digits.startsWith("0") ? "+82" + digits.substring(1) : "+" + digits;
@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
                 .uid(uid)
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .phoneE164(e164)
-                .nickname(nickname)
+                .name(name)
                 .birthDate(LocalDate.parse(birthDateIso))
                 .build();
         return userRepository.save(user);
