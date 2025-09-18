@@ -1,7 +1,7 @@
 package baro.baro.domain.user.service;
 
-import baro.baro.domain.user.entity.request.SignupRequest;
-import baro.baro.domain.user.entity.response.AuthTokensResponse;
+import baro.baro.domain.user.dto.req.SignupRequest;
+import baro.baro.domain.user.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.entity.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
