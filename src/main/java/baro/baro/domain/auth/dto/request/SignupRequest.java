@@ -19,6 +19,7 @@ public class SignupRequest {
     private String password;
 
     @NotBlank
+    @Size(min = 11, max = 11)
     private String phone;
 
     @NotBlank
