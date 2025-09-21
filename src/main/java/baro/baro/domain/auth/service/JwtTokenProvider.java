@@ -44,9 +44,9 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token);
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -73,4 +73,3 @@ public class JwtTokenProvider {
                 .compact(); //최종적으로 문자열 JWT 생성
     }
 }
-
