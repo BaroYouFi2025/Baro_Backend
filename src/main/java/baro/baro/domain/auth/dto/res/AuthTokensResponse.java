@@ -1,4 +1,4 @@
-package baro.baro.domain.user.dto.res;
+package baro.baro.domain.auth.dto.res;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
