@@ -9,7 +9,8 @@ public enum PhoneVerificationErrorCode {
     TOKEN_MISMATCH(400, "토큰과 전화번호가 일치하지 않습니다."),
     TOKEN_GENERATION_FAILED(500, "인증 토큰 생성에 실패했습니다."),
     PHONE_NUMBER_REQUIRED(400, "전화번호는 필수입니다."),
-    VERIFICATION_FAILED(400, "전화번호 인증에 실패했습니다.");
+    VERIFICATION_FAILED(400, "전화번호 인증에 실패했습니다."),
+    PHONE_NOT_VERIFIED(401, "전화번호 인증이 필요합니다.");   // 새 항목
 
     private final int status;
     private final String message;
