@@ -63,7 +63,7 @@ public class EmailListener {
      * 15초마다 실행되며, 리스너가 활성화된 경우에만 읽지 않은 메일에서
      * 인증 토큰과 전화번호를 추출하여 전화번호 인증을 수행합니다.
      */
-    @Scheduled(fixedDelay = 15000, initialDelay = 5000)
+    @Scheduled(fixedDelay = 15000, initialDelay = 3000)
     public void checkMailbox() {
         log.info("checkMailbox() 호출됨 - isListening: {}", isListening);
 
@@ -71,11 +71,11 @@ public class EmailListener {
             return;
         }
 
-        // 10분(600초) 경과시 자동 중지
+        // 2분(120초) 경과시 자동 중지
         long elapsedTime = System.currentTimeMillis() - listeningStartTime;
 
-        if (elapsedTime > 600000) {
-            log.info("10분 타임아웃으로 인한 이메일 리스너 자동 중지");
+        if (elapsedTime > 12000) {
+            log.info("2분 타임아웃으로 인한 이메일 리스너 자동 중지");
             stopListening();
             return;
         }
