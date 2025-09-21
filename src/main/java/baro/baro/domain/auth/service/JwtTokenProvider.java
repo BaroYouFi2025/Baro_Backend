@@ -1,5 +1,6 @@
 package baro.baro.domain.auth.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -38,7 +39,28 @@ public class JwtTokenProvider {
 
     public long getAccessTokenValiditySeconds() {
         return accessTokenValidityMs / 1000;
-    } //Access Token 유효시간 반환
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getSubjectFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
+    }
 
     private String buildToken(String subject, long validityMs) {
         Date now = new Date();
@@ -51,3 +73,4 @@ public class JwtTokenProvider {
                 .compact(); //최종적으로 문자열 JWT 생성
     }
 }
+
