@@ -1,0 +1,11 @@
+package baro.baro.domain.auth.exception;
+
+import baro.baro.domain.common.exception.BusinessException;
+import baro.baro.domain.common.exception.ErrorCode;
+
+public class EmailException extends BusinessException {
+
+    public EmailException(EmailErrorCode errorCode) {
+        super(ErrorCode.INTERNAL_ERROR);
+    }
+}
