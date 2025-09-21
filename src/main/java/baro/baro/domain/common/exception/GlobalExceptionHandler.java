@@ -9,10 +9,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.StringJoiner;
 
@@ -93,6 +95,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 필수 요청 파라미터 누락 예외 처리
+     * @param e MissingServletRequestParameterException
+     * @return 필수 파라미터 누락 에러 응답
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(MissingServletRequestParameterException e) {
+        log.warn("Missing request parameter: {}", e.getParameterName());
+        String errorMessage = String.format("필수 파라미터가 누락되었습니다: %s (%s)",
+            e.getParameterName(), e.getParameterType());
+        return ResponseEntity
+                .status(ErrorCode.VALIDATION_ERROR.getStatus())
+                .body(ApiErrorResponse.of("MISSING_PARAMETER", errorMessage));
+    }
+
+    /**
      * 타입 불일치 예외 처리 (예: String을 Integer로 변환 실패)
      * @param e MethodArgumentTypeMismatchException
      * @return 타입 불일치 에러 응답
@@ -129,6 +146,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.NOT_FOUND.getStatus())
                 .body(ApiErrorResponse.of(ErrorCode.NOT_FOUND));
+    }
+
+    /**
+     * 정적 리소스를 찾을 수 없는 예외 처리 (API 엔드포인트가 없는 경우)
+     * @param e NoResourceFoundException
+     * @return 404 Not Found 응답
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(NoResourceFoundException e) {
+        log.warn("No resource found for path: {}", e.getResourcePath());
+        return ResponseEntity
+                .status(ErrorCode.NOT_FOUND.getStatus())
+                .body(ApiErrorResponse.of("ENDPOINT_NOT_FOUND", "요청하신 API 엔드포인트를 찾을 수 없습니다: " + e.getResourcePath()));
     }
 
     /**
