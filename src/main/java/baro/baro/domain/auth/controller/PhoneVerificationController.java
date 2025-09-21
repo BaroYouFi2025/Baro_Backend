@@ -32,7 +32,7 @@ public class PhoneVerificationController {
     @GetMapping("/verifications")
     public ResponseEntity<PhoneVerifyResponse> getVerificationStatus(
             @RequestParam String phoneNumber) {
-        boolean isVerified = phoneVerificationService.verifyPhoneNumber(phoneNumber);
+        boolean isVerified = phoneVerificationService.isPhoneNumberVerified(phoneNumber);
         return ResponseEntity.ok(new PhoneVerifyResponse(isVerified));
     }
 }
