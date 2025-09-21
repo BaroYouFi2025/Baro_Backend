@@ -33,7 +33,7 @@ public class PhoneVerificationService {
 
         // 중복 토큰 방지를 위한 재시도 로직
         do {
-            token = generateToken(6);
+            token = generateRandomCode(6);
             retryCount++;
 
             if (retryCount > 5) {
@@ -52,36 +52,45 @@ public class PhoneVerificationService {
     }
 
     /**
-     * 토큰 검증
+     * 토큰을 사용한 전화번호 인증 처리
      */
     @Transactional
-    protected void verifyToken(String token, String phoneNumber) {
+    protected void authenticateWithToken(String token, String phoneNumber) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new PhoneVerificationException(PhoneVerificationErrorCode.INVALID_TOKEN);
+        }
+
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            throw new PhoneVerificationException(PhoneVerificationErrorCode.PHONE_NUMBER_REQUIRED);
+        }
+
+        PhoneVerification pv = repo.findByTokenAndVerifiedFalse(token)
+                .orElseThrow(() -> new PhoneVerificationException(PhoneVerificationErrorCode.INVALID_TOKEN));
+
+        if (pv.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_EXPIRED);
+        }
+
+        // 이미 다른 번호로 인증된 토큰인지 확인
+        if (pv.getPhoneNumber() != null && !pv.getPhoneNumber().equals(phoneNumber)) {
+            throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_MISMATCH);
+        }
+
         try {
-            PhoneVerification pv = repo.findByTokenAndVerifiedFalse(token)
-                    .orElseThrow(() -> new PhoneVerificationException(PhoneVerificationErrorCode.INVALID_TOKEN));
-
-            if (pv.getExpiresAt().isBefore(LocalDateTime.now())) {
-                throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_EXPIRED);
-            }
-
-            // 이미 다른 번호로 인증된 토큰인지 확인
-            if (pv.getPhoneNumber() != null && !pv.getPhoneNumber().equals(phoneNumber)) {
-                throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_MISMATCH);
-            }
-
             pv.verifyPhoneNumber(phoneNumber);
-
+            log.info("토큰 인증 성공: token={}, phoneNumber={}", token, phoneNumber);
         } catch (Exception e) {
-            log.error("토큰 검증 실패: token={}, phoneNumber={}, error={}",
+            log.error("토큰 인증 중 예상치 못한 오류: token={}, phoneNumber={}, error={}",
                      token, phoneNumber, e.getMessage());
+            throw new PhoneVerificationException(PhoneVerificationErrorCode.VERIFICATION_FAILED);
         }
     }
 
     /**
      *  전화번호 인증 상태 확인
      */
-    @Transactional
-    public boolean verifyPhoneNumber(String phoneNumber) {
+    @Transactional(readOnly = true)
+    public boolean isPhoneNumberVerified(String phoneNumber) {
         PhoneVerification phoneVerification = repo.findByPhoneNumber(phoneNumber).orElse(null);
         return phoneVerification != null && phoneVerification.isVerified();
     }
@@ -101,7 +110,7 @@ public class PhoneVerificationService {
     /**
      * 랜덤 숫자 코드 생성
      */
-    private String generateToken(int length) {
+    private String generateRandomCode(int length) {
         Random random = new Random();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {

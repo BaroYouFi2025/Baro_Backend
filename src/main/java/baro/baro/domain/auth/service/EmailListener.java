@@ -1,12 +1,13 @@
 package baro.baro.domain.auth.service;
 
+import baro.baro.domain.auth.exception.EmailErrorCode;
+import baro.baro.domain.auth.exception.EmailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -62,18 +63,23 @@ public class EmailListener {
      * 15초마다 실행되며, 리스너가 활성화된 경우에만 읽지 않은 메일에서
      * 인증 토큰과 전화번호를 추출하여 전화번호 인증을 수행합니다.
      */
-    @Scheduled(fixedDelay = 15000)
-    @Async
+    @Scheduled(fixedDelay = 15000, initialDelay = 5000)
     public void checkMailbox() {
+        log.info("checkMailbox() 호출됨 - isListening: {}", isListening);
+
         if (!isListening) {
             return;
         }
 
         // 10분(600초) 경과시 자동 중지
-        if (System.currentTimeMillis() - listeningStartTime > 600000) {
+        long elapsedTime = System.currentTimeMillis() - listeningStartTime;
+
+        if (elapsedTime > 600000) {
+            log.info("10분 타임아웃으로 인한 이메일 리스너 자동 중지");
             stopListening();
             return;
         }
+
         Properties props = new Properties();
         props.setProperty("mail.store.protocol", "imaps");
         props.setProperty("mail.imaps.connectionpoolsize", "10");
@@ -88,16 +94,29 @@ public class EmailListener {
 
             // 연결 재시도 로직
             int retryCount = 0;
+
             while (retryCount < 3) {
                 try {
                     store.connect(host, username, password);
+                    log.info("IMAP 서버 연결 성공");
                     break;
-                } catch (Exception e) {
+                } catch (AuthenticationFailedException e) {
+                    log.error("이메일 인증 실패: {}", e.getMessage());
+                    throw new EmailException(EmailErrorCode.CONNECTION_FAILED);
+                }
+                catch (Exception e) {
                     retryCount++;
                     if (retryCount >= 3) {
-                        throw new RuntimeException("IMAP 연결 실패 (3회 재시도)", e);
+                        log.error("IMAP 연결 실패 ({}회 재시도)", retryCount, e);
+                        throw new EmailException(EmailErrorCode.CONNECTION_RETRY_EXCEEDED);
                     }
-                    Thread.sleep(1000); // 1초 대기
+                    log.warn("IMAP 연결 실패, {}초 후 재시도 ({}회차) - 오류: {}", 1, retryCount, e.getMessage());
+                    try {
+                        Thread.sleep(1000); // 1초 대기
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new EmailException(EmailErrorCode.CONNECTION_FAILED);
+                    }
                 }
             }
 
@@ -107,6 +126,7 @@ public class EmailListener {
             // 검색 조건 : 읽지 않은 메일만 검색
             FlagTerm unreadFlag = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
             Message[] messages = inbox.search(unreadFlag);
+            log.info("읽지 않은 메시지 {} 개 발견", messages.length);
 
             if (messages.length == 0) {
                 inbox.close(false);
@@ -116,20 +136,23 @@ public class EmailListener {
 
             List<Message> processedMessages = new ArrayList<>();
 
-            for (Message message : messages) {
+            for (int i = 0; i < messages.length; i++) {
+                Message message = messages[i];
                 try {
-                    String from = ((InternetAddress) message.getFrom()[0]).getAddress();
-                    String body = getTextFromMessage(message);
+                    MailOtpExtractor.Result result = MailOtpExtractor.extract(message);
 
-                    String token = extractToken(body);
-                    String phoneNumber = extractPhoneNumber(from);
+                    // 토큰과 전화번호 추출 및 인증 수행
+                    String token = result.code();
+                    String phoneNumber = result.phoneNumber();
 
-                    if (token != null && phoneNumber != null) {
-                        phoneVerificationService.verifyToken(token, phoneNumber);
-                        processedMessages.add(message);
-                    }
+                    phoneVerificationService.authenticateWithToken(token, phoneNumber);
+                    processedMessages.add(message);
+                    log.info("메시지 {} 토큰 인증 성공 - 전화번호: {}, 토큰: {}", i + 1, phoneNumber, token);
+
+                } catch (EmailException e) {
+                    log.error("메시지 {} 이메일 처리 중 EmailException 발생: {}", i + 1, e.getMessage());
                 } catch (Exception e) {
-                    log.warn("메시지 처리 중 오류: {}", e.getMessage());
+                    log.error("메시지 {} 처리 중 예상치 못한 오류: {}", i + 1, e.getMessage(), e);
                 }
             }
 
@@ -137,9 +160,14 @@ public class EmailListener {
             for (Message message : processedMessages) {
                 message.setFlag(Flags.Flag.SEEN, true);
             }
+            log.info("메시지 처리 완료 - 총 {} 개 처리됨", processedMessages.size());
 
+        } catch (EmailException e) {
+            log.error("이메일 처리 중 EmailException 오류: {} (ErrorCode: {})", e.getMessage(), e.getEmailErrorCode());
+        } catch (MessagingException e) {
+            log.error("메일 서버 연결 또는 메시지 처리 중 MessagingException 오류: {}", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("메일확인이 실패했습니다.", e);
+            log.error("메일확인 중 예상치 못한 오류가 발생했습니다.", e);
         } finally {
             // 안전한 연결 종료
             try {
@@ -155,46 +183,5 @@ public class EmailListener {
         }
     }
 
-    /**
-     * 메시지에서 텍스트 내용을 추출합니다.
-     *
-     * @param message 추출할 메시지
-     * @return 메시지의 텍스트 내용
-     * @throws Exception 메시지 읽기 중 발생하는 예외
-     */
-    private String getTextFromMessage(Message message) throws Exception {
-        if (message.isMimeType("text/plain")) {
-            return message.getContent().toString();
-        } else if (message.isMimeType("text/html")) {
-            return message.getContent().toString();
-        } else if (message.getContent() instanceof Multipart) {
-            return message.getContent().toString();
-        }
-        return "";
-    }
 
-    /**
-     * 메시지 본문에서 6자리 숫자 인증 토큰을 추출합니다.
-     *
-     * @param body 메시지 본문
-     * @return 추출된 6자리 토큰, 없으면 null
-     */
-    private String extractToken(String body) {
-        return body.replaceAll("[^0-9]", "").length() >= 6
-                ? body.replaceAll("[^0-9]", "").substring(0, 6)
-                : null;
-    }
-
-    /**
-     * 발신자 이메일 주소에서 전화번호를 추출합니다.
-     *
-     * @param from 발신자 이메일 주소 (예: "01012345678@sktmail.net")
-     * @return 추출된 전화번호 (예: "01012345678"), 없으면 null
-     */
-    private String extractPhoneNumber(String from) {
-        if (from.contains("@")) {
-            return from.split("@")[0];
-        }
-        return null;
-    }
 }
