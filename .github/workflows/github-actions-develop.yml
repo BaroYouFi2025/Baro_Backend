@@ -93,8 +93,11 @@ jobs:
         # SSH 연결 테스트
       - name: Test SSH Connection
         run: |
-          ssh -p ${{ secrets.TEST_SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
-
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -i ~/.ssh/id_ed25519 \
+              ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
       # 테스트 서버에 애플리케이션 배포
       - name: Deploy to Test Server
         run: |
