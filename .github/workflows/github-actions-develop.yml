@@ -1,0 +1,146 @@
+name: Build & Deploy Baro Application
+
+# 워크플로우 트리거 설정
+on:
+  pull_request:
+    types: [closed]  # PR이 닫힐 때만 트리거
+    branches:
+      - develop  # develop 브랜치로의 PR
+
+
+# 전역 환경변수 설정
+env:
+  JAVA_VERSION: '17'  # 사용할 Java 버전
+  GRADLE_CACHE_KEY: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+jobs:
+  # 빌드 실행 Job (develop 브랜치에서만 실행)
+  build:
+    runs-on: ubuntu-latest
+    # PR이 실제로 병합된 경우에만 실행
+    if: ${{ github.event.pull_request.merged == true }}
+
+    steps:
+      # 소스코드 체크아웃
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Java 환경 설정
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'  # Eclipse Temurin OpenJDK 사용
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # Gradle 의존성 캐싱 (빌드 속도 향상)
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ env.GRADLE_CACHE_KEY }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # Gradle wrapper 실행 권한 부여
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+
+      # 애플리케이션 빌드 (테스트 제외)
+      - name: Build with Gradle
+        run: ./gradlew build -x test --no-daemon
+
+      # 빌드된 JAR 파일을 아티팩트로 업로드
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baro # 고정된 이름
+          path: build/libs/*.jar
+          retention-days: 3  # 3일간 보관
+
+  # 테스트 서버 배포 실행 Job (develop 브랜치에서만 실행)
+  deploy-test:
+    needs: build  # build job 완료 후 실행
+    runs-on: ubuntu-latest
+    # 병합된 PR에 대해서만 배포 진행 (build 통과 후)
+    if: ${{ github.event.pull_request.merged == true }}
+
+    steps:
+      # 소스코드 체크아웃
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 빌드된 아티팩트 다운로드
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: baro
+          path: build/libs
+
+      # SSH 키 설정 (테스트 서버 접속용)
+      - name: Setup SSH Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.TEST_SERVER_PORT }} -H ${{ secrets.TEST_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      # SSH 연결 테스트
+      - name: Test SSH Connection
+        run: |
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
+
+      # 테스트 서버에 애플리케이션 배포
+      - name: Deploy to Test Server
+        run: |
+          # JAR 파일명 확인
+          JAR_FILE=$(ls build/libs/*.jar | head -1)
+          if [ ! -f "$JAR_FILE" ]; then
+            echo "❌ JAR file not found!"
+            exit 1
+          fi
+
+          echo "📦 Deploying JAR file to Test Server: $JAR_FILE"
+
+          # 테스트 서버로 JAR 파일 전송
+          scp -P ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa "$JAR_FILE" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_DIR }}/baro-app.jar
+
+          # 테스트 서버에서 애플리케이션 배포
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+            cd ${{ secrets.TEST_DEPLOY_DIR }}
+
+            echo "📌 기존 테스트 애플리케이션 중지..."
+            docker compose down || echo "No running containers"
+
+            echo "📌 Docker 이미지 정리..."
+            docker image prune -f || echo "No images to remove"
+
+            echo "📌 새로운 테스트 애플리케이션 시작..."
+            docker compose up -d --build
+
+            echo "📊 테스트 서버 배포 상태 확인..."
+            docker compose ps
+
+            echo "🚀 테스트 서버 배포 완료!"
+          EOF
+
+      # 테스트 서버 배포 후 헬스체크
+      - name: Test Server Health Check
+        run: |
+          echo "🔍 테스트 서버 애플리케이션 상태 확인 중..."
+          sleep 30  # 애플리케이션 시작 대기
+
+          # Health check 수행
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+            if docker compose ps | grep -q "Up"; then
+              echo "✅ 테스트 서버 애플리케이션이 정상적으로 실행 중입니다."
+            else
+              echo "❌ 테스트 서버 애플리케이션 실행에 문제가 있습니다."
+              docker compose logs --tail=50
+              exit 1
+            fi
+          EOF
+
