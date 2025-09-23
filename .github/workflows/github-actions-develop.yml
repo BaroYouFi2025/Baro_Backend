@@ -77,17 +77,20 @@ jobs:
           name: baro
           path: build/libs
 
-      # SSH 키 설정 (테스트 서버 접속용)
-      - name: Setup SSH Key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+      - name: Setup SSH Key (from base64)
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.TEST_SERVER_PORT }} -H ${{ secrets.TEST_SERVER_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" | base64 -d | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # 키 포맷 검증 (깨지면 여기서 실패)
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null 2>&1 || { echo "❌ Invalid private key"; exit 1; }
 
-      # SSH 연결 테스트
+      - name: Add known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.TEST_SERVER_PORT }}" -H "${{ secrets.TEST_SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+        # SSH 연결 테스트
       - name: Test SSH Connection
         run: |
           ssh -p ${{ secrets.TEST_SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
