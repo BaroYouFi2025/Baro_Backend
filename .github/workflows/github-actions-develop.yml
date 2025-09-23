@@ -6,6 +6,9 @@ on:
     types: [closed]  # PR이 닫힐 때만 트리거
     branches:
       - develop  # develop 브랜치로의 PR
+  push:
+    branches:
+      - develop
 
 
 # 전역 환경변수 설정
@@ -17,12 +20,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # PR이 실제로 병합된 경우에만 실행
-    if: ${{ github.event.pull_request.merged == true }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
 
     steps:
       # 소스코드 체크아웃
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      # Gradle Wrapper 무결성 검증
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
 
       # Java 환경 설정
       - name: Set up JDK ${{ env.JAVA_VERSION }}
@@ -31,24 +38,17 @@ jobs:
           distribution: 'temurin'  # Eclipse Temurin OpenJDK 사용
           java-version: ${{ env.JAVA_VERSION }}
 
-      # Gradle 의존성 캐싱 (빌드 속도 향상)
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
+      # Gradle 설정 및 캐시 (의존성/래퍼 자동 캐시)
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       # Gradle wrapper 실행 권한 부여
       - name: Grant execute permission for Gradle
         run: chmod +x gradlew
 
       # 애플리케이션 빌드 (테스트 제외)
-      - name: Build with Gradle
-        run: ./gradlew build -x test --no-daemon
+      - name: Build (bootJar)
+        run: ./gradlew bootJar -x test --no-daemon
 
       # 빌드된 JAR 파일을 아티팩트로 업로드
       - name: Upload Artifact
@@ -63,7 +63,7 @@ jobs:
     needs: build  # build job 완료 후 실행
     runs-on: ubuntu-latest
     # 병합된 PR에 대해서만 배포 진행 (build 통과 후)
-    if: ${{ github.event.pull_request.merged == true }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
 
     steps:
       # 소스코드 체크아웃
@@ -77,13 +77,25 @@ jobs:
           name: baro
           path: build/libs
 
-      - name: Setup SSH Key (from base64)
+      - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" | base64 -d | tr -d '\r' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          # 키 포맷 검증 (깨지면 여기서 실패)
-          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null 2>&1 || { echo "❌ Invalid private key"; exit 1; }
+          if [ -n "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" ]; then
+            echo "Using TEST_SSH_PRIVATE_KEY_B64"
+            echo "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" | base64 -d | tr -d '\r' > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+            ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null 2>&1 || { echo "❌ Invalid ed25519 private key"; exit 1; }
+            echo "SSH_KEY_PATH=$HOME/.ssh/id_ed25519" >> $GITHUB_ENV
+          elif [ -n "${{ secrets.TEST_SSH_PRIVATE_KEY }}" ]; then
+            echo "Using TEST_SSH_PRIVATE_KEY"
+            echo "${{ secrets.TEST_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keygen -y -f ~/.ssh/id_rsa >/dev/null 2>&1 || { echo "❌ Invalid RSA private key"; exit 1; }
+            echo "SSH_KEY_PATH=$HOME/.ssh/id_rsa" >> $GITHUB_ENV
+          else
+            echo "❌ No SSH private key secret provided (TEST_SSH_PRIVATE_KEY_B64 or TEST_SSH_PRIVATE_KEY)."
+            exit 1
+          fi
 
       - name: Add known_hosts
         run: |
@@ -96,13 +108,13 @@ jobs:
           ssh -p ${{ secrets.TEST_SERVER_PORT }} \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes \
-              -i ~/.ssh/id_ed25519 \
+              -i "${{ env.SSH_KEY_PATH }}" \
               ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
       # 테스트 서버에 애플리케이션 배포
       - name: Deploy to Test Server
         run: |
-          # JAR 파일명 확인
-          JAR_FILE=$(ls build/libs/*.jar | head -1)
+          # JAR 파일명 확인 (build.gradle의 bootJar 설정과 일치)
+          JAR_FILE="build/libs/baro-app.jar"
           if [ ! -f "$JAR_FILE" ]; then
             echo "❌ JAR file not found!"
             exit 1
@@ -111,10 +123,10 @@ jobs:
           echo "📦 Deploying JAR file to Test Server: $JAR_FILE"
 
           # 테스트 서버로 JAR 파일 전송
-          scp -P ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa "$JAR_FILE" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_DIR }}/baro-app.jar
+          scp -P ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" "$JAR_FILE" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_DIR }}/baro-app.jar
 
           # 테스트 서버에서 애플리케이션 배포
-          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
             cd ${{ secrets.TEST_DEPLOY_DIR }}
 
             echo "📌 기존 테스트 애플리케이션 중지..."
@@ -139,7 +151,7 @@ jobs:
           sleep 30  # 애플리케이션 시작 대기
 
           # Health check 수행
-          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i ~/.ssh/id_rsa ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
             if docker compose ps | grep -q "Up"; then
               echo "✅ 테스트 서버 애플리케이션이 정상적으로 실행 중입니다."
             else
