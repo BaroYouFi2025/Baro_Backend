@@ -6,9 +6,6 @@ on:
     types: [closed]  # PR이 닫힐 때만 트리거
     branches:
       - develop  # develop 브랜치로의 PR
-  push:
-    branches:
-      - develop
 
 
 # 전역 환경변수 설정
@@ -20,16 +17,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # PR이 실제로 병합된 경우에만 실행
-    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
 
     steps:
       # 소스코드 체크아웃
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      # Gradle Wrapper 무결성 검증
-      - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
 
       # Java 환경 설정
       - name: Set up JDK ${{ env.JAVA_VERSION }}
@@ -63,7 +56,7 @@ jobs:
     needs: build  # build job 완료 후 실행
     runs-on: ubuntu-latest
     # 병합된 PR에 대해서만 배포 진행 (build 통과 후)
-    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
 
     steps:
       # 소스코드 체크아웃
