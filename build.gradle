@@ -7,6 +7,11 @@ plugins {
 group = 'baro'
 version = ''
 
+bootJar {
+    archiveFileName = 'baro-app.jar'
+}
+jar { enabled = false }
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
