@@ -1,8 +1,9 @@
 package baro.baro.domain.member.controller;
 
-import baro.baro.domain.member.dto.*;
+import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.request.InvitationRequest;
+import baro.baro.domain.member.dto.request.RejectInvitationRequest;
 import baro.baro.domain.member.entity.Invitation;
-import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
 import baro.baro.domain.member.repository.InvitationRepository;
 import baro.baro.domain.member.repository.RelationshipRepository;
