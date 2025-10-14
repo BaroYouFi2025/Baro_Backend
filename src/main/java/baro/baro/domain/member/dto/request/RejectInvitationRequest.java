@@ -1,4 +1,4 @@
-package baro.baro.domain.member.dto;
+package baro.baro.domain.member.dto.request;
 
 import lombok.Data;
 
