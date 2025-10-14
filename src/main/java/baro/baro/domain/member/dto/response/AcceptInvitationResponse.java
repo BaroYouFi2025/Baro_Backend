@@ -1,6 +1,5 @@
-package baro.baro.domain.member.dto;
+package baro.baro.domain.member.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.ArrayList;
