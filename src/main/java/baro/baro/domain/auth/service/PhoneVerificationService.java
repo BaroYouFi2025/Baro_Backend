@@ -1,5 +1,6 @@
 package baro.baro.domain.auth.service;
 
+import baro.baro.domain.auth.dto.req.PhoneVerifyRequest;
 import baro.baro.domain.auth.entity.PhoneVerification;
 import baro.baro.domain.auth.exception.PhoneVerificationErrorCode;
 import baro.baro.domain.auth.exception.PhoneVerificationException;
@@ -36,7 +37,7 @@ public class PhoneVerificationService {
             token = generateRandomCode();
             retryCount++;
 
-            if (retryCount > 5) {
+            if (retryCount > 50) {
                 throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_GENERATION_FAILED);
             }
         } while (repo.findByTokenAndVerifiedFalse(token).isPresent());
@@ -72,11 +73,6 @@ public class PhoneVerificationService {
             throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_EXPIRED);
         }
 
-        // 이미 다른 번호로 인증된 토큰인지 확인
-        if (pv.getPhoneNumber() != null && !pv.getPhoneNumber().equals(phoneNumber)) {
-            throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_MISMATCH);
-        }
-
         try {
             pv.verifyPhoneNumber(phoneNumber);
             log.info("토큰 인증 성공: token={}, phoneNumber={}", token, phoneNumber);
@@ -91,8 +87,8 @@ public class PhoneVerificationService {
      *  전화번호 인증 상태 확인
      */
     @Transactional(readOnly = true)
-    public boolean isPhoneNumberVerified(String phoneNumber) {
-        PhoneVerification phoneVerification = repo.findByPhoneNumber(phoneNumber).orElse(null);
+    public boolean isPhoneNumberVerified(PhoneVerifyRequest request) {
+        PhoneVerification phoneVerification = repo.findByPhoneNumber(request.getPhoneNumber()).orElse(null);
         return phoneVerification != null && phoneVerification.isVerified();
     }
 
