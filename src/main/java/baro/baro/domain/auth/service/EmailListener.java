@@ -3,7 +3,6 @@ package baro.baro.domain.auth.service;
 import baro.baro.domain.auth.exception.EmailErrorCode;
 import baro.baro.domain.auth.exception.EmailException;
 import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +16,6 @@ import java.util.Properties;
 
 /**
  * 이메일 수신을 통한 전화번호 인증 처리 서비스
- *
  * SMS 인증 토큰이 이메일로 전달되는 경우를 처리하기 위해
  * IMAP 프로토콜을 사용하여 주기적으로 메일박스를 확인하고
  * 인증 토큰과 전화번호를 추출하여 인증을 수행합니다.
@@ -74,7 +72,7 @@ public class EmailListener {
         // 2분(120초) 경과시 자동 중지
         long elapsedTime = System.currentTimeMillis() - listeningStartTime;
 
-        if (elapsedTime > 12000) {
+        if (elapsedTime > 120000) {
             log.info("2분 타임아웃으로 인한 이메일 리스너 자동 중지");
             stopListening();
             return;
@@ -95,7 +93,7 @@ public class EmailListener {
             // 연결 재시도 로직
             int retryCount = 0;
 
-            while (retryCount < 3) {
+            while (true) {
                 try {
                     store.connect(host, username, password);
                     log.info("IMAP 서버 연결 성공");
