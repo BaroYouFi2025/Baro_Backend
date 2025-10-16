@@ -1,6 +1,11 @@
 package baro.baro.domain.member.service;
 
-import baro.baro.domain.member.dto.*;
+import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.request.InvitationRequest;
+import baro.baro.domain.member.dto.request.RejectInvitationRequest;
+import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.response.InvitationResponse;
+import baro.baro.domain.member.dto.response.MemberResponse;
 import baro.baro.domain.member.entity.Invitation;
 import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
@@ -17,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
 
@@ -100,5 +106,10 @@ public class MemberServiceImpl implements MemberService {
         // 초대 상태가 PENDING인지 확인(중복 거절 방지)
         invitation.reject();
         invitationRepository.save(invitation);
+    }
+
+    @Override
+    public List<MemberResponse> getMember() {
+        return null;
     }
 }
