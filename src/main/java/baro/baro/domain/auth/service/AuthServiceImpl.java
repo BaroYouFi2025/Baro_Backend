@@ -1,14 +1,14 @@
 package baro.baro.domain.auth.service;
 
-
 import baro.baro.domain.auth.dto.req.LoginRequest;
 import baro.baro.domain.auth.dto.req.LogoutRequest;
 import baro.baro.domain.auth.dto.req.RefreshRequest;
 import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.auth.dto.res.LogoutResponse;
 import baro.baro.domain.auth.dto.res.RefreshResponse;
+import baro.baro.domain.auth.exception.AuthException;
+import baro.baro.domain.common.exception.ErrorCode;
 import baro.baro.domain.user.entity.User;
-import baro.baro.domain.auth.service.AuthService;
 import baro.baro.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,18 +26,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokensResponse login(LoginRequest request) {
-        if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
-        }
-        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
-        }
-
-        User user = userRepository.findByUid(request.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+        User user = userRepository.findByUid(request.getUserId())
+                .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid username or password");
+            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         String access = jwtTokenProvider.createAccessToken(user.getUid());
@@ -49,13 +42,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LogoutResponse logout(LogoutRequest request) {
-        if (request.getRefreshToken() == null || request.getRefreshToken().trim().isEmpty()) {
-            throw new IllegalArgumentException("Refresh token is required");
-        }
-
         // Refresh token 검증
         if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
-            throw new IllegalArgumentException("Invalid refresh token");
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // 실제 구현에서는 refresh token을 블랙리스트에 추가하거나 DB에서 삭제
@@ -65,13 +54,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RefreshResponse refresh(RefreshRequest request) {
-        if (request.getRefreshToken() == null || request.getRefreshToken().trim().isEmpty()) {
-            throw new IllegalArgumentException("Refresh token is required");
-        }
-
         // Refresh token 검증
         if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
-            throw new IllegalArgumentException("Invalid refresh token");
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // Refresh token에서 사용자 정보 추출
@@ -79,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 사용자 존재 확인
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         // 새로운 access token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getUid());
