@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import baro.baro.domain.common.enums.GenderType;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;

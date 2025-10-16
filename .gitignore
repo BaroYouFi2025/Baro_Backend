@@ -37,3 +37,9 @@ out/
 .vscode/
 
 .env
+
+.serena
+.serena/cache
+.serena/memories
+.serena/project.yml
+.serena/.gitignore
