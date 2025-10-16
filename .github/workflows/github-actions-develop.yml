@@ -122,14 +122,18 @@ jobs:
           ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
             cd ${{ secrets.TEST_DEPLOY_DIR }}
 
-            echo "📌 기존 테스트 애플리케이션 중지..."
-            docker compose down || echo "No running containers"
+            echo "📌 기존 앱 컨테이너 중지 및 제거..."
+            docker compose stop app || echo "App container not running"
+            docker compose rm -f app || echo "App container not found"
 
             echo "📌 Docker 이미지 정리..."
             docker image prune -f || echo "No images to remove"
 
-            echo "📌 새로운 테스트 애플리케이션 시작..."
-            docker compose up -d --build
+            echo "📌 PostgreSQL 상태 확인..."
+            docker compose ps postgres
+
+            echo "📌 새로운 애플리케이션 빌드 및 시작..."
+            docker compose up -d --build app
 
             echo "📊 테스트 서버 배포 상태 확인..."
             docker compose ps
@@ -145,11 +149,13 @@ jobs:
 
           # Health check 수행
           ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
-            if docker compose ps | grep -q "Up"; then
+            cd ${{ secrets.TEST_DEPLOY_DIR }}
+
+            if docker compose ps app | grep -q "Up"; then
               echo "✅ 테스트 서버 애플리케이션이 정상적으로 실행 중입니다."
             else
               echo "❌ 테스트 서버 애플리케이션 실행에 문제가 있습니다."
-              docker compose logs --tail=50
+              docker compose logs --tail=50 app
               exit 1
             fi
           EOF
