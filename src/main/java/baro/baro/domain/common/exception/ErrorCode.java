@@ -6,9 +6,12 @@ import lombok.Getter;
 public enum ErrorCode {
     VALIDATION_ERROR(400, "입력 값이 잘못되었습니다."),
     AUTH_ERROR(401, "인증에 실패했습니다."),
+    INVALID_CREDENTIALS(401, "아이디 또는 비밀번호가 올바르지 않습니다."),
+    INVALID_REFRESH_TOKEN(401, "유효하지 않은 리프레시 토큰입니다."),
     TOKEN_EXPIRED(401, "토큰이 만료되었습니다."),
     FORBIDDEN(403, "접근 권한이 없습니다."),
     NOT_FOUND(404, "리소스를 찾을 수 없습니다."),
+    USER_NOT_FOUND(404, "사용자를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(405, "허용되지 않은 HTTP 메서드입니다."),
     CONFLICT(409, "이미 존재하는 리소스입니다."),
     TOO_MANY_REQUESTS(429, "요청이 너무 많습니다."),

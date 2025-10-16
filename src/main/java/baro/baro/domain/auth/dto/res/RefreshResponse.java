@@ -5,9 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class AuthTokensResponse {
+public class RefreshResponse {
     private String accessToken;
-    private long expiresIn; // seconds
+    private long expiresIn;
 }
-
-
