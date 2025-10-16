@@ -1,5 +1,6 @@
 package baro.baro.domain.auth.controller;
 
+import baro.baro.domain.auth.dto.req.PhoneVerifyRequest;
 import baro.baro.domain.auth.dto.res.PhoneVerificationResponse;
 import baro.baro.domain.auth.dto.res.PhoneVerifyResponse;
 import baro.baro.domain.auth.service.EmailListener;
@@ -52,8 +53,8 @@ public class PhoneVerificationController {
     @GetMapping("/verifications")
     public ResponseEntity<PhoneVerifyResponse> getVerificationStatus(
             @Parameter(description = "인증 상태를 조회할 전화번호 (11자리)", example = "01012345678", required = true)
-            @RequestParam String phoneNumber) {
-        boolean isVerified = phoneVerificationService.isPhoneNumberVerified(phoneNumber);
+            @RequestParam PhoneVerifyRequest request) {
+        boolean isVerified = phoneVerificationService.isPhoneNumberVerified(request);
         return ResponseEntity.ok(new PhoneVerifyResponse(isVerified));
     }
 }
