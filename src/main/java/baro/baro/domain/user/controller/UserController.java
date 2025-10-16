@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import baro.baro.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final AuthService authService;
+    private final UserService userService;
 
     @Operation(summary = "회원가입", 
                description = "새로운 사용자를 등록하고 JWT 토큰을 발급합니다. 전화번호 인증이 완료된 상태에서 호출해야 합니다.")
@@ -39,7 +40,7 @@ public class UserController {
     })
     @PostMapping("/register")
     public ResponseEntity<AuthTokensResponse> signup(@Valid @RequestBody SignupRequest request) {
-        AuthTokensResponse tokens = authService.signup(request);
+        AuthTokensResponse tokens = userService.signup(request);
         return ResponseEntity.ok(tokens);
     }
 }
