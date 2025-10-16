@@ -21,6 +21,14 @@ public class SecurityConfig {
                         // User Controller
                         .requestMatchers(HttpMethod.POST , "/users/register").permitAll()
 
+                        // Member Controller
+                        .requestMatchers(HttpMethod.POST , "/members/invitations/acceptance").permitAll()
+                        .requestMatchers(HttpMethod.DELETE , "/members/invitations/rejection").permitAll()
+                        .requestMatchers(HttpMethod.POST , "/members/invitations").permitAll()
+
+                        // Swagger UI - 인증 없이 접근 가능하도록 설정
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )

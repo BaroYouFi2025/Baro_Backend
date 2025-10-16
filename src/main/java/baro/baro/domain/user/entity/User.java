@@ -42,8 +42,7 @@ public class User {
     private LocalDate birthDate;
     
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "role", columnDefinition = "user_role", nullable = false)
+    @Column(name = "role", nullable = false)
     @Builder.Default
     private UserRole role = UserRole.USER;
     

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -120,6 +121,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.VALIDATION_ERROR.getStatus())
                 .body(ApiErrorResponse.of("TYPE_MISMATCH", "잘못된 타입의 값이 입력되었습니다."));
+    }
+
+    /**
+     * 인증 실패 예외 처리
+     * @param e AuthenticationException
+     * @return 401 Unauthorized 응답
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthentication(AuthenticationException e) {
+        log.warn("Authentication exception occurred: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.AUTH_ERROR.getStatus())
+                .body(ApiErrorResponse.of(ErrorCode.AUTH_ERROR));
     }
 
     /**
