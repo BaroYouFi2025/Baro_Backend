@@ -33,7 +33,7 @@ public class PhoneVerificationService {
 
         // 중복 토큰 방지를 위한 재시도 로직
         do {
-            token = generateRandomCode(6);
+            token = generateRandomCode();
             retryCount++;
 
             if (retryCount > 5) {
@@ -46,8 +46,9 @@ public class PhoneVerificationService {
                 .verified(false)
                 .expiresAt(LocalDateTime.now().plusSeconds(VALIDITY_SECONDS))
                 .build();
-
-        repo.save(pv);
+        log.debug("Creating verification token for {}", pv);
+        PhoneVerification ppv = repo.save(pv);
+        log.info("인증 토큰 생성: token={}, expiresAt={}", token, ppv.getId());
         return token;
     }
 
@@ -110,10 +111,10 @@ public class PhoneVerificationService {
     /**
      * 랜덤 숫자 코드 생성
      */
-    private String generateRandomCode(int length) {
+    private String generateRandomCode() {
         Random random = new Random();
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < 6; i++) {
             sb.append(random.nextInt(10));
         }
         return sb.toString();
