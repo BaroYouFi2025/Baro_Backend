@@ -10,6 +10,8 @@ import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.common.exception.ErrorCode;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
-    public AuthTokensResponse login(LoginRequest request) {
+    public AuthTokensResponse login(LoginRequest request, HttpServletResponse response) {
         User user = userRepository.findByUid(request.getUserId())
                 .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
@@ -36,15 +38,32 @@ public class AuthServiceImpl implements AuthService {
         String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
 
-        return new AuthTokensResponse(access, refresh, expiresIn);
+        // Refresh Token을 Cookie에 설정
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refresh);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(14 * 24 * 60 * 60); // 14일
+        response.addCookie(refreshTokenCookie);
+
+        // Response에서 refreshToken 제거 (Cookie에만 저장)
+        return new AuthTokensResponse(access, expiresIn);
     }
 
     @Override
-    public LogoutResponse logout(LogoutRequest request) {
+    public LogoutResponse logout(LogoutRequest request, HttpServletResponse response) {
         // Refresh token 검증
         if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
             throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
+
+        // Refresh Token Cookie 삭제
+        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(0); // 즉시 삭제
+        response.addCookie(refreshTokenCookie);
 
         // 실제 구현에서는 refresh token을 블랙리스트에 추가하거나 DB에서 삭제
         // 현재는 단순히 성공 메시지만 반환
