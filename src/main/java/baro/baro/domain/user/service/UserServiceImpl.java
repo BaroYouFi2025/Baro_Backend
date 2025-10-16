@@ -57,9 +57,8 @@ public class UserServiceImpl implements UserService {
         );
 
         String access = jwtTokenProvider.createAccessToken(user.getUid());
-        String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
 
-        return new AuthTokensResponse(access, refresh, expiresIn);
+        return new AuthTokensResponse(access, expiresIn);
     }
 }
