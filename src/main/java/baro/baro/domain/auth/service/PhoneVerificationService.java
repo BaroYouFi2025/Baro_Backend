@@ -1,6 +1,5 @@
 package baro.baro.domain.auth.service;
 
-import baro.baro.domain.auth.dto.req.PhoneVerifyRequest;
 import baro.baro.domain.auth.entity.PhoneVerification;
 import baro.baro.domain.auth.exception.PhoneVerificationErrorCode;
 import baro.baro.domain.auth.exception.PhoneVerificationException;
@@ -87,8 +86,8 @@ public class PhoneVerificationService {
      *  전화번호 인증 상태 확인
      */
     @Transactional(readOnly = true)
-    public boolean isPhoneNumberVerified(PhoneVerifyRequest request) {
-        PhoneVerification phoneVerification = repo.findByPhoneNumber(request.getPhoneNumber()).orElse(null);
+    public boolean isPhoneNumberVerified(String phoneNumber) {
+        PhoneVerification phoneVerification = repo.findByPhoneNumber(phoneNumber).orElse(null);
         return phoneVerification != null && phoneVerification.isVerified();
     }
 
