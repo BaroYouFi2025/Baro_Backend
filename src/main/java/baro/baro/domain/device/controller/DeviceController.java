@@ -2,6 +2,7 @@ package baro.baro.domain.device.controller;
 
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
 import baro.baro.domain.device.dto.request.GpsUpdateRequest;
+import baro.baro.domain.device.dto.response.DeviceLocationResponse;
 import baro.baro.domain.device.dto.response.DeviceResponse;
 import baro.baro.domain.device.dto.response.GpsUpdateResponse;
 import baro.baro.domain.device.service.DeviceService;
@@ -71,6 +72,22 @@ public class DeviceController {
             Authentication authentication) {
         String uid = authentication.getName();
         GpsUpdateResponse response = deviceService.updateGps(uid, deviceId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "사용자 위치 조회", description = "특정 사용자의 최신 기기 위치를 조회합니다. 관계가 없는 사용자도 조회 가능합니다.")
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "위치 조회 성공",
+            content = @Content(schema = @Schema(implementation = DeviceLocationResponse.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @ApiResponse(responseCode = "404", description = "사용자 또는 기기를 찾을 수 없음 또는 GPS 데이터 없음")
+    })
+    @GetMapping("/users/{userId}/location")
+    public ResponseEntity<DeviceLocationResponse> getUserLocation(@PathVariable Long userId) {
+        DeviceLocationResponse response = deviceService.getDeviceLocation(userId);
         return ResponseEntity.ok(response);
     }
 
