@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Table(name = "relationships", schema = "youfi")
 @Entity
+@Getter
 @Builder
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -18,7 +19,6 @@ public class Relationship {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Getter
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
