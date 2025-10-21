@@ -1,10 +1,10 @@
 package baro.baro.domain.auth.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +12,7 @@ import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
@@ -41,6 +42,21 @@ public class JwtTokenProvider {
         return accessTokenValidityMs / 1000;
     }
 
+    /**
+     * Refresh Token의 유효 시간(밀리초)을 반환합니다.
+     * 
+     * @return Refresh Token 유효 시간 (밀리초)
+     */
+    public long getRefreshTokenValidityMs() {
+        return refreshTokenValidityMs;
+    }
+
+    /**
+     * JWT 토큰의 유효성을 검증합니다.
+     * 
+     * @param token 검증할 JWT 토큰
+     * @return 유효한 토큰이면 true, 그렇지 않으면 false
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
@@ -48,9 +64,18 @@ public class JwtTokenProvider {
                     .build()
                     .parseClaimsJws(token);
             return true;
+        } catch (SecurityException | MalformedJwtException e) {
+            log.warn("잘못된 JWT 서명입니다. Token: {}", token.substring(0, Math.min(20, token.length())));
+        } catch (ExpiredJwtException e) {
+            log.warn("만료된 JWT 토큰입니다. Expired at: {}", e.getClaims().getExpiration());
+        } catch (UnsupportedJwtException e) {
+            log.warn("지원되지 않는 JWT 토큰입니다.");
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT 토큰이 잘못되었습니다. Error: {}", e.getMessage());
         } catch (Exception e) {
-            return false;
+            log.error("JWT 토큰 검증 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
         }
+        return false;
     }
 
     public String getSubjectFromToken(String token) {
