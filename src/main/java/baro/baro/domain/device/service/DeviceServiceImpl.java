@@ -154,15 +154,9 @@ public class DeviceServiceImpl implements DeviceService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // 2. 사용자의 활성화된 기기 조회 (가장 최근에 등록된 기기)
-        Device device = deviceRepository.findByUser(user).stream()
-                .filter(Device::isActive)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No active device found for user"));
-
-        // 3. 해당 기기의 최신 GPS 위치 조회
-        GpsTrack latestGpsTrack = gpsTrackRepository.findLatestByDevice(device)
-                .orElseThrow(() -> new IllegalArgumentException("No GPS data found for device"));
+        // 2. 사용자의 모든 기기 중 최신 GPS 위치 조회
+        GpsTrack latestGpsTrack = gpsTrackRepository.findLatestByUser(user)
+                .orElseThrow(() -> new IllegalArgumentException("No GPS data found for user"));
 
         // 4. Point에서 위도, 경도 추출
         Point location = latestGpsTrack.getLocation();
