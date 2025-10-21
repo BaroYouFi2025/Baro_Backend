@@ -2,7 +2,6 @@ package baro.baro.domain.device.repository;
 
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.entity.GpsTrack;
-import baro.baro.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
