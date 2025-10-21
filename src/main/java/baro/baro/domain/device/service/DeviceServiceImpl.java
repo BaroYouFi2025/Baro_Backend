@@ -170,10 +170,14 @@ public class DeviceServiceImpl implements DeviceService {
         double longitude = location.getX(); // X = 경도
 
         // 5. 응답 DTO 생성 및 반환
-        return DeviceLocationResponse.builder()
+        DeviceLocationResponse.LocationInfo locationInfo = DeviceLocationResponse.LocationInfo.builder()
                 .latitude(latitude)
                 .longitude(longitude)
-                .batteryLevel(device.getBatteryLevel())
+                .build();
+
+        return DeviceLocationResponse.builder()
+                .userId(userId)
+                .location(locationInfo)
                 .recordedAt(latestGpsTrack.getRecordedAt())
                 .build();
     }
