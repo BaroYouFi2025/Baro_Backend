@@ -2,6 +2,7 @@ package baro.baro.domain.device.service;
 
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
 import baro.baro.domain.device.dto.request.GpsUpdateRequest;
+import baro.baro.domain.device.dto.response.DeviceLocationResponse;
 import baro.baro.domain.device.dto.response.DeviceResponse;
 import baro.baro.domain.device.dto.response.GpsUpdateResponse;
 import baro.baro.domain.device.entity.Device;
@@ -136,6 +137,45 @@ public class DeviceServiceImpl implements DeviceService {
                 gpsTrack.getRecordedAt(),
                 "GPS 위치가 업데이트되었습니다."
         );
+    }
+
+    /**
+     * 사용자의 최신 기기 위치를 조회합니다.
+     * 관계가 연결되지 않은 사용자도 조회할 수 있습니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 최신 기기 위치 정보
+     * @throws IllegalArgumentException 사용자를 찾을 수 없거나 기기가 없거나 GPS 기록이 없는 경우
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceLocationResponse getDeviceLocation(Long userId) {
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 2. 사용자의 활성화된 기기 조회 (가장 최근에 등록된 기기)
+        Device device = deviceRepository.findByUser(user).stream()
+                .filter(Device::isActive)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No active device found for user"));
+
+        // 3. 해당 기기의 최신 GPS 위치 조회
+        GpsTrack latestGpsTrack = gpsTrackRepository.findLatestByDevice(device)
+                .orElseThrow(() -> new IllegalArgumentException("No GPS data found for device"));
+
+        // 4. Point에서 위도, 경도 추출
+        Point location = latestGpsTrack.getLocation();
+        double latitude = location.getY();  // Y = 위도
+        double longitude = location.getX(); // X = 경도
+
+        // 5. 응답 DTO 생성 및 반환
+        return DeviceLocationResponse.builder()
+                .latitude(latitude)
+                .longitude(longitude)
+                .batteryLevel(device.getBatteryLevel())
+                .recordedAt(latestGpsTrack.getRecordedAt())
+                .build();
     }
 
 }
