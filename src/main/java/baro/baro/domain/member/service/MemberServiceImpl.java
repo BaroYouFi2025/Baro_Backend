@@ -12,7 +12,6 @@ import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
 import baro.baro.domain.member.dto.response.InvitationResponse;
 import baro.baro.domain.member.dto.response.MemberLocationResponse;
 import baro.baro.domain.member.dto.response.MemberResponse;
-import baro.baro.domain.member.dto.response.LocationInfo;
 import baro.baro.domain.member.entity.Invitation;
 import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
@@ -177,10 +176,10 @@ public class MemberServiceImpl implements MemberService {
             }
 
             // 위치 정보 DTO
-            LocationInfo location = new LocationInfo(
-                    GpsUtils.getLatitude(memberLocation.getLocation()),
-                    GpsUtils.getLongitude(memberLocation.getLocation())
-            );
+            MemberLocationResponse.LocationInfo location = MemberLocationResponse.LocationInfo.builder()
+                    .latitude(GpsUtils.getLatitude(memberLocation.getLocation()))
+                    .longitude(GpsUtils.getLongitude(memberLocation.getLocation()))
+                    .build();
 
             // 구성원 응답 DTO
             MemberLocationResponse memberResponse = MemberLocationResponse.builder()

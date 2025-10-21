@@ -35,4 +35,21 @@ public class MemberLocationResponse {
 
     @Schema(description = "위치 정보")
     private LocationInfo location;
+
+    /**
+     * 위치 정보 내부 클래스
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "위치 정보")
+    public static class LocationInfo {
+
+        @Schema(description = "위도", example = "35.1763")
+        private Double latitude;
+
+        @Schema(description = "경도", example = "128.9664")
+        private Double longitude;
+    }
 }
