@@ -11,4 +11,5 @@ public interface MemberService {
 
     void rejectInvitation(RejectInvitationRequest request);
     List<MemberResponse> getMember();
+    List<MemberLocationResponse> getMemberLocations();
 }
