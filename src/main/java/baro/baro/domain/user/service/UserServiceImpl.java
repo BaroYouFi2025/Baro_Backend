@@ -12,7 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDate;
 
@@ -24,6 +27,9 @@ public class UserServiceImpl implements UserService {
     private final PhoneVerificationRepository phoneVerificationRepository;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtTokenProvider jwtTokenProvider;
+    
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
 
     @Override
     @Transactional
@@ -46,7 +52,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public AuthTokensResponse signup(SignupRequest request) {
+    public AuthTokensResponse signup(SignupRequest request, HttpServletResponse response) {
         User user = createUser
                 (
                 request.getUid(),
@@ -57,7 +63,17 @@ public class UserServiceImpl implements UserService {
         );
 
         String access = jwtTokenProvider.createAccessToken(user.getUid());
+        String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
+
+        // Refresh Token을 Cookie에 설정
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refresh);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(cookieSecure);
+        refreshTokenCookie.setPath("/auth/refresh");
+        refreshTokenCookie.setAttribute("SameSite", "Strict");
+        refreshTokenCookie.setMaxAge(14 * 24 * 60 * 60); // 14일
+        response.addCookie(refreshTokenCookie);
 
         return new AuthTokensResponse(access, expiresIn);
     }
