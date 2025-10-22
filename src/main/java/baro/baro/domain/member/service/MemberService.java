@@ -10,6 +10,5 @@ public interface MemberService {
     AcceptInvitationResponse acceptInvitation(AcceptInvitationRequest request);
 
     void rejectInvitation(RejectInvitationRequest request);
-    List<MemberResponse> getMember();
     List<MemberLocationResponse> getMemberLocations();
 }
