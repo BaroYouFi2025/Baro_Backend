@@ -17,6 +17,6 @@ public interface PhoneVerificationRepository extends JpaRepository<PhoneVerifica
 
     // 만료된 토큰들 삭제
     @Modifying
-    @Query("DELETE FROM PhoneVerification p WHERE p.expiresAt < :now")
+    @Query("DELETE FROM PhoneVerification p WHERE p.expiresAt < :now and p.verified = false")
     int deleteExpiredTokens(LocalDateTime now);
 }
