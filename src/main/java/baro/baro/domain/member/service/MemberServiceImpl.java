@@ -11,7 +11,6 @@ import baro.baro.domain.member.dto.request.RejectInvitationRequest;
 import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
 import baro.baro.domain.member.dto.response.InvitationResponse;
 import baro.baro.domain.member.dto.response.MemberLocationResponse;
-import baro.baro.domain.member.dto.response.MemberResponse;
 import baro.baro.domain.member.entity.Invitation;
 import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
@@ -117,10 +116,6 @@ public class MemberServiceImpl implements MemberService {
         invitationRepository.save(invitation);
     }
 
-    @Override
-    public List<MemberResponse> getMember() {
-        return null;
-    }
 
     /**
      * 사용자와 관계가 있는 구성원들의 위치 정보를 조회합니다.
@@ -176,20 +171,20 @@ public class MemberServiceImpl implements MemberService {
             }
 
             // 위치 정보 DTO
-            MemberLocationResponse.LocationInfo location = MemberLocationResponse.LocationInfo.builder()
-                    .latitude(GpsUtils.getLatitude(memberLocation.getLocation()))
-                    .longitude(GpsUtils.getLongitude(memberLocation.getLocation()))
-                    .build();
+            MemberLocationResponse.LocationInfo location = MemberLocationResponse.LocationInfo.create(
+                    GpsUtils.getLatitude(memberLocation.getLocation()),
+                    GpsUtils.getLongitude(memberLocation.getLocation())
+            );
 
             // 구성원 응답 DTO
-            MemberLocationResponse memberResponse = MemberLocationResponse.builder()
-                    .userId(member.getId())
-                    .name(member.getName())
-                    .relationship(relationship.getRelation())
-                    .batteryLevel(memberDevice.getBatteryLevel())
-                    .distance(distance)
-                    .location(location)
-                    .build();
+            MemberLocationResponse memberResponse = MemberLocationResponse.create(
+                    member.getId(),
+                    member.getName(),
+                    relationship.getRelation(),
+                    memberDevice.getBatteryLevel(),
+                    distance,
+                    location
+            );
 
             members.add(memberResponse);
         }
