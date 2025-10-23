@@ -17,4 +17,23 @@ public enum UserErrorCode {
         this.code = code;
         this.message = message;
     }
+
+    /**
+     * HTTP 상태 코드를 반환합니다.
+     * UserErrorCode는 기본적으로 400 Bad Request를 반환합니다.
+     *
+     * @return HTTP 상태 코드
+     */
+    public int getStatus() {
+        return 400;
+    }
+
+    /**
+     * 오류 메시지를 반환합니다.
+     *
+     * @return 오류 메시지
+     */
+    public String getMessage() {
+        return this.message;
+    }
 }
