@@ -12,6 +12,21 @@ public class SecurityUtil {
     }
 
     /**
+     * SecurityContext에서 현재 인증된 사용자를 반환합니다.
+     *
+     * @return 현재 사용자 엔티티
+     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
+     * @throws UserException 사용자를 찾을 수 없는 경우
+     */
+    public static User getCurrentUser() {
+        String uid = getCurrentUserUid();
+        UserRepository userRepository = ApplicationContextProvider.getBean(UserRepository.class);
+
+        return userRepository.findByUid(uid)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+    }
+    
+    /**
      * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
      *
      * @return 현재 사용자의 UID (String)
