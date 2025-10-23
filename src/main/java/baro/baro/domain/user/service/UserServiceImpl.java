@@ -14,6 +14,7 @@ import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.auth.service.JwtTokenProvider;
 import baro.baro.domain.common.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -86,9 +88,12 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile() {
         String currentUid = SecurityUtil.getCurrentUserUid();
+        log.debug("프로필 조회 요청 - UID: {}", currentUid);
+        
         User user = userRepository.findByUid(currentUid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         
+        log.debug("프로필 조회 성공 - User ID: {}", user.getId());
         return UserProfileResponse.builder()
                 .userId(user.getId())
                 .name(user.getName())
