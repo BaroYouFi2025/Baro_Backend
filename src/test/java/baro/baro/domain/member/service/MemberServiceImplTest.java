@@ -95,7 +95,8 @@ class MemberServiceImplTest {
         // when
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(inviter);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("inviter_uid");
+            when(userRepository.findByUid("inviter_uid")).thenReturn(Optional.of(inviter));
 
             InvitationResponse response = memberService.makeInvitation(request);
 
@@ -103,6 +104,7 @@ class MemberServiceImplTest {
             assertThat(response).isNotNull();
             assertThat(response.getRelationshipRequestId()).isEqualTo(1L);
             verify(userRepository, times(1)).findById(2L);
+            verify(userRepository, times(1)).findByUid("inviter_uid");
             verify(invitationRepository, times(1)).save(any(Invitation.class));
         }
     }
@@ -119,7 +121,8 @@ class MemberServiceImplTest {
         // when & then
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(inviter);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("inviter_uid");
+            when(userRepository.findByUid("inviter_uid")).thenReturn(Optional.of(inviter));
 
             assertThatThrownBy(() -> memberService.makeInvitation(request))
                     .isInstanceOf(UserException.class)
@@ -158,7 +161,8 @@ class MemberServiceImplTest {
         // when
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(invitee);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("invitee_uid");
+            when(userRepository.findByUid("invitee_uid")).thenReturn(Optional.of(invitee));
 
             AcceptInvitationResponse response = memberService.acceptInvitation(request);
 
@@ -183,7 +187,8 @@ class MemberServiceImplTest {
         // when & then
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(invitee);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("invitee_uid");
+            when(userRepository.findByUid("invitee_uid")).thenReturn(Optional.of(invitee));
 
             assertThatThrownBy(() -> memberService.acceptInvitation(request))
                     .isInstanceOf(MemberException.class)
@@ -204,7 +209,8 @@ class MemberServiceImplTest {
         // when
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(invitee);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("invitee_uid");
+            when(userRepository.findByUid("invitee_uid")).thenReturn(Optional.of(invitee));
 
             memberService.rejectInvitation(request);
 
@@ -226,7 +232,8 @@ class MemberServiceImplTest {
         // when & then
         try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> securityUtil =
                      mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn(invitee);
+            securityUtil.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser).thenReturn("invitee_uid");
+            when(userRepository.findByUid("invitee_uid")).thenReturn(Optional.of(invitee));
 
             assertThatThrownBy(() -> memberService.rejectInvitation(request))
                     .isInstanceOf(MemberException.class)
