@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Table(name = "devices", schema = "youfi")
 public class Device {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

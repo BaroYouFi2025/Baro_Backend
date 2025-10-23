@@ -8,7 +8,7 @@ import org.locationtech.jts.geom.Point;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "gps_tracks")
+@Table(name = "gps_tracks", schema = "youfi")
 public class GpsTrack {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
