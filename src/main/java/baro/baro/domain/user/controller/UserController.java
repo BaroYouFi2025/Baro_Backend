@@ -2,6 +2,7 @@ package baro.baro.domain.user.controller;
 
 import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.dto.req.SignupRequest;
+import baro.baro.domain.user.dto.req.UpdateProfileRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,7 +56,6 @@ public class UserController {
         AuthTokensResponse tokens = userService.signup(request, response);
         return ResponseEntity.ok(tokens);
     }
-
     @Operation(summary = "사용자 프로필 조회", 
                description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.")
     @ApiResponses(value = {
@@ -70,6 +71,26 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile() {
         UserProfileResponse profile = userService.getProfile();
+        return ResponseEntity.ok(profile);
+    }
+
+    @Operation(summary = "사용자 프로필 수정", 
+               description = "현재 로그인한 사용자의 프로필 정보를 수정합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "프로필 수정 성공",
+            content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @PatchMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        UserProfileResponse profile = userService.updateProfile(request);
         return ResponseEntity.ok(profile);
     }
 }
