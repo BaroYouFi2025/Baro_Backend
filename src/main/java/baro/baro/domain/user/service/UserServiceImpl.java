@@ -6,7 +6,9 @@ import baro.baro.domain.auth.exception.PhoneVerificationException;
 import baro.baro.domain.auth.repository.PhoneVerificationRepository;
 import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.dto.req.UpdateProfileRequest;
+import baro.baro.domain.user.dto.req.DeleteUserRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
+import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.auth.service.JwtTokenProvider;
@@ -125,6 +127,39 @@ public class UserServiceImpl implements UserService {
                 .level(user.getLevel())
                 .exp(user.getExp())
                 .title(user.getTitle())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public DeleteUserResponse deleteUser(DeleteUserRequest request) {
+        String currentUid = SecurityUtil.getCurrentUserUid();
+        User user = userRepository.findByUid(currentUid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 비밀번호 확인
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 사용자 비활성화 (실제 삭제 대신)
+        User updatedUser = User.builder()
+                .id(user.getId())
+                .uid(user.getUid())
+                .passwordHash(user.getPasswordHash())
+                .phone(user.getPhone())
+                .name(user.getName())
+                .birthDate(user.getBirthDate())
+                .level(user.getLevel())
+                .exp(user.getExp())
+                .title(user.getTitle())
+                .isActive(false)
+                .build();
+        
+        userRepository.save(updatedUser);
+        
+        return DeleteUserResponse.builder()
+                .message("회원 탈퇴가 완료되었습니다.")
                 .build();
     }
 }
