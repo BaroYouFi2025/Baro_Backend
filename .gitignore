@@ -43,3 +43,5 @@ out/
 .serena/memories
 .serena/project.yml
 .serena/.gitignore
+
+CLAUDE.md
