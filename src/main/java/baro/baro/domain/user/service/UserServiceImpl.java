@@ -5,9 +5,11 @@ import baro.baro.domain.auth.exception.PhoneVerificationErrorCode;
 import baro.baro.domain.auth.exception.PhoneVerificationException;
 import baro.baro.domain.auth.repository.PhoneVerificationRepository;
 import baro.baro.domain.user.dto.req.SignupRequest;
+import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.auth.service.JwtTokenProvider;
+import baro.baro.domain.common.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -76,5 +78,21 @@ public class UserServiceImpl implements UserService {
         response.addCookie(refreshTokenCookie);
 
         return new AuthTokensResponse(access, expiresIn);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile() {
+        String currentUid = SecurityUtil.getCurrentUserUid();
+        User user = userRepository.findByUid(currentUid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        return UserProfileResponse.builder()
+                .userId(user.getId())
+                .name(user.getName())
+                .level(user.getLevel())
+                .exp(user.getExp())
+                .title(user.getTitle())
+                .build();
     }
 }
