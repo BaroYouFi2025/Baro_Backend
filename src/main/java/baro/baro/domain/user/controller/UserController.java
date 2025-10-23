@@ -3,7 +3,9 @@ package baro.baro.domain.user.controller;
 import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.dto.req.UpdateProfileRequest;
+import baro.baro.domain.user.dto.req.DeleteUserRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
+import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import baro.baro.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +18,7 @@ import baro.baro.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -92,5 +95,25 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         UserProfileResponse profile = userService.updateProfile(request);
         return ResponseEntity.ok(profile);
+    }
+
+    @Operation(summary = "사용자 회원 탈퇴", 
+               description = "현재 로그인한 사용자의 계정을 비활성화합니다. 비밀번호 확인이 필요합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "회원 탈퇴 성공",
+            content = @Content(schema = @Schema(implementation = DeleteUserResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (비밀번호 불일치)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @DeleteMapping("/me")
+    public ResponseEntity<DeleteUserResponse> deleteUser(@Valid @RequestBody DeleteUserRequest request) {
+        DeleteUserResponse response = userService.deleteUser(request);
+        return ResponseEntity.ok(response);
     }
 }
