@@ -63,8 +63,6 @@ public class EmailListener {
      */
     @Scheduled(fixedDelay = 15000, initialDelay = 3000)
     public void checkMailbox() {
-        log.info("checkMailbox() 호출됨 - isListening: {}", isListening);
-
         if (!isListening) {
             return;
         }
@@ -96,7 +94,6 @@ public class EmailListener {
             while (true) {
                 try {
                     store.connect(host, username, password);
-                    log.info("IMAP 서버 연결 성공");
                     break;
                 } catch (AuthenticationFailedException e) {
                     log.error("이메일 인증 실패: {}", e.getMessage());
@@ -108,7 +105,6 @@ public class EmailListener {
                         log.error("IMAP 연결 실패 ({}회 재시도)", retryCount, e);
                         throw new EmailException(EmailErrorCode.CONNECTION_RETRY_EXCEEDED);
                     }
-                    log.warn("IMAP 연결 실패, {}초 후 재시도 ({}회차) - 오류: {}", 1, retryCount, e.getMessage());
                     try {
                         Thread.sleep(1000); // 1초 대기
                     } catch (InterruptedException ie) {
