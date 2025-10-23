@@ -6,9 +6,13 @@ import baro.baro.domain.device.dto.response.DeviceResponse;
 import baro.baro.domain.device.dto.response.GpsUpdateResponse;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.entity.GpsTrack;
+import baro.baro.domain.device.exception.DeviceErrorCode;
+import baro.baro.domain.device.exception.DeviceException;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
 import baro.baro.domain.user.entity.User;
+import baro.baro.domain.user.exception.UserErrorCode;
+import baro.baro.domain.user.exception.UserException;
 import baro.baro.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
@@ -44,25 +48,26 @@ public class DeviceServiceImpl implements DeviceService {
      * @param uid 사용자 고유 ID
      * @param request 기기 등록 요청 정보 (UUID, OS 타입, OS 버전)
      * @return 등록된 기기 정보
-     * @throws IllegalArgumentException 사용자를 찾을 수 없거나 이미 등록된 UUID인 경우
+     * @throws UserException 사용자를 찾을 수 없는 경우
+     * @throws DeviceException 이미 등록된 UUID인 경우
      */
     @Override
     @Transactional
     public DeviceResponse registerDevice(String uid, DeviceRegisterRequest request) {
         // 1. 사용자 조회
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 중복 UUID 확인 - 이미 등록된 UUID인지 검증
-        deviceRepository.findByUuid(request.getDeviceUuid())
+        deviceRepository.findByDeviceUuid(request.getDeviceUuid())
                 .ifPresent(device -> {
-                    throw new IllegalArgumentException("Device already registered");
+                    throw new DeviceException(DeviceErrorCode.DEVICE_ALREADY_REGISTERED);
                 });
 
         // 3. 기기 엔티티 생성
         Device device = Device.builder()
                 .user(user)
-                .uuid(request.getDeviceUuid())
+                .deviceUuid(request.getDeviceUuid())
                 .osType(request.getOsType())       // OS 타입 (iOS, Android 등)
                 .osVersion(request.getOsVersion()) // OS 버전
                 .batteryLevel(null)                // 초기 배터리 레벨은 null
@@ -76,7 +81,7 @@ public class DeviceServiceImpl implements DeviceService {
         // 5. 응답 DTO 생성 및 반환
         return new DeviceResponse(
                 savedDevice.getId(),
-                savedDevice.getUuid(),
+                savedDevice.getDeviceUuid(),
                 savedDevice.getBatteryLevel(),
                 savedDevice.getOsType(),
                 savedDevice.getOsVersion(),
@@ -95,18 +100,19 @@ public class DeviceServiceImpl implements DeviceService {
      * @param deviceId 기기 ID
      * @param request GPS 위치 정보 (위도, 경도, 배터리 레벨)
      * @return GPS 업데이트 결과
-     * @throws IllegalArgumentException 사용자 또는 기기를 찾을 수 없거나 소유권이 없는 경우
+     * @throws UserException 사용자를 찾을 수 없는 경우
+     * @throws DeviceException 기기를 찾을 수 없거나 소유권이 없는 경우
      */
     @Override
     @Transactional
     public GpsUpdateResponse updateGps(String uid, Long deviceId, GpsUpdateRequest request) {
         // 1. 사용자 조회
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 기기 조회 및 소유권 확인
         Device device = deviceRepository.findByIdAndUser(deviceId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Device not found or not owned by user"));
+                .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_OWNED_BY_USER));
 
         // 3. GPS 위치 Point 객체 생성 (PostGIS 공간 데이터)
         // 주의: Coordinate의 순서는 (경도, 위도) 입니다
