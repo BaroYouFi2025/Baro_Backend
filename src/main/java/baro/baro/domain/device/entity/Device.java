@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 기기(Device) 엔티티
@@ -34,7 +33,7 @@ public class Device {
 
     /** 기기 고유 식별자 (클라이언트에서 생성) */
     @Column(name = "device_uuid", unique = true, nullable = false)
-    private UUID uuid;
+    private String deviceUuid;
 
     /** 배터리 잔량 (0-100) */
     @Column(name = "battery_level", length = 100)

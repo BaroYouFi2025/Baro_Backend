@@ -7,11 +7,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public interface DeviceRepository extends JpaRepository<Device, Long> {
-    Optional<Device> findByUuid(UUID uuid);
+    Optional<Device> findByDeviceUuid(String deviceUuid);
     List<Device> findByUser(User user);
     Optional<Device> findByIdAndUser(Long id, User user);
 }

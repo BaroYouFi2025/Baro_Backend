@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
@@ -17,8 +16,8 @@ public class DeviceResponse {
     @Schema(description = "기기 ID", example = "123")
     private Long deviceId;
 
-    @Schema(description = "기기 UUID", example = "550e8400-e29b-41d4-a716-446655440000")
-    private UUID deviceUuid;
+    @Schema(description = "기기 UUID", example = "device-uuid-1234")
+    private String deviceUuid;
 
     @Schema(description = "배터리 잔량", example = "85")
     private Integer batteryLevel;
