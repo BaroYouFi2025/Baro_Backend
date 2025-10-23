@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.time.LocalDateTime;
 
@@ -41,6 +42,7 @@ public class Invitation {
     @Getter
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
+    @ColumnTransformer(write = "?::youfi.relationship_request_status")
     private RelationshipRequestStatus status; // PENDING, ACCEPTED, REJECTED
 
     @Getter
