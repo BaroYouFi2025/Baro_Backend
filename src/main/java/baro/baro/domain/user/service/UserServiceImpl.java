@@ -14,7 +14,6 @@ import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.auth.service.JwtTokenProvider;
 import baro.baro.domain.common.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +29,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PhoneVerificationRepository phoneVerificationRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     
     @Value("${cookie.secure}")
