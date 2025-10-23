@@ -56,4 +56,15 @@ public class SecurityUtil {
 
         return authentication.isAuthenticated();
     }
+
+    /**
+     * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
+     * getCurrentUserUid()와 동일한 기능을 제공합니다.
+     *
+     * @return 현재 사용자의 UID (String)
+     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
+     */
+    public static String getCurrentUser() {
+        return getCurrentUserUid();
+    }
 }

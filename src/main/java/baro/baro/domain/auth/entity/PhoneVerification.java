@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "phone_verification")
+@Table(name = "phone_verification", schema = "youfi")
 public class PhoneVerification {
     @Id @GeneratedValue( strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,5 +35,14 @@ public class PhoneVerification {
             this.phoneNumber = phoneNumber;
             this.verified = true;
         }
+    }
+
+    /**
+     * 인증 완료 여부를 반환합니다.
+     *
+     * @return 인증 완료된 경우 true, 그렇지 않으면 false
+     */
+    public boolean isVerified() {
+        return this.verified;
     }
 }

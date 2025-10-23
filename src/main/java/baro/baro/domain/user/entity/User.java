@@ -43,6 +43,7 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private UserRole role = UserRole.USER;
     
@@ -71,5 +72,15 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
+
+    /**
+     * 사용자의 전화번호를 반환합니다.
+     * phoneE164 필드의 별칭 메서드입니다.
+     *
+     * @return 사용자의 전화번호 (E164 형식)
+     */
+    public String getPhone() {
+        return this.phoneE164;
+    }
 }
 

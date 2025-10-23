@@ -37,7 +37,9 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 생성 메서드
     public InvitationResponse makeInvitation(InvitationRequest request) {
-        User inviter = getCurrentUser();
+        String currentUserId = getCurrentUser();
+        User inviter = userRepository.findByUid(currentUserId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
         User invitee = userRepository.findById(request.getInviteeUserId())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
@@ -56,7 +58,9 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 동의 메서드
     public AcceptInvitationResponse acceptInvitation(AcceptInvitationRequest request) {
-        User invitee = getCurrentUser();
+        String currentUserId = getCurrentUser();
+        User invitee = userRepository.findByUid(currentUserId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Invitation invitation = invitationRepository.findById(request.getRelationshipRequestId())
                 .orElseThrow(() -> new MemberException(MemberErrorCode.INVITATION_NOT_FOUND));
@@ -95,7 +99,9 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 거절 메서드
     public void rejectInvitation(RejectInvitationRequest request) {
-        User invitee = getCurrentUser();
+        String currentUserId = getCurrentUser();
+        User invitee = userRepository.findByUid(currentUserId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Invitation invitation = invitationRepository.findById(request.getRelationshipId())
                 .orElseThrow(() -> new MemberException(MemberErrorCode.INVITATION_NOT_FOUND));
