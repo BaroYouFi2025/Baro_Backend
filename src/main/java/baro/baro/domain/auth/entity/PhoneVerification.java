@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "phone_verification")
+@Table(name = "phone_verification", schema = "youfi")
 public class PhoneVerification {
     @Id @GeneratedValue( strategy = GenerationType.IDENTITY)
     private Long id;
