@@ -2,10 +2,6 @@ package baro.baro.domain.common.util;
 
 import baro.baro.domain.common.exception.BusinessException;
 import baro.baro.domain.common.exception.ErrorCode;
-import baro.baro.domain.user.entity.User;
-import baro.baro.domain.user.exception.UserErrorCode;
-import baro.baro.domain.user.exception.UserException;
-import baro.baro.domain.user.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -16,27 +12,12 @@ public class SecurityUtil {
     }
 
     /**
-     * SecurityContext에서 현재 인증된 사용자를 반환합니다.
+     * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
      *
-     * @return 현재 사용자 엔티티
-     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
-     * @throws UserException 사용자를 찾을 수 없는 경우
-     */
-    public static User getCurrentUser() {
-        Long userId = getCurrentUserId();
-        UserRepository userRepository = ApplicationContextProvider.getBean(UserRepository.class);
-
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-    }
-
-    /**
-     * SecurityContext에서 현재 인증된 사용자의 ID를 반환합니다.
-     *
-     * @return 현재 사용자의 ID (Long)
+     * @return 현재 사용자의 UID (String)
      * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
      */
-    public static Long getCurrentUserId() {
+    public static String getCurrentUserUid() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -49,21 +30,11 @@ public class SecurityUtil {
             throw new BusinessException(ErrorCode.AUTH_ERROR);
         }
 
-        try {
-            // Principal이 User ID (Long)인 경우를 가정
-            if (principal instanceof Long) {
-                return (Long) principal;
-            }
-
-            // Principal이 String인 경우 Long으로 변환 시도
-            if (principal instanceof String) {
-                return Long.parseLong((String) principal);
-            }
-
-            throw new BusinessException(ErrorCode.AUTH_ERROR);
-        } catch (NumberFormatException e) {
-            throw new BusinessException(ErrorCode.AUTH_ERROR);
+        if (principal instanceof String) {
+            return (String) principal;
         }
+
+        throw new BusinessException(ErrorCode.AUTH_ERROR);
     }
 
     /**
