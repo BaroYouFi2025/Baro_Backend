@@ -2,6 +2,7 @@ package baro.baro.domain.user.controller;
 
 import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.dto.req.SignupRequest;
+import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,6 +15,7 @@ import baro.baro.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,5 +53,23 @@ public class UserController {
     public ResponseEntity<AuthTokensResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletResponse response) {
         AuthTokensResponse tokens = userService.signup(request, response);
         return ResponseEntity.ok(tokens);
+    }
+
+    @Operation(summary = "사용자 프로필 조회", 
+               description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "프로필 조회 성공",
+            content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getProfile() {
+        UserProfileResponse profile = userService.getProfile();
+        return ResponseEntity.ok(profile);
     }
 }
