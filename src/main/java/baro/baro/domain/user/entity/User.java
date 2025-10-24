@@ -58,6 +58,9 @@ public class User {
     @Column(name = "profile_url")
     private String profileUrl;
     
+    @Column(name = "profile_background_color")
+    private String profileBackgroundColor;
+    
     private Integer card;
     
     @Builder.Default
@@ -93,7 +96,6 @@ public class User {
 
     /**
      * 현재 로그인된 사용자의 User 엔티티를 반환합니다.
-     * SecurityUtil.getCurrentUser()와 동일한 로직을 구현합니다.
      *
      * @return 현재 로그인된 사용자의 User 엔티티
      * @throws UserException 사용자를 찾을 수 없는 경우

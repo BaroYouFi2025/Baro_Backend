@@ -100,6 +100,8 @@ public class UserServiceImpl implements UserService {
                 .level(user.getLevel())
                 .exp(user.getExp())
                 .title(user.getTitle())
+                .profileUrl(user.getProfileUrl())
+                .profileBackgroundColor(user.getProfileBackgroundColor())
                 .build();
     }
 
@@ -117,10 +119,17 @@ public class UserServiceImpl implements UserService {
                 .phoneE164(user.getPhone())
                 .name(request.getName() != null ? request.getName() : user.getName())
                 .birthDate(user.getBirthDate())
+                .role(user.getRole())
+                .profileUrl(request.getProfileUrl() != null ? request.getProfileUrl() : user.getProfileUrl())
+                .profileBackgroundColor(request.getProfileBackgroundColor() != null ? request.getProfileBackgroundColor() : user.getProfileBackgroundColor())
+                .card(user.getCard())
                 .level(user.getLevel())
                 .exp(user.getExp())
+                .border(user.getBorder())
                 .title(request.getTitle() != null ? request.getTitle() : user.getTitle())
                 .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
         
         userRepository.save(user);
@@ -131,6 +140,8 @@ public class UserServiceImpl implements UserService {
                 .level(user.getLevel())
                 .exp(user.getExp())
                 .title(user.getTitle())
+                .profileUrl(user.getProfileUrl())
+                .profileBackgroundColor(user.getProfileBackgroundColor())
                 .build();
     }
 
