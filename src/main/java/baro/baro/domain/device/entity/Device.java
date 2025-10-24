@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 사용자가 등록한 모바일 기기 정보를 관리합니다.
  * 각 기기는 고유한 UUID로 식별되며, GPS 추적 및 배터리 모니터링을 지원합니다.
  */
-@Entity
+@Entity(name = "DeviceEntity")
 @Getter
 @Builder
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
