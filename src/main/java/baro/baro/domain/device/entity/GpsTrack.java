@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * PostGIS의 Geography 타입을 사용하여 지리적 위치 데이터를 저장하며,
  * WGS84 좌표계(SRID: 4326)를 사용합니다.
  */
-@Entity
+@Entity(name = "GpsTrackEntity")
 @Getter
 @Builder
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
