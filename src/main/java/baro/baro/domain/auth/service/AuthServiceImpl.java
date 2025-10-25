@@ -37,6 +37,11 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUid(request.getUserId())
                 .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
+        // 비활성화된 사용자 로그인 차단
+        if (!user.isActive()) {
+            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
         }
@@ -114,6 +119,11 @@ public class AuthServiceImpl implements AuthService {
         // 사용자 존재 확인
         User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        // 비활성화된 사용자 토큰 재발급 차단
+        if (!user.isActive()) {
+            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+        }
 
         // 기존 Refresh Token을 블랙리스트에 추가 (토큰 재사용 방지)
         long validityMs = jwtTokenProvider.getRefreshTokenValidityMs();
