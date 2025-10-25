@@ -36,4 +36,13 @@ public class PhoneVerification {
             this.verified = true;
         }
     }
+
+    /**
+     * 인증 완료 여부를 반환합니다.
+     *
+     * @return 인증 완료된 경우 true, 그렇지 않으면 false
+     */
+    public boolean isVerified() {
+        return this.verified;
+    }
 }
