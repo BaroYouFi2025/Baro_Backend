@@ -13,11 +13,14 @@ import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.SecurityUtil;
+import baro.baro.domain.missingperson.entity.GenderType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
@@ -45,12 +48,12 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         // MissingPerson 엔티티 생성
         MissingPerson missingPerson = MissingPerson.builder()
                 .name(request.getName())
-                .age(request.getAge())
-                .gender(request.getGender())
-                .description(request.getDescription())
+                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : null)
+                .gender(GenderType.valueOf(request.getGender()))
+                .body(request.getDescription())
                 .location(request.getLocation())
                 .address(address)
-                .lastSeenDate(ZonedDateTime.parse(request.getLastSeenDate()))
+                .missingDate(ZonedDateTime.parse(request.getLastSeenDate()))
                 .build();
 
         missingPerson = missingPersonRepository.save(missingPerson);
@@ -58,9 +61,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         // MissingCase 엔티티 생성
         MissingCase missingCase = MissingCase.builder()
                 .missingPerson(missingPerson)
-                .reporter(reporter)
-                .reportDate(ZonedDateTime.now())
-                .status("ACTIVE")
+                .reportedBy(reporter)
                 .build();
 
         missingCaseRepository.save(missingCase);
@@ -83,12 +84,12 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         missingPerson = MissingPerson.builder()
                 .id(missingPerson.getId())
                 .name(request.getName() != null ? request.getName() : missingPerson.getName())
-                .age(request.getAge() != null ? request.getAge() : missingPerson.getAge())
-                .gender(request.getGender() != null ? request.getGender() : missingPerson.getGender())
-                .description(request.getDescription() != null ? request.getDescription() : missingPerson.getDescription())
+                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : missingPerson.getBirthDate())
+                .gender(request.getGender() != null ? GenderType.valueOf(request.getGender()) : missingPerson.getGender())
+                .body(request.getDescription() != null ? request.getDescription() : missingPerson.getBody())
                 .location(request.getLocation() != null ? request.getLocation() : missingPerson.getLocation())
                 .address(request.getLocation() != null ? address : missingPerson.getAddress())
-                .lastSeenDate(request.getLastSeenDate() != null ? ZonedDateTime.parse(request.getLastSeenDate()) : missingPerson.getLastSeenDate())
+                .missingDate(request.getLastSeenDate() != null ? ZonedDateTime.parse(request.getLastSeenDate()) : missingPerson.getMissingDate())
                 .build();
 
         missingPerson = missingPersonRepository.save(missingPerson);
@@ -128,7 +129,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .id(missingPerson.getId())
                 .name(missingPerson.getName())
                 .age(missingPerson.getAge())
-                .gender(missingPerson.getGender())
+                .gender(missingPerson.getGender() != null ? missingPerson.getGender().toString() : null)
                 .description(missingPerson.getDescription())
                 .location(missingPerson.getLocation())
                 .address(missingPerson.getAddress())
