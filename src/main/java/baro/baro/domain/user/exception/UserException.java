@@ -15,8 +15,9 @@ public class UserException extends BusinessException {
     private static ErrorCode convertToErrorCode(UserErrorCode userErrorCode) {
         return switch (userErrorCode.getStatus()) {
             case 404 -> ErrorCode.NOT_FOUND;
-            case 500 -> ErrorCode.INTERNAL_ERROR;
-            default -> ErrorCode.VALIDATION_ERROR;
+            case 409 -> ErrorCode.CONFLICT;
+            case 400 -> ErrorCode.BAD_REQUEST;
+            default -> ErrorCode.INTERNAL_ERROR;
         };
     }
 }

@@ -16,8 +16,8 @@ public class MemberException extends BusinessException {
         return switch (memberErrorCode.getStatus()) {
             case 404 -> ErrorCode.NOT_FOUND;
             case 403 -> ErrorCode.FORBIDDEN;
-            case 500 -> ErrorCode.INTERNAL_ERROR;
-            default -> ErrorCode.VALIDATION_ERROR;
+            case 400 -> ErrorCode.BAD_REQUEST;
+            default -> ErrorCode.INTERNAL_ERROR;
         };
     }
 
