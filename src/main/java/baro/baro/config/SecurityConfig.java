@@ -40,6 +40,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 // 인증 규칙 설정
                 .authorizeHttpRequests(auth -> auth
                         // Auth Controller - 인증 불필요
