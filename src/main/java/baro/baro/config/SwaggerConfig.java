@@ -41,10 +41,7 @@ public class SwaggerConfig {
                         .title("Baro API")
                         .description("Baro 프로젝트 API 문서")
                         .version("v1.0.0"))
-                .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local Server"),
-                        new Server().url("https://jjm.jojamein.com").description("Production Server")
-                ))
+                .servers(List.of(new Server().url("/")))
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth", securityScheme))
                 .addSecurityItem(securityRequirement);
