@@ -1,6 +1,8 @@
 package baro.baro.config;
 
 import baro.baro.domain.auth.service.JwtTokenProvider;
+import baro.baro.domain.user.entity.User;
+import baro.baro.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +29,7 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -42,6 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
                 // 토큰에서 사용자 ID 추출
                 String userId = jwtTokenProvider.getSubjectFromToken(jwt);
+
+                // 사용자가 활성 상태인지 확인
+                User user = userRepository.findByUid(userId).orElse(null);
+                if (user == null || !user.isActive()) {
+                    log.warn("비활성화된 사용자의 요청 차단 - User ID: {}, URI: {}", userId, request.getRequestURI());
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 // 인증 객체 생성 (권한 없이, 단순 인증만)
                 UsernamePasswordAuthenticationToken authentication =

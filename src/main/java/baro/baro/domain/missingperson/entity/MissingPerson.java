@@ -67,4 +67,36 @@ public class MissingPerson {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
+
+    /**
+     * 실종자의 나이를 계산하여 반환합니다.
+     *
+     * @return 실종자의 나이 (Integer)
+     */
+    public Integer getAge() {
+        if (birthDate == null) {
+            return null;
+        }
+        return LocalDate.now().getYear() - birthDate.getYear();
+    }
+
+    /**
+     * 실종자의 설명을 반환합니다.
+     * body 필드의 별칭 메서드입니다.
+     *
+     * @return 실종자의 설명
+     */
+    public String getDescription() {
+        return this.body;
+    }
+
+    /**
+     * 실종자의 마지막 목격일을 반환합니다.
+     * missingDate 필드의 별칭 메서드입니다.
+     *
+     * @return 마지막 목격일
+     */
+    public ZonedDateTime getLastSeenDate() {
+        return this.missingDate;
+    }
 }

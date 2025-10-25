@@ -45,12 +45,12 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 생성 메서드
     public InvitationResponse makeInvitation(InvitationRequest request) {
-        User inviter = getCurrentUser();
+        User currentUser = getCurrentUser();
         User invitee = userRepository.findById(request.getInviteeUserId())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Invitation invitationRequest = Invitation.builder()
-                .inviterUser(inviter)
+                .inviterUser(currentUser)
                 .inviteeUser(invitee)
                 .relation(request.getRelation())
                 .status(RelationshipRequestStatus.PENDING)
@@ -64,13 +64,13 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 동의 메서드
     public AcceptInvitationResponse acceptInvitation(AcceptInvitationRequest request) {
-        User invitee = getCurrentUser();
+        User currentUser = getCurrentUser();
 
         Invitation invitation = invitationRepository.findById(request.getRelationshipRequestId())
                 .orElseThrow(() -> new MemberException(MemberErrorCode.INVITATION_NOT_FOUND));
 
         // 초대된 사용자가 맞는지 확인
-        invitation.validateInvitee(invitee);
+        invitation.validateInvitee(currentUser);
 
         // 초대 상태가 PENDING인지 확인(중복 수락 방지)
         // status가 PENDING이 아니면 예외 발생
@@ -82,13 +82,13 @@ public class MemberServiceImpl implements MemberService {
         // 양방향 관계를 위해 두 개의 Relationship 엔티티 생성
         Relationship originRelationship = Relationship.builder()
                 .user(inviter)
-                .member(invitee)
+                .member(currentUser)
                 .relation(invitation.getRelation())
                 .createdAt(LocalDateTime.now())
                 .build();
 
         Relationship reverseRelationship = Relationship.builder()
-                .user(invitee)
+                .user(currentUser)
                 .member(inviter)
                 .relation(request.getRelation())
                 .createdAt(LocalDateTime.now())
@@ -103,13 +103,13 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional // 구성원 초대 거절 메서드
     public void rejectInvitation(RejectInvitationRequest request) {
-        User invitee = getCurrentUser();
+        User currentUser = getCurrentUser();
 
         Invitation invitation = invitationRepository.findById(request.getRelationshipId())
                 .orElseThrow(() -> new MemberException(MemberErrorCode.INVITATION_NOT_FOUND));
 
         // 초대된 사용자가 맞는지 확인
-        invitation.validateInvitee(invitee);
+        invitation.validateInvitee(currentUser);
 
         // 초대 상태가 PENDING인지 확인(중복 거절 방지)
         invitation.reject();

@@ -6,7 +6,6 @@ import baro.baro.domain.user.dto.req.UpdateProfileRequest;
 import baro.baro.domain.user.dto.req.DeleteUserRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.user.dto.res.DeleteUserResponse;
-import baro.baro.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
