@@ -55,6 +55,10 @@ public class Device {
     @Column(name = "registered_at")
     private LocalDateTime registeredAt;
 
+    /** FCM 토큰 (푸시 알림용) */
+    @Column(name = "fcm_token", length = 500)
+    private String fcmToken;
+
     /**
      * 배터리 레벨을 업데이트합니다.
      *
@@ -62,5 +66,14 @@ public class Device {
      */
     public void updateBatteryLevel(Integer batteryLevel) {
         this.batteryLevel = batteryLevel;
+    }
+
+    /**
+     * FCM 토큰을 업데이트합니다.
+     *
+     * @param fcmToken 새로운 FCM 토큰
+     */
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }
