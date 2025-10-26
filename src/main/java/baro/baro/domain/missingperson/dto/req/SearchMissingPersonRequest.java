@@ -14,5 +14,5 @@ public class SearchMissingPersonRequest {
     private Integer page = 0;
     
     @Builder.Default
-    private Integer size = 10;
+    private Integer size = 20;
 }

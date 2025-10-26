@@ -11,9 +11,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "NearbyMissingPerson", description = "근처 실종자 조회 API")
 @RestController
@@ -28,16 +29,15 @@ public class NearbyMissingPersonController {
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
-            description = "근처 실종자 조회 성공",
-            content = @Content(schema = @Schema(implementation = Page.class))),
+            description = "근처 실종자 조회 성공"),
         @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
     @GetMapping("/nearby")
-    public ResponseEntity<Page<MissingPersonResponse>> findNearbyMissingPersons(@Valid NearbyMissingPersonRequest request) {
-        Page<MissingPersonResponse> response = missingPersonService.findNearbyMissingPersons(request);
+    public ResponseEntity<List<MissingPersonResponse>> findNearbyMissingPersons(@Valid NearbyMissingPersonRequest request) {
+        List<MissingPersonResponse> response = missingPersonService.findNearbyMissingPersons(request);
         return ResponseEntity.ok(response);
     }
 }

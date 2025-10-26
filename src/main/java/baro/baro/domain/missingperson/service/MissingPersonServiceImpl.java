@@ -13,7 +13,6 @@ import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.SecurityUtil;
-import baro.baro.domain.missingperson.entity.GenderType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -48,12 +47,17 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         // MissingPerson 엔티티 생성
         MissingPerson missingPerson = MissingPerson.builder()
                 .name(request.getName())
-                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : null)
-                .gender(GenderType.valueOf(request.getGender()))
-                .body(request.getDescription())
+                .birthDate(request.getBirthDate() != null ? LocalDate.parse(request.getBirthDate()) : null)
+                .body(request.getBody())
+                .bodyEtc(request.getBodyEtc())
+                .clothesTop(request.getClothesTop())
+                .clothesBottom(request.getClothesBottom())
+                .clothesEtc(request.getClothesEtc())
+                .height(request.getHeight())
+                .weight(request.getWeight())
                 .location(request.getLocation())
                 .address(address)
-                .missingDate(ZonedDateTime.parse(request.getLastSeenDate()))
+                .missingDate(request.getMissingDate() != null ? ZonedDateTime.parse(request.getMissingDate()) : null)
                 .build();
 
         missingPerson = missingPersonRepository.save(missingPerson);
@@ -78,18 +82,26 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .orElseThrow(() -> new IllegalArgumentException("실종자를 찾을 수 없습니다."));
 
         // 위치 정보를 주소로 변환
-        String address = getAddressFromLocation(request.getLocation());
+        String address = request.getLocation() != null ? getAddressFromLocation(request.getLocation()) : missingPerson.getAddress();
 
         // MissingPerson 업데이트
         missingPerson = MissingPerson.builder()
                 .id(missingPerson.getId())
                 .name(request.getName() != null ? request.getName() : missingPerson.getName())
-                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : missingPerson.getBirthDate())
-                .gender(request.getGender() != null ? GenderType.valueOf(request.getGender()) : missingPerson.getGender())
-                .body(request.getDescription() != null ? request.getDescription() : missingPerson.getBody())
+                .birthDate(request.getBirthDate() != null ? LocalDate.parse(request.getBirthDate()) : missingPerson.getBirthDate())
+                .gender(missingPerson.getGender())
+                .body(request.getBody() != null ? request.getBody() : missingPerson.getBody())
+                .bodyEtc(request.getBodyEtc() != null ? request.getBodyEtc() : missingPerson.getBodyEtc())
+                .clothesTop(request.getClothesTop() != null ? request.getClothesTop() : missingPerson.getClothesTop())
+                .clothesBottom(request.getClothesBottom() != null ? request.getClothesBottom() : missingPerson.getClothesBottom())
+                .clothesEtc(request.getClothesEtc() != null ? request.getClothesEtc() : missingPerson.getClothesEtc())
+                .height(request.getHeight() != null ? request.getHeight() : missingPerson.getHeight())
+                .weight(request.getWeight() != null ? request.getWeight() : missingPerson.getWeight())
                 .location(request.getLocation() != null ? request.getLocation() : missingPerson.getLocation())
-                .address(request.getLocation() != null ? address : missingPerson.getAddress())
-                .missingDate(request.getLastSeenDate() != null ? ZonedDateTime.parse(request.getLastSeenDate()) : missingPerson.getMissingDate())
+                .address(address)
+                .missingDate(request.getMissingDate() != null ? ZonedDateTime.parse(request.getMissingDate()) : missingPerson.getMissingDate())
+                .createdAt(missingPerson.getCreatedAt())
+                .updatedAt(missingPerson.getUpdatedAt())
                 .build();
 
         missingPerson = missingPersonRepository.save(missingPerson);
@@ -103,37 +115,34 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Transactional(readOnly = true)
     public Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<MissingPerson> missingPersons = missingPersonRepository.findAll(pageable);
+        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(pageable);
 
         return missingPersons.map(this::convertToResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request) {
+    public List<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request) {
         List<MissingPerson> nearbyPersons = missingPersonRepository.findNearbyMissingPersons(
                 request.getLatitude(), 
                 request.getLongitude(), 
                 request.getRadius()
         );
 
-        List<MissingPersonResponse> responses = nearbyPersons.stream()
+        return nearbyPersons.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(responses);
     }
 
     private MissingPersonResponse convertToResponse(MissingPerson missingPerson) {
         return MissingPersonResponse.builder()
-                .id(missingPerson.getId())
+                .missingPersonId(missingPerson.getId())
                 .name(missingPerson.getName())
-                .age(missingPerson.getAge())
-                .gender(missingPerson.getGender() != null ? missingPerson.getGender().toString() : null)
-                .description(missingPerson.getDescription())
-                .location(missingPerson.getLocation())
                 .address(missingPerson.getAddress())
-                .lastSeenDate(missingPerson.getLastSeenDate())
+                .missingDate(missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null)
+                .height(missingPerson.getHeight())
+                .weight(missingPerson.getWeight())
+                .body(missingPerson.getBody())
                 .build();
     }
 
