@@ -40,6 +40,7 @@ GPS 기반 위치 추적, AI 얼굴 인식, 실시간 알림 등의 기술을 �
 ### 2. 기기 관리 (Device)
 - 모바일 기기 등록 및 관리
 - 기기별 배터리 상태 모니터링
+- FCM 토큰 관리 및 푸시 알림 지원
 - 다중 기기 지원
 - 기기 활성화/비활성화
 
@@ -58,6 +59,12 @@ GPS 기반 위치 추적, AI 얼굴 인식, 실시간 알림 등의 기술을 �
 - 얼굴 이미지 분석
 - 실종자 매칭
 - 유사도 기반 검색
+
+### 6. 푸시 알림 시스템 (Push Notification)
+- Firebase Cloud Messaging (FCM) 연동
+- 구성원 초대 요청 알림
+- 초대 수락/거절 알림
+- 알림 이력 관리
 
 ---
 
@@ -87,6 +94,7 @@ GPS 기반 위치 추적, AI 얼굴 인식, 실시간 알림 등의 기술을 �
 - **Lombok**: 보일러플레이트 코드 감소
 - **Dotenv**: 환경 변수 관리
 - **Jakarta Mail**: 이메일 발송
+- **Firebase Admin SDK**: 푸시 알림 (FCM)
 
 ### Testing
 - **Framework**: JUnit 5
@@ -205,6 +213,15 @@ java -jar build/libs/baro-app.jar
 | POST | `/devices/register` | 기기 등록 | ✅ |
 | GET | `/devices` | 내 기기 목록 조회 | ✅ |
 | POST | `/devices/{deviceId}/gps` | GPS 위치 업데이트 | ✅ |
+| POST | `/devices/fcm-token` | FCM 토큰 업데이트 | ✅ |
+
+### 구성원 관리 API
+| Method | Endpoint | 설명 | 인증 필요 |
+|--------|----------|------|-----------|
+| POST | `/members/invitations` | 구성원 초대 요청 | ✅ |
+| POST | `/members/invitations/accept` | 초대 수락 | ✅ |
+| POST | `/members/invitations/reject` | 초대 거절 | ✅ |
+| GET | `/members/locations` | 구성원 위치 조회 | ✅ |
 
 ### 실종자 관리 API
 | Method | Endpoint | 설명 | 인증 필요 |

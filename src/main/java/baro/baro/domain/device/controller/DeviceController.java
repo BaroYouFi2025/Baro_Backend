@@ -1,12 +1,12 @@
 package baro.baro.domain.device.controller;
 
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
+import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
 import baro.baro.domain.device.dto.request.GpsUpdateRequest;
 import baro.baro.domain.device.dto.response.DeviceResponse;
 import baro.baro.domain.device.dto.response.GpsUpdateResponse;
 import baro.baro.domain.device.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,8 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 기기 관리 및 GPS 추적 REST API 컨트롤러
@@ -72,6 +70,22 @@ public class DeviceController {
         String uid = authentication.getName();
         GpsUpdateResponse response = deviceService.updateGps(uid, deviceId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "FCM 토큰 업데이트", description = "기기의 FCM 토큰을 업데이트합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "FCM 토큰 업데이트 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @ApiResponse(responseCode = "401", description = "인증 실패"),
+        @ApiResponse(responseCode = "404", description = "기기를 찾을 수 없음")
+    })
+    @PostMapping("/fcm-token")
+    public ResponseEntity<Void> updateFcmToken(
+            @Valid @RequestBody FcmTokenUpdateRequest request,
+            Authentication authentication) {
+        String uid = authentication.getName();
+        deviceService.updateFcmToken(uid, request);
+        return ResponseEntity.ok().build();
     }
 
 }

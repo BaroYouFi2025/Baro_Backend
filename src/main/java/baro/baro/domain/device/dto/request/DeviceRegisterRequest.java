@@ -21,4 +21,7 @@ public class DeviceRegisterRequest {
 
     @Schema(description = "OS 버전", example = "17.0")
     private String osVersion;
+
+    @Schema(description = "FCM 토큰 (푸시 알림용)", example = "fcm-token-string")
+    private String fcmToken;
 }
