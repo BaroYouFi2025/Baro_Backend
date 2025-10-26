@@ -153,7 +153,7 @@ MAIL_IMAP_USERNAME=your-email@gmail.com
 MAIL_IMAP_PASSWORD=your-app-password
 
 # Firebase Configuration
-FIREBASE_PROJECT_ID=baro-push-notification
+FIREBASE_PROJECT_ID=baroyofi
 FIREBASE_CREDENTIALS_PATH=classpath:firebase-adminsdk.json
 
 # File Upload Configuration
