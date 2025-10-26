@@ -62,9 +62,11 @@ public class SecurityConfig {
                         // Swagger UI - 개발 환경에서만 허용 권장
                         // 프로덕션에서는 제거하거나 인증 적용 필요
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        
+                        // 정적 리소스 - 업로드된 이미지 접근 허용
+                        .requestMatchers("/images/**").permitAll()
 
                         // 기본 정책: 명시되지 않은 모든 요청은 인증 필요
-                        // (보안 강화: permitAll() 대신 authenticated() 사용)
                         .anyRequest().authenticated()
                 )
 
