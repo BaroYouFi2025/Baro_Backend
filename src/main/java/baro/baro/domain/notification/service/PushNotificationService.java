@@ -10,7 +10,6 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ public class PushNotificationService {
         try {
             // 1. 초대받은 사용자의 활성 기기들 조회
             List<Device> devices = deviceRepository.findByUser(invitee).stream()
-                    .filter(Device::isActive)
+                    .filter(device -> device.isActive())
                     .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
                     .toList();
 
@@ -87,7 +86,7 @@ public class PushNotificationService {
         try {
             // 1. 초대한 사용자의 활성 기기들 조회
             List<Device> devices = deviceRepository.findByUser(inviter).stream()
-                    .filter(Device::isActive)
+                    .filter(device -> device.isActive())
                     .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
                     .toList();
 
@@ -135,7 +134,7 @@ public class PushNotificationService {
             // FCM 메시지 생성
             Message fcmMessage = Message.builder()
                     .setToken(fcmToken)
-                    .setNotification(Notification.builder()
+                    .setNotification(com.google.firebase.messaging.Notification.builder()
                             .setTitle(title)
                             .setBody(message)
                             .build())
