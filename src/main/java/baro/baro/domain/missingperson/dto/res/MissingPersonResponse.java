@@ -1,19 +1,25 @@
 package baro.baro.domain.missingperson.dto.res;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.ZonedDateTime;
 
 @Getter
 @Builder
 public class MissingPersonResponse {
-    private Long id;
+    @JsonProperty("missingPersonId")
+    private Long missingPersonId;
+    
     private String name;
-    private Integer age;
-    private String gender;
-    private String description;
-    private String location;
+    
     private String address;
-    private ZonedDateTime lastSeenDate;
+    
+    @JsonProperty("missing_date")
+    private String missingDate;
+    
+    private Integer height;
+    
+    private Integer weight;
+    
+    private String body;
 }
