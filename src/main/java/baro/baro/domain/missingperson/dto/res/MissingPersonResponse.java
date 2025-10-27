@@ -6,14 +6,13 @@ import lombok.Data;
 
 @Data
 public class MissingPersonResponse {
-    @JsonProperty("missingPersonId")
+
     private Long missingPersonId;
 
     private String name;
 
     private String address;
 
-    @JsonProperty("missing_date")
     private String missingDate;
 
     private Integer height;
