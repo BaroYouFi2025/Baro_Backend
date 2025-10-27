@@ -138,7 +138,7 @@ public class PushNotificationService {
                 FirebaseApp.initializeApp();
             }
 
-            // FCM 메시지 생성
+            // FCM 메시지 생성 (액션 버튼 포함)
             Message fcmMessage = Message.builder()
                     .setToken(fcmToken)
                     .setNotification(Notification.builder()
@@ -146,6 +146,12 @@ public class PushNotificationService {
                             .setBody(message)
                             .build())
                     .putData("type", "invitation")
+                    .putData("invitationId", "1") // 실제 초대 ID
+                    .putData("inviterName", "홍길동") // 실제 초대자 이름
+                    .putData("relation", "가족") // 실제 관계
+                    .putData("actions", "[\"accept\", \"reject\"]") // 액션 버튼
+                    .putData("acceptUrl", "https://your-app.com/api/members/invitations/accept")
+                    .putData("rejectUrl", "https://your-app.com/api/members/invitations/reject")
                     .build();
 
             // 푸시 알림 발송
