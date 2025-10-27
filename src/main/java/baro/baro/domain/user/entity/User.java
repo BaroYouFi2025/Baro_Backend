@@ -1,6 +1,5 @@
 package baro.baro.domain.user.entity;
 
-import baro.baro.domain.common.enums.UserRole;
 import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
 import jakarta.persistence.*;

@@ -136,6 +136,31 @@ cd Baro
 
 프로젝트 루트에 `.env` 파일 생성:
 
+```properties
+# JWT Configuration
+JWT_SECRET_KEY=your-jwt-secret-key-here
+JWT_ACCESS_VALIDITY_SECONDS=3600
+JWT_REFRESH_VALIDITY_SECONDS=604800
+
+# Database Configuration
+DATABASE_URL=jdbc:postgresql://localhost:5432/baro_db
+DATABASE_USERNAME=baro_user
+DATABASE_PASSWORD=your-database-password
+
+# Email Configuration
+MAIL_IMAP_HOST=imap.gmail.com
+MAIL_IMAP_USERNAME=your-email@gmail.com
+MAIL_IMAP_PASSWORD=your-app-password
+
+# Firebase Configuration
+FIREBASE_PROJECT_ID=baroyofi
+FIREBASE_CREDENTIALS_PATH=classpath:firebase-adminsdk.json
+
+# File Upload Configuration
+FILE_UPLOAD_DIR=uploads
+FILE_UPLOAD_BASE_URL=http://localhost:8080
+```
+
 ```env
 # Database Configuration
 DB_URL=jdbc:postgresql://localhost:5432/baro_db

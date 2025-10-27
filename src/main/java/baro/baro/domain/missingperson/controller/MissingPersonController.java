@@ -5,8 +5,7 @@ import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
-import baro.baro.domain.missingperson.service.MissingPersonService;
-import io.swagger.v3.oas.annotations.Operation;
+import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.service.MissingPersonService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -85,6 +84,24 @@ public class MissingPersonController {
     @GetMapping("/search")
     public ResponseEntity<Page<MissingPersonResponse>> searchMissingPersons(@Valid SearchMissingPersonRequest request) {
         Page<MissingPersonResponse> response = missingPersonService.searchMissingPersons(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "실종자 상세 조회", 
+               description = "실종자 ID로 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "실종자 상세 조회 성공",
+            content = @Content(schema = @Schema(implementation = MissingPersonDetailResponse.class))),
+        @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<MissingPersonDetailResponse> getMissingPersonDetail(@PathVariable Long id) {
+        MissingPersonDetailResponse response = missingPersonService.getMissingPersonDetail(id);
         return ResponseEntity.ok(response);
     }
 }
