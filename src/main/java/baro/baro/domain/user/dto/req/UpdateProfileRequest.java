@@ -1,16 +1,14 @@
 package baro.baro.domain.user.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 
 @Schema(description = "프로필 수정 요청")
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class UpdateProfileRequest {
     
     @Schema(description = "사용자 이름", example = "홍길동")
@@ -24,4 +22,13 @@ public class UpdateProfileRequest {
     
     @Schema(description = "프로필 배경 색상 (HEX 코드)", example = "#FFFFFF")
     private String profileBackgroundColor;
+    
+    public static UpdateProfileRequest create(String name, String title, String profileUrl, String profileBackgroundColor) {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.name = name;
+        request.title = title;
+        request.profileUrl = profileUrl;
+        request.profileBackgroundColor = profileBackgroundColor;
+        return request;
+    }
 }

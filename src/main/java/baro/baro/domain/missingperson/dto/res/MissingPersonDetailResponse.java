@@ -1,11 +1,9 @@
 package baro.baro.domain.missingperson.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
-@Builder
+@Data
 public class MissingPersonDetailResponse {
     @JsonProperty("missingPersonId")
     private Long missingPersonId;
@@ -42,5 +40,28 @@ public class MissingPersonDetailResponse {
     
     @JsonProperty("photo_url")
     private String photoUrl;
+    
+    public static MissingPersonDetailResponse create(
+            Long missingPersonId, String name, String birthDate, String address,
+            String missingDate, Integer height, Integer weight, String body,
+            String bodyEtc, String clothesTop, String clothesBottom,
+            String clothesEtc, String location, String photoUrl) {
+        MissingPersonDetailResponse response = new MissingPersonDetailResponse();
+        response.missingPersonId = missingPersonId;
+        response.name = name;
+        response.birthDate = birthDate;
+        response.address = address;
+        response.missingDate = missingDate;
+        response.height = height;
+        response.weight = weight;
+        response.body = body;
+        response.bodyEtc = bodyEtc;
+        response.clothesTop = clothesTop;
+        response.clothesBottom = clothesBottom;
+        response.clothesEtc = clothesEtc;
+        response.location = location;
+        response.photoUrl = photoUrl;
+        return response;
+    }
 }
 
