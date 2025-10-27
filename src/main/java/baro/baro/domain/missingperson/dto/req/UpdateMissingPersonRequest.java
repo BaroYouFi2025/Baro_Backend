@@ -1,15 +1,13 @@
 package baro.baro.domain.missingperson.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class UpdateMissingPersonRequest {
     private String name;
     
@@ -41,4 +39,24 @@ public class UpdateMissingPersonRequest {
     private String clothesEtc;
     
     private String location;
+    
+    public static UpdateMissingPersonRequest create(
+            String name, String birthDate, String photoUrl, String missingDate,
+            Integer height, Integer weight, String body, String bodyEtc,
+            String clothesTop, String clothesBottom, String clothesEtc, String location) {
+        UpdateMissingPersonRequest request = new UpdateMissingPersonRequest();
+        request.name = name;
+        request.birthDate = birthDate;
+        request.photoUrl = photoUrl;
+        request.missingDate = missingDate;
+        request.height = height;
+        request.weight = weight;
+        request.body = body;
+        request.bodyEtc = bodyEtc;
+        request.clothesTop = clothesTop;
+        request.clothesBottom = clothesBottom;
+        request.clothesEtc = clothesEtc;
+        request.location = location;
+        return request;
+    }
 }

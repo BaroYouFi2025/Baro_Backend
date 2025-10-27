@@ -27,6 +27,8 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
+
 @Service
 @RequiredArgsConstructor
 public class MissingPersonServiceImpl implements MissingPersonService {
@@ -38,12 +40,11 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Override
     @Transactional
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
-        String currentUid = SecurityUtil.getCurrentUserUid();
-        User reporter = userRepository.findByUid(currentUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        User currentUser = getCurrentUser();
 
         // 위치 정보를 주소로 변환
-        String address = getAddressFromLocation(request.getLocation());
+        String locationStr = request.getLatitude() + "," + request.getLongitude();
+        String address = getAddressFromLocation(locationStr);
 
         // MissingPerson 엔티티 생성
         MissingPerson missingPerson = MissingPerson.builder()
@@ -56,7 +57,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .clothesEtc(request.getClothesEtc())
                 .height(request.getHeight())
                 .weight(request.getWeight())
-                .location(request.getLocation())
+                .location(locationStr)
                 .address(address)
                 .missingDate(request.getMissingDate() != null ? ZonedDateTime.parse(request.getMissingDate()) : null)
                 .build();
@@ -66,14 +67,12 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         // MissingCase 엔티티 생성
         MissingCase missingCase = MissingCase.builder()
                 .missingPerson(missingPerson)
-                .reportedBy(reporter)
+                .reportedBy(currentUser)
                 .build();
 
         missingCaseRepository.save(missingCase);
 
-        return RegisterMissingPersonResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .build();
+        return RegisterMissingPersonResponse.create(missingPerson.getId());
     }
 
     @Override
@@ -107,9 +106,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
         missingPerson = missingPersonRepository.save(missingPerson);
 
-        return RegisterMissingPersonResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .build();
+        return RegisterMissingPersonResponse.create(missingPerson.getId());
     }
 
     @Override
@@ -147,34 +144,34 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     }
 
     private MissingPersonResponse convertToResponse(MissingPerson missingPerson) {
-        return MissingPersonResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .name(missingPerson.getName())
-                .address(missingPerson.getAddress())
-                .missingDate(missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null)
-                .height(missingPerson.getHeight())
-                .weight(missingPerson.getWeight())
-                .body(missingPerson.getBody())
-                .build();
+        return MissingPersonResponse.create(
+                missingPerson.getId(),
+                missingPerson.getName(),
+                missingPerson.getAddress(),
+                missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null,
+                missingPerson.getHeight(),
+                missingPerson.getWeight(),
+                missingPerson.getBody()
+        );
     }
 
     private MissingPersonDetailResponse convertToDetailResponse(MissingPerson missingPerson) {
-        return MissingPersonDetailResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .name(missingPerson.getName())
-                .birthDate(missingPerson.getBirthDate() != null ? missingPerson.getBirthDate().toString() : null)
-                .address(missingPerson.getAddress())
-                .missingDate(missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null)
-                .height(missingPerson.getHeight())
-                .weight(missingPerson.getWeight())
-                .body(missingPerson.getBody())
-                .bodyEtc(missingPerson.getBodyEtc())
-                .clothesTop(missingPerson.getClothesTop())
-                .clothesBottom(missingPerson.getClothesBottom())
-                .clothesEtc(missingPerson.getClothesEtc())
-                .location(missingPerson.getLocation())
-                .photoUrl(null) // TODO: PersonMedia 엔티티와 연결하여 photo_url 가져오기
-                .build();
+        return MissingPersonDetailResponse.create(
+                missingPerson.getId(),
+                missingPerson.getName(),
+                missingPerson.getBirthDate() != null ? missingPerson.getBirthDate().toString() : null,
+                missingPerson.getAddress(),
+                missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null,
+                missingPerson.getHeight(),
+                missingPerson.getWeight(),
+                missingPerson.getBody(),
+                missingPerson.getBodyEtc(),
+                missingPerson.getClothesTop(),
+                missingPerson.getClothesBottom(),
+                missingPerson.getClothesEtc(),
+                missingPerson.getLocation(),
+                null // TODO: PersonMedia 엔티티와 연결하여 photo_url 가져오기
+        );
     }
 
     private String getAddressFromLocation(String location) {

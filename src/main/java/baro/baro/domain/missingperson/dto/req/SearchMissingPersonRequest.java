@@ -1,18 +1,21 @@
 package baro.baro.domain.missingperson.dto.req;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class SearchMissingPersonRequest {
-    @Builder.Default
     private Integer page = 0;
     
-    @Builder.Default
     private Integer size = 20;
+    
+    public static SearchMissingPersonRequest create(Integer page, Integer size) {
+        SearchMissingPersonRequest request = new SearchMissingPersonRequest();
+        request.page = page != null ? page : 0;
+        request.size = size != null ? size : 20;
+        return request;
+    }
 }
