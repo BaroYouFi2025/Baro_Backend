@@ -56,21 +56,19 @@ class MemberServiceImplTest {
     @BeforeEach
     void setUp() {
         inviter = User.builder()
-                .id(1L)
                 .uid("inviter_uid")
                 .name("초대자")
                 .phoneE164("+821012345678")
                 .birthDate(LocalDate.of(1990, 1, 1))
-                .passwordHash("hashedPassword")
+                .encodedPassword("hashedPassword")
                 .build();
 
         invitee = User.builder()
-                .id(2L)
                 .uid("invitee_uid")
                 .name("피초대자")
                 .phoneE164("+821087654321")
                 .birthDate(LocalDate.of(1995, 5, 5))
-                .passwordHash("hashedPassword")
+                .encodedPassword("hashedPassword")
                 .build();
 
         invitation = Invitation.builder()

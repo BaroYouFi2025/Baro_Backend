@@ -1,4 +1,4 @@
-package baro.baro.domain.common.enums;
+package baro.baro.domain.missingperson.entity;
 
 public enum CaseStatusType {
     OPEN, CLOSED, ARCHIVED
