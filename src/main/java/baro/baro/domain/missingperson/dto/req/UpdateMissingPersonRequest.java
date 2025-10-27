@@ -26,12 +26,14 @@ public class UpdateMissingPersonRequest {
 
     private String clothesEtc;
     
-    private String location;
+    private Double latitude;
+    private Double longitude;
     
     public static UpdateMissingPersonRequest create(
             String name, String birthDate, String photoUrl, String missingDate,
             Integer height, Integer weight, String body, String bodyEtc,
-            String clothesTop, String clothesBottom, String clothesEtc, String location) {
+            String clothesTop, String clothesBottom, String clothesEtc,
+            Double latitude, Double longitude) {
         UpdateMissingPersonRequest request = new UpdateMissingPersonRequest();
         request.name = name;
         request.birthDate = birthDate;
@@ -44,7 +46,8 @@ public class UpdateMissingPersonRequest {
         request.clothesTop = clothesTop;
         request.clothesBottom = clothesBottom;
         request.clothesEtc = clothesEtc;
-        request.location = location;
+        request.latitude = latitude;
+        request.longitude = longitude;
         return request;
     }
 }
