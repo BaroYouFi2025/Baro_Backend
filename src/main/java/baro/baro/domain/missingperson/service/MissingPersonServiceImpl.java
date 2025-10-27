@@ -54,6 +54,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 request.getName(),
                 request.getBirthDate(),
                 request.getGender(),
+                request.getMissingDate(),
                 request.getBody(),
                 request.getBodyEtc(),
                 request.getClothesTop(),
@@ -62,8 +63,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 request.getHeight(),
                 request.getWeight(),
                 locationInfo.point(),
-                locationInfo.address(),
-                request.getMissingDate()
+                locationInfo.address()
         );
 
         missingPerson = missingPersonRepository.save(missingPerson);
