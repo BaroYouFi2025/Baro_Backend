@@ -61,7 +61,10 @@ public class MissingPerson {
     
     @Column(columnDefinition = "TEXT")
     private String address;
-    
+
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     /**
      * GPS 위치 정보 (PostGIS Point 타입)
      * WGS84 좌표계(SRID: 4326) 사용
@@ -93,12 +96,12 @@ public class MissingPerson {
     
     /**
      * 실종자 정보 생성 (Factory Method)
-     * 빌더 패턴을 사용하여 불변성 보장
+     * DTO에서 직접 생성하여 서비스 레이어 의존성 제거
      */
-    public static MissingPerson create(
+    public static MissingPerson from(
             String name,
-            LocalDate birthDate,
-            GenderType gender,
+            String birthDate,
+            String gender,
             String body,
             String bodyEtc,
             String clothesTop,
@@ -108,33 +111,36 @@ public class MissingPerson {
             Integer weight,
             Point location,
             String address,
-            ZonedDateTime missingDate) {
-        
-        return MissingPerson.builder()
-                .name(name)
-                .birthDate(birthDate)
-                .gender(gender)
-                .body(body)
-                .bodyEtc(bodyEtc)
-                .clothesTop(clothesTop)
-                .clothesBottom(clothesBottom)
-                .clothesEtc(clothesEtc)
-                .height(height)
-                .weight(weight)
-                .location(location)
-                .address(address)
-                .missingDate(missingDate)
-                .build();
+            String missingDate) {
+
+        try {
+            return MissingPerson.builder()
+                    .name(name)
+                    .birthDate(LocalDate.parse(birthDate))
+                    .gender(gender != null ? GenderType.valueOf(gender) : null)
+                    .body(body)
+                    .bodyEtc(bodyEtc)
+                    .clothesTop(clothesTop)
+                    .clothesBottom(clothesBottom)
+                    .clothesEtc(clothesEtc)
+                    .height(height)
+                    .weight(weight)
+                    .location(location)
+                    .address(address)
+                    .missingDate(ZonedDateTime.parse(missingDate))
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("실종자 정보 생성 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
     }
 
     /**
      * 실종자 정보 업데이트
      * JPA Dirty Checking을 활용하여 변경 감지
-     * 도메인 로직을 캡슐화
      */
-    public void update(
+    public void updateFrom(
             String name,
-            LocalDate birthDate,
+            String birthDate,
             String body,
             String bodyEtc,
             String clothesTop,
@@ -144,43 +150,47 @@ public class MissingPerson {
             Integer weight,
             Point location,
             String address,
-            ZonedDateTime missingDate) {
+            String missingDate) {
 
-        if (name != null) {
-            this.name = name;
-        }
-        if (birthDate != null) {
-            this.birthDate = birthDate;
-        }
-        if (body != null) {
-            this.body = body;
-        }
-        if (bodyEtc != null) {
-            this.bodyEtc = bodyEtc;
-        }
-        if (clothesTop != null) {
-            this.clothesTop = clothesTop;
-        }
-        if (clothesBottom != null) {
-            this.clothesBottom = clothesBottom;
-        }
-        if (clothesEtc != null) {
-            this.clothesEtc = clothesEtc;
-        }
-        if (height != null) {
-            this.height = height;
-        }
-        if (weight != null) {
-            this.weight = weight;
-        }
-        if (location != null) {
-            this.location = location;
-        }
-        if (address != null) {
-            this.address = address;
-        }
-        if (missingDate != null) {
-            this.missingDate = missingDate;
+        try {
+            if (name != null) {
+                this.name = name;
+            }
+            if (birthDate != null && !birthDate.isEmpty()) {
+                this.birthDate = LocalDate.parse(birthDate);
+            }
+            if (body != null) {
+                this.body = body;
+            }
+            if (bodyEtc != null) {
+                this.bodyEtc = bodyEtc;
+            }
+            if (clothesTop != null) {
+                this.clothesTop = clothesTop;
+            }
+            if (clothesBottom != null) {
+                this.clothesBottom = clothesBottom;
+            }
+            if (clothesEtc != null) {
+                this.clothesEtc = clothesEtc;
+            }
+            if (height != null) {
+                this.height = height;
+            }
+            if (weight != null) {
+                this.weight = weight;
+            }
+            if (location != null) {
+                this.location = location;
+            }
+            if (address != null) {
+                this.address = address;
+            }
+            if (missingDate != null && !missingDate.isEmpty()) {
+                this.missingDate = ZonedDateTime.parse(missingDate);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("실종자 정보 수정 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 
@@ -197,23 +207,16 @@ public class MissingPerson {
      * 위도 가져오기
      */
     public Double getLatitude() {
-        return location != null ? location.getY() : null;
+        if (location == null)  throw new IllegalStateException("Location is not set");
+        return location.getY();
     }
     
     /**
      * 경도 가져오기
      */
     public Double getLongitude() {
-        return location != null ? location.getX() : null;
+        if (location == null)  throw new IllegalStateException("Location is not set");
+        return location.getY();
     }
-    
-    /**
-     * 좌표 문자열 생성 ("위도,경도" 형식)
-     */
-    public String getCoordinatesString() {
-        if (location == null) {
-            return null;
-        }
-        return location.getY() + "," + location.getX();
-    }
+
 }
