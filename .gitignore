@@ -38,6 +38,10 @@ out/
 
 .env
 
+# Firebase credentials
+firebase-adminsdk*.json
+**/firebase-adminsdk*.json
+
 .serena
 .serena/cache
 .serena/memories
