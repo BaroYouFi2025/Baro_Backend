@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FCM Token Test - Baro Push Notification</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007bff; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 FCM Token Test - Baro Push Notification</h1>
+        
+        <div class="step">
+            <h3>1. Firebase 설정</h3>
+            <p>Firebase Console에서 프로젝트 설정을 가져와서 아래에 입력하세요:</p>
+            <input type="text" id="apiKey" placeholder="API Key" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="authDomain" placeholder="Auth Domain (예: baroyofi.firebaseapp.com)" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="projectId" placeholder="Project ID (예: baroyofi)" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="storageBucket" placeholder="Storage Bucket (예: baroyofi.appspot.com)" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="messagingSenderId" placeholder="Messaging Sender ID" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="appId" placeholder="App ID" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="vapidKey" placeholder="VAPID Key (선택사항)" style="width: 100%; margin: 5px 0;">
+            <button onclick="initializeFirebase()">Firebase 초기화</button>
+        </div>
+
+        <div class="step">
+            <h3>2. 권한 요청</h3>
+            <button onclick="requestPermission()">알림 권한 요청</button>
+            <div id="permissionStatus"></div>
+        </div>
+
+        <div class="step">
+            <h3>3. FCM 토큰 발급</h3>
+            <button onclick="getToken()">FCM 토큰 발급</button>
+            <div id="tokenResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>4. 메시지 수신 테스트</h3>
+            <p>푸시 알림을 받으면 여기에 표시됩니다:</p>
+            <div id="messageResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>5. Postman 설정</h3>
+            <p>발급받은 FCM 토큰을 Postman 환경변수에 설정하세요:</p>
+            <ul>
+                <li><strong>fcm_token</strong>: 위에서 발급받은 토큰</li>
+                <li><strong>firebase_server_key</strong>: Firebase Console > 프로젝트 설정 > 클라우드 메시징 > 서버 키</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let messaging = null;
+
+        function initializeFirebase() {
+            try {
+                const apiKey = document.getElementById('apiKey').value;
+                const authDomain = document.getElementById('authDomain').value;
+                const projectId = document.getElementById('projectId').value;
+                const storageBucket = document.getElementById('storageBucket').value;
+                const messagingSenderId = document.getElementById('messagingSenderId').value;
+                const appId = document.getElementById('appId').value;
+
+                if (!apiKey || !authDomain || !projectId) {
+                    showError('API Key, Auth Domain, Project ID는 필수입니다.');
+                    return;
+                }
+
+                const firebaseConfig = {
+                    apiKey: apiKey,
+                    authDomain: authDomain,
+                    projectId: projectId,
+                    storageBucket: storageBucket,
+                    messagingSenderId: messagingSenderId,
+                    appId: appId
+                };
+
+                firebase.initializeApp(firebaseConfig);
+                messaging = firebase.messaging();
+                
+                showSuccess('Firebase 초기화 성공!');
+            } catch (error) {
+                showError('Firebase 초기화 실패: ' + error.message);
+            }
+        }
+
+        async function requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                const statusDiv = document.getElementById('permissionStatus');
+                
+                if (permission === 'granted') {
+                    statusDiv.innerHTML = '<div class="result success">✅ 알림 권한이 허용되었습니다!</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="result error">❌ 알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.</div>';
+                }
+            } catch (error) {
+                showError('권한 요청 실패: ' + error.message);
+            }
+        }
+
+        async function getToken() {
+            try {
+                if (!messaging) {
+                    showError('먼저 Firebase를 초기화해주세요.');
+                    return;
+                }
+
+                const vapidKey = document.getElementById('vapidKey').value;
+                const tokenOptions = vapidKey ? { vapidKey: vapidKey } : {};
+                
+                const token = await messaging.getToken(tokenOptions);
+                const tokenDiv = document.getElementById('tokenResult');
+                
+                tokenDiv.innerHTML = `
+                    <div class="result success">
+                        <h4>✅ FCM 토큰 발급 성공!</h4>
+                        <p>아래 토큰을 복사해서 Postman에 입력하세요:</p>
+                        <textarea readonly>${token}</textarea>
+                        <button onclick="copyToken('${token}')">토큰 복사</button>
+                    </div>
+                `;
+
+                // 메시지 수신 리스너 설정
+                messaging.onMessage((payload) => {
+                    const messageDiv = document.getElementById('messageResult');
+                    messageDiv.innerHTML = `
+                        <div class="result success">
+                            <h4>📱 푸시 알림 수신!</h4>
+                            <p><strong>제목:</strong> ${payload.notification.title}</p>
+                            <p><strong>내용:</strong> ${payload.notification.body}</p>
+                            <p><strong>데이터:</strong> ${JSON.stringify(payload.data, null, 2)}</p>
+                        </div>
+                    `;
+                });
+
+            } catch (error) {
+                showError('토큰 발급 실패: ' + error.message);
+            }
+        }
+
+        function copyToken(token) {
+            navigator.clipboard.writeText(token).then(() => {
+                alert('토큰이 클립보드에 복사되었습니다!');
+            }).catch(() => {
+                alert('복사 실패. 수동으로 복사해주세요.');
+            });
+        }
+
+        function showSuccess(message) {
+            console.log('✅ ' + message);
+        }
+
+        function showError(message) {
+            console.error('❌ ' + message);
+        }
+    </script>
+</body>
+</html>
