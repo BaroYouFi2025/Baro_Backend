@@ -13,6 +13,7 @@ import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -57,7 +58,7 @@ public class MissingPerson {
     private String clothesEtc;
     
     @Column(name = "missing_date", nullable = false)
-    private ZonedDateTime missingDate;
+    private LocalDateTime missingDate;
     
     @Column(columnDefinition = "TEXT")
     private String address;
@@ -102,6 +103,7 @@ public class MissingPerson {
             String name,
             String birthDate,
             String gender,
+            String missingDate,
             String body,
             String bodyEtc,
             String clothesTop,
@@ -110,14 +112,15 @@ public class MissingPerson {
             Integer height,
             Integer weight,
             Point location,
-            String address,
-            String missingDate) {
+            String address) {
 
         try {
+
             return MissingPerson.builder()
                     .name(name)
                     .birthDate(LocalDate.parse(birthDate))
                     .gender(gender != null ? GenderType.valueOf(gender) : null)
+                    .missingDate(LocalDateTime.parse(missingDate))
                     .body(body)
                     .bodyEtc(bodyEtc)
                     .clothesTop(clothesTop)
@@ -127,7 +130,6 @@ public class MissingPerson {
                     .weight(weight)
                     .location(location)
                     .address(address)
-                    .missingDate(ZonedDateTime.parse(missingDate))
                     .build();
         } catch (Exception e) {
             throw new IllegalArgumentException("실종자 정보 생성 중 오류가 발생했습니다: " + e.getMessage(), e);
@@ -187,7 +189,7 @@ public class MissingPerson {
                 this.address = address;
             }
             if (missingDate != null && !missingDate.isEmpty()) {
-                this.missingDate = ZonedDateTime.parse(missingDate);
+                this.missingDate = LocalDateTime.parse(missingDate);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("실종자 정보 수정 중 오류가 발생했습니다: " + e.getMessage(), e);
@@ -216,7 +218,6 @@ public class MissingPerson {
      */
     public Double getLongitude() {
         if (location == null)  throw new IllegalStateException("Location is not set");
-        return location.getY();
+        return location.getX();
     }
-
 }
