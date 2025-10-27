@@ -151,10 +151,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .missingPersonId(missingPerson.getId())
                 .name(missingPerson.getName())
                 .address(missingPerson.getAddress())
-                .missingDate(missingPerson.getMissingDate() != null ? missingPerson.getMissingDate().toString() : null)
-                .height(missingPerson.getHeight())
-                .weight(missingPerson.getWeight())
                 .body(missingPerson.getBody())
+                .photoUrl(null) // TODO: PersonMedia 엔티티와 연결하여 photo_url 가져오기
                 .build();
     }
 

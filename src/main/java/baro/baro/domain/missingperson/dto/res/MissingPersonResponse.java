@@ -14,12 +14,8 @@ public class MissingPersonResponse {
     
     private String address;
     
-    @JsonProperty("missing_date")
-    private String missingDate;
-    
-    private Integer height;
-    
-    private Integer weight;
-    
     private String body;
+    
+    @JsonProperty("photo_url")
+    private String photoUrl;
 }
