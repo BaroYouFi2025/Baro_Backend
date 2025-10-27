@@ -156,6 +156,10 @@ MAIL_PASSWORD=your-app-password
 # AI Service Configuration (Optional)
 AI_API_URL=http://ai-service-url
 AI_API_KEY=your-ai-api-key
+
+# Firebase Configuration
+FIREBASE_PROJECT_ID=baroyofi
+FIREBASE_CREDENTIALS_PATH=classpath:firebase-adminsdk.json
 ```
 
 ### 3. 데이터베이스 설정
