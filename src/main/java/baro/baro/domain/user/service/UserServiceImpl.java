@@ -5,6 +5,7 @@ import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.dto.req.UpdateProfileRequest;
 import baro.baro.domain.user.dto.req.DeleteUserRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
+import baro.baro.domain.user.dto.res.UserPublicProfileResponse;
 import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
@@ -144,5 +145,28 @@ public class UserServiceImpl implements UserService {
         user.deactivate(request.getPassword(), passwordEncoder);
         
         return DeleteUserResponse.create("회원 탈퇴가 완료되었습니다.");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserPublicProfileResponse getUserByUid(String uid) {
+        log.debug("UID로 사용자 조회 - UID: {}", uid);
+        
+        User user = userRepository.findByUid(uid)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        
+        // 비활성화된 사용자는 조회 불가
+        if (!user.isActive()) {
+            throw new UserException(UserErrorCode.USER_ALREADY_INACTIVE);
+        }
+        
+        log.debug("사용자 조회 성공 - User ID: {}", user.getId());
+        
+        return UserPublicProfileResponse.builder()
+                .uid(user.getUid())
+                .name(user.getName())
+                .profileUrl(user.getProfileUrl())
+                .profileBackgroundColor(user.getProfileBackgroundColor())
+                .build();
     }
 }
