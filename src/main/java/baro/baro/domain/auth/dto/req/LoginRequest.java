@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class LoginRequest {
     @NotBlank(message = "User ID is required")
-    private String userId;
+    private String uid;
     
     @NotBlank(message = "Password is required")
     private String password;
