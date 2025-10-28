@@ -2,6 +2,8 @@ package baro.baro.domain.ai.service;
 
 import baro.baro.domain.ai.dto.req.GenerateAiImageRequest;
 import baro.baro.domain.ai.dto.res.GenerateAiImageResponse;
+import baro.baro.domain.ai.dto.req.ApplyAiImageRequest;
+import baro.baro.domain.ai.dto.res.ApplyAiImageResponse;
 import baro.baro.domain.ai.entity.AiAsset;
 import baro.baro.domain.ai.repository.AiAssetRepository;
 import baro.baro.domain.common.enums.AssetType;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * AI 이미지 생성 서비스 구현체
@@ -51,7 +54,7 @@ public class AiImageServiceImpl implements AiImageService {
      *   <li>실종자 정보 조회 및 검증</li>
      *   <li>에셋 타입에 따라 Google GenAI 서비스 호출
      *       <ul>
-     *         <li>AGE_PROGRESSION: 3장 (현재, +5년, +10년)</li>
+     *         <li>AGE_PROGRESSION: 3장 (실종 당시 사진 기반 현재 나이 예측, 3가지 스타일/각도)</li>
      *         <li>DESCRIPTION: 1장 (인상착의 기반)</li>
      *       </ul>
      *   </li>
@@ -76,7 +79,7 @@ public class AiImageServiceImpl implements AiImageService {
         // 2. Google GenAI로 이미지 생성
         List<String> imageUrls;
         if (request.getAssetType() == AssetType.AGE_PROGRESSION) {
-            // 성장/노화: 3장 생성 (현재, +5년, +10년)
+            // 성장/노화: 3장 생성
             imageUrls = googleGenAiService.generateAgeProgressionImages(missingPerson);
         } else {
             // 인상착의: 1장 생성
@@ -99,5 +102,35 @@ public class AiImageServiceImpl implements AiImageService {
         log.info("AI 이미지 생성 완료 - 총 {}장 저장됨", savedAssets.size());
 
         return GenerateAiImageResponse.create(request.getAssetType(), imageUrls);
+    }
+
+    /**
+     * 선택한 AI 이미지를 MissingPerson 대표 이미지로 적용합니다.
+     */
+    @Override
+    @Transactional
+    public ApplyAiImageResponse applySelectedImage(ApplyAiImageRequest request) {
+        // 1) 실종자 검증
+        MissingPerson missingPerson = missingPersonRepository.findById(request.getMissingPersonId())
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
+
+        // 2) 선택한 AI 에셋 조회 (순서 기반)
+        Optional<AiAsset> assetOpt = aiAssetRepository.findByMissingPersonIdAndAssetTypeAndSequenceOrder(
+                request.getMissingPersonId(), request.getAssetType(), request.getSequenceOrder());
+
+        AiAsset asset = assetOpt.orElseThrow(() ->
+                new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
+
+        // 3) MissingPerson에 대표 이미지 URL 적용
+        missingPerson.updateAiImage(asset.getAssetUrl(), request.getAssetType());
+
+        // JPA 더티체킹으로 자동 반영됨
+
+        return ApplyAiImageResponse.create(
+                missingPerson.getId(),
+                request.getAssetType(),
+                request.getSequenceOrder(),
+                asset.getAssetUrl()
+        );
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * AI 에셋 Repository
@@ -56,4 +57,14 @@ public interface AiAssetRepository extends JpaRepository<AiAsset, Long> {
      * @return AI 에셋 리스트
      */
     List<AiAsset> findByMissingPersonId(Long missingPersonId);
+
+    /**
+     * 실종자 + 타입 + 순서로 단일 에셋 조회
+     *
+     * @param missingPersonId 실종자 ID
+     * @param assetType 에셋 타입
+     * @param sequenceOrder 순서 (0,1,2)
+     * @return 일치하는 AI 에셋
+     */
+    Optional<AiAsset> findByMissingPersonIdAndAssetTypeAndSequenceOrder(Long missingPersonId, AssetType assetType, Integer sequenceOrder);
 }

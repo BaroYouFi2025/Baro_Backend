@@ -90,6 +90,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .location(request.getLocation() != null ? request.getLocation() : missingPerson.getLocation())
                 .address(request.getLocation() != null ? address : missingPerson.getAddress())
                 .missingDate(request.getLastSeenDate() != null ? ZonedDateTime.parse(request.getLastSeenDate()) : missingPerson.getMissingDate())
+                .predictedFaceUrl(null)
+                .appearanceImageUrl(null)
                 .build();
 
         missingPerson = missingPersonRepository.save(missingPerson);
@@ -134,6 +136,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 .location(missingPerson.getLocation())
                 .address(missingPerson.getAddress())
                 .lastSeenDate(missingPerson.getLastSeenDate())
+                .selectedImageUrl(missingPerson.getSelectedImageUrl())
                 .build();
     }
 
