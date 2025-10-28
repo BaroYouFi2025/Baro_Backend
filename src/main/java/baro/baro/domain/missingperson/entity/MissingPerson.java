@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.entity;
 
+import baro.baro.domain.common.enums.AssetType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,15 +70,36 @@ public class MissingPerson {
     private ZonedDateTime updatedAt;
 
     /**
-     * 실종자의 나이를 계산하여 반환합니다.
+     * 선택된 대표 이미지 URL (AI 생성 이미지 등)
+     */
+    @Column(name = "predicted_face_url ")
+    private String predictedFaceUrl;
+
+    @Column(name = "appearance_image_url")
+    private String appearanceImageUrl;
+
+    /**
+     * 실종자의 현재 나이를 계산하여 반환합니다.
      *
-     * @return 실종자의 나이 (Integer)
+     * @return 실종자의 현재 나이 (Integer)
      */
     public Integer getAge() {
         if (birthDate == null) {
             return null;
         }
         return LocalDate.now().getYear() - birthDate.getYear();
+    }
+
+    /**
+     * 실종 당시의 나이를 계산하여 반환합니다.
+     *
+     * @return 실종 당시 나이 (Integer), birthDate나 missingDate가 없으면 null
+     */
+    public Integer getMissingAge() {
+        if (birthDate == null || missingDate == null) {
+            return null;
+        }
+        return missingDate.getYear() - birthDate.getYear();
     }
 
     /**
@@ -98,5 +120,15 @@ public class MissingPerson {
      */
     public ZonedDateTime getLastSeenDate() {
         return this.missingDate;
+    }
+
+
+    public void updateAiImage(String assetUrl, AssetType assetType) {
+        if (assetType == AssetType.AGE_PROGRESSION) {
+            this.predictedFaceUrl = assetUrl;
+        }
+        else {
+            this.appearanceImageUrl = assetUrl;
+        }
     }
 }
