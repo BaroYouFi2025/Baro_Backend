@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokensResponse login(LoginRequest request, HttpServletResponse response) {
-        User user = userRepository.findByUid(request.getUserId())
+        User user = userRepository.findByUid(request.getUid())
                 .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
         // 비활성화된 사용자 로그인 차단
