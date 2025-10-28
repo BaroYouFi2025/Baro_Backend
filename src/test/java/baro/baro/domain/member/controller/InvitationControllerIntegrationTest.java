@@ -79,7 +79,7 @@ class InvitationControllerIntegrationTest {
         // 테스트용 사용자를 실제 DB에 insert
         inviter = User.builder()
                 .uid("inviter_uid_" + System.currentTimeMillis())
-                .passwordHash("password123")
+                .encodedPassword("password123")
                 .phoneE164("+821012345678")
                 .name("초대자")
                 .birthDate(LocalDate.of(1990, 1, 1))
@@ -88,7 +88,7 @@ class InvitationControllerIntegrationTest {
 
         invitee = User.builder()
                 .uid("invitee_uid_" + System.currentTimeMillis())
-                .passwordHash("password456")
+                .encodedPassword("password456")
                 .phoneE164("+821087654321")
                 .name("피초대자")
                 .birthDate(LocalDate.of(1995, 5, 5))

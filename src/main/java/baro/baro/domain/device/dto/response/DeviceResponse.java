@@ -33,4 +33,7 @@ public class DeviceResponse {
 
     @Schema(description = "등록 시간", example = "2025-10-20T12:00:00")
     private LocalDateTime registeredAt;
+
+    @Schema(description = "FCM 토큰", example = "fcm-token-string")
+    private String fcmToken;
 }

@@ -6,143 +6,154 @@ import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
+import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.entity.MissingCase;
+import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
+import baro.baro.domain.missingperson.exception.MissingPersonException;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.user.entity.User;
-import baro.baro.domain.user.repository.UserRepository;
-import baro.baro.domain.common.util.SecurityUtil;
-import baro.baro.domain.missingperson.entity.GenderType;
+import baro.baro.domain.common.util.LocationUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Point;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MissingPersonServiceImpl implements MissingPersonService {
 
     private final MissingPersonRepository missingPersonRepository;
     private final MissingCaseRepository missingCaseRepository;
-    private final UserRepository userRepository;
+    private final LocationService locationService;
 
     @Override
     @Transactional
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
-        String currentUid = SecurityUtil.getCurrentUserUid();
-        User reporter = userRepository.findByUid(currentUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        User currentUser = getCurrentUser();
 
-        // 위치 정보를 주소로 변환
-        String address = getAddressFromLocation(request.getLocation());
+        // 도메인 서비스: 위치 정보 생성
+        LocationService.LocationInfo locationInfo = locationService.createLocationInfo(
+                request.getLatitude(),
+                request.getLongitude()
+        );
 
-        // MissingPerson 엔티티 생성
-        MissingPerson missingPerson = MissingPerson.builder()
-                .name(request.getName())
-                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : null)
-                .gender(GenderType.valueOf(request.getGender()))
-                .body(request.getDescription())
-                .location(request.getLocation())
-                .address(address)
-                .missingDate(ZonedDateTime.parse(request.getLastSeenDate()))
-                .build();
+        // 도메인: 실종자 엔티티 생성
+        MissingPerson missingPerson = MissingPerson.from(
+                request.getName(),
+                request.getBirthDate(),
+                request.getGender(),
+                request.getMissingDate(),
+                request.getBody(),
+                request.getBodyEtc(),
+                request.getClothesTop(),
+                request.getClothesBottom(),
+                request.getClothesEtc(),
+                request.getHeight(),
+                request.getWeight(),
+                locationInfo.point(),
+                locationInfo.address()
+        );
 
         missingPerson = missingPersonRepository.save(missingPerson);
 
-        // MissingCase 엔티티 생성
-        MissingCase missingCase = MissingCase.builder()
-                .missingPerson(missingPerson)
-                .reportedBy(reporter)
-                .build();
-
+        // 도메인: 실종 케이스 생성
+        MissingCase missingCase = MissingCase.reportBy(missingPerson, currentUser);
         missingCaseRepository.save(missingCase);
 
-        return RegisterMissingPersonResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .build();
+        log.info("실종자 등록 완료: id={}, name={}", missingPerson.getId(), missingPerson.getName());
+        return RegisterMissingPersonResponse.create(missingPerson.getId());
     }
 
     @Override
     @Transactional
     public RegisterMissingPersonResponse updateMissingPerson(Long id, UpdateMissingPersonRequest request) {
         MissingPerson missingPerson = missingPersonRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("실종자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
 
-        // 위치 정보를 주소로 변환
-        String address = getAddressFromLocation(request.getLocation());
+        // 도메인 서비스: 위치 정보 변환
+        String address = null;
+        Point location = null;
 
-        // MissingPerson 업데이트
-        missingPerson = MissingPerson.builder()
-                .id(missingPerson.getId())
-                .name(request.getName() != null ? request.getName() : missingPerson.getName())
-                .birthDate(request.getAge() != null ? LocalDate.now().minusYears(request.getAge()) : missingPerson.getBirthDate())
-                .gender(request.getGender() != null ? GenderType.valueOf(request.getGender()) : missingPerson.getGender())
-                .body(request.getDescription() != null ? request.getDescription() : missingPerson.getBody())
-                .location(request.getLocation() != null ? request.getLocation() : missingPerson.getLocation())
-                .address(request.getLocation() != null ? address : missingPerson.getAddress())
-                .missingDate(request.getLastSeenDate() != null ? ZonedDateTime.parse(request.getLastSeenDate()) : missingPerson.getMissingDate())
-                .predictedFaceUrl(null)
-                .appearanceImageUrl(null)
-                .build();
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            LocationService.LocationInfo locationInfo = locationService.createLocationInfo(
+                    request.getLatitude(),
+                    request.getLongitude()
+            );
+            address = locationInfo.address();
+            location = locationInfo.point();
+        }
 
-        missingPerson = missingPersonRepository.save(missingPerson);
+        // 도메인: 실종자 정보 업데이트
+        missingPerson.updateFrom(
+                request.getName(),
+                request.getBirthDate(),
+                request.getBody(),
+                request.getBodyEtc(),
+                request.getClothesTop(),
+                request.getClothesBottom(),
+                request.getClothesEtc(),
+                request.getHeight(),
+                request.getWeight(),
+                location,
+                address,
+                request.getMissingDate()
+        );
 
-        return RegisterMissingPersonResponse.builder()
-                .missingPersonId(missingPerson.getId())
-                .build();
+        log.info("실종자 정보 수정 완료: id={}, name={}", id, missingPerson.getName());
+        return RegisterMissingPersonResponse.create(missingPerson.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<MissingPerson> missingPersons = missingPersonRepository.findAll(pageable);
+        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(pageable);
 
-        return missingPersons.map(this::convertToResponse);
+        log.debug("실종자 검색 완료: page={}, size={}, totalElements={}",
+                request.getPage(), request.getSize(), missingPersons.getTotalElements());
+        return missingPersons.map(MissingPersonResponse::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request) {
+        // 좌표 검증은 LocationUtil.createPoint에서 자동 수행
+        LocationUtil.validateCoordinates(request.getLatitude(), request.getLongitude());
+
         List<MissingPerson> nearbyPersons = missingPersonRepository.findNearbyMissingPersons(
-                request.getLatitude(), 
-                request.getLongitude(), 
+                request.getLatitude(),
+                request.getLongitude(),
                 request.getRadius()
         );
 
         List<MissingPersonResponse> responses = nearbyPersons.stream()
-                .map(this::convertToResponse)
+                .map(MissingPersonResponse::from)
                 .collect(Collectors.toList());
 
+        log.debug("주변 실종자 검색 완료: lat={}, lon={}, radius={}, count={}",
+                request.getLatitude(), request.getLongitude(), request.getRadius(), responses.size());
         return new org.springframework.data.domain.PageImpl<>(responses);
     }
 
-    private MissingPersonResponse convertToResponse(MissingPerson missingPerson) {
-        return MissingPersonResponse.builder()
-                .id(missingPerson.getId())
-                .name(missingPerson.getName())
-                .age(missingPerson.getAge())
-                .gender(missingPerson.getGender() != null ? missingPerson.getGender().toString() : null)
-                .description(missingPerson.getDescription())
-                .location(missingPerson.getLocation())
-                .address(missingPerson.getAddress())
-                .lastSeenDate(missingPerson.getLastSeenDate())
-                .selectedImageUrl(missingPerson.getSelectedImageUrl())
-                .build();
-    }
+    @Override
+    @Transactional(readOnly = true)
+    public MissingPersonDetailResponse getMissingPersonDetail(Long id) {
+        MissingPerson missingPerson = missingPersonRepository.findById(id)
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
 
-    private String getAddressFromLocation(String location) {
-        // 실제 구현에서는 지오코딩 API를 사용하여 좌표를 주소로 변환
-        // 여기서는 간단히 문자열로 반환
-        return "주소 변환: " + location;
+        log.debug("실종자 상세 조회 완료: id={}, name={}", id, missingPerson.getName());
+        return MissingPersonDetailResponse.from(missingPerson);
     }
 }

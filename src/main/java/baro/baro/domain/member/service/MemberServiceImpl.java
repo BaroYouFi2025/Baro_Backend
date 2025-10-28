@@ -5,6 +5,7 @@ import baro.baro.domain.device.entity.GpsTrack;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
 import baro.baro.domain.common.util.GpsUtils;
+import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
 import baro.baro.domain.member.dto.request.InvitationRequest;
 import baro.baro.domain.member.dto.request.RejectInvitationRequest;
@@ -41,6 +42,7 @@ public class MemberServiceImpl implements MemberService {
     private final InvitationRepository invitationRepository;
     private final DeviceRepository deviceRepository;
     private final GpsTrackRepository gpsTrackRepository;
+    private final PushNotificationService pushNotificationService;
 
     @Override
     @Transactional // 구성원 초대 생성 메서드
@@ -58,6 +60,10 @@ public class MemberServiceImpl implements MemberService {
                 .build();
 
         Invitation created = invitationRepository.save(invitationRequest);
+        
+        // 푸시 알림 발송
+        pushNotificationService.sendInvitationNotification(invitee, currentUser, request.getRelation());
+        
         return new InvitationResponse(created.getId());
     }
 
@@ -97,6 +103,10 @@ public class MemberServiceImpl implements MemberService {
 
         originRelationship = relationshipRepository.save(originRelationship);
         reverseRelationship = relationshipRepository.save(reverseRelationship);
+        
+        // 초대 수락 푸시 알림 발송
+        pushNotificationService.sendInvitationResponseNotification(inviter, currentUser, true, request.getRelation());
+        
         return AcceptInvitationResponse.of(originRelationship.getId(), reverseRelationship.getId());
     }
 
@@ -114,6 +124,10 @@ public class MemberServiceImpl implements MemberService {
         // 초대 상태가 PENDING인지 확인(중복 거절 방지)
         invitation.reject();
         invitationRepository.save(invitation);
+        
+        // 초대 거절 푸시 알림 발송
+        User inviter = invitation.getInviterUser();
+        pushNotificationService.sendInvitationResponseNotification(inviter, currentUser, false, invitation.getRelation());
     }
 
 
