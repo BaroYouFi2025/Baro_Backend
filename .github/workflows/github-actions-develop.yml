@@ -132,11 +132,13 @@ jobs:
             echo "📌 PostgreSQL 상태 확인..."
             docker compose ps postgres
 
-            echo "📌 새로운 애플리케이션 빌드 및 시작..."
-            docker compose up -d --build app
+            echo "📌 새로운 애플리케이션 빌드 및 시작... (deps 건드리지 않음)"
+            docker compose up -d --no-deps --build app
 
             echo "📊 테스트 서버 배포 상태 확인..."
             docker compose ps
+            echo "📦 볼륨 현황 확인 (PostgreSQL 데이터 유지 확인)"
+            docker volume ls || true
 
             echo "🚀 테스트 서버 배포 완료!"
           EOF
