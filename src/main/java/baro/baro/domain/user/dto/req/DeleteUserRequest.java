@@ -1,14 +1,18 @@
 package baro.baro.domain.user.dto.req;
 
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class DeleteUserRequest {
     private String password;
+    
+    public static DeleteUserRequest create(String password) {
+        DeleteUserRequest request = new DeleteUserRequest();
+        request.password = password;
+        return request;
+    }
 }

@@ -1,6 +1,7 @@
 package baro.baro.domain.device.service;
 
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
+import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
 import baro.baro.domain.device.dto.request.GpsUpdateRequest;
 import baro.baro.domain.device.dto.response.DeviceResponse;
 import baro.baro.domain.device.dto.response.GpsUpdateResponse;
@@ -70,6 +71,7 @@ public class DeviceServiceImpl implements DeviceService {
                 .deviceUuid(request.getDeviceUuid())
                 .osType(request.getOsType())       // OS 타입 (iOS, Android 등)
                 .osVersion(request.getOsVersion()) // OS 버전
+                .fcmToken(request.getFcmToken())   // FCM 토큰
                 .batteryLevel(null)                // 초기 배터리 레벨은 null
                 .isActive(true)                    // 등록 시 활성화 상태
                 .registeredAt(LocalDateTime.now())
@@ -86,7 +88,8 @@ public class DeviceServiceImpl implements DeviceService {
                 savedDevice.getOsType(),
                 savedDevice.getOsVersion(),
                 savedDevice.isActive(),
-                savedDevice.getRegisteredAt()
+                savedDevice.getRegisteredAt(),
+                savedDevice.getFcmToken()
         );
     }
 
@@ -142,6 +145,32 @@ public class DeviceServiceImpl implements DeviceService {
                 gpsTrack.getRecordedAt(),
                 "GPS 위치가 업데이트되었습니다."
         );
+    }
+
+    /**
+     * 사용자의 FCM 토큰을 업데이트합니다.
+     *
+     * @param uid 사용자 고유 ID
+     * @param request FCM 토큰 업데이트 요청
+     * @throws UserException 사용자를 찾을 수 없는 경우
+     * @throws DeviceException 사용자의 활성 기기를 찾을 수 없는 경우
+     */
+    @Override
+    @Transactional
+    public void updateFcmToken(String uid, FcmTokenUpdateRequest request) {
+        // 1. 사용자 조회
+        User user = userRepository.findByUid(uid)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        // 2. 사용자의 활성 기기 조회 (첫 번째 활성 기기)
+        Device device = deviceRepository.findByUser(user).stream()
+                .filter(Device::isActive)
+                .findFirst()
+                .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
+
+        // 3. FCM 토큰 업데이트
+        device.updateFcmToken(request.getFcmToken());
+        deviceRepository.save(device);
     }
 
 }
