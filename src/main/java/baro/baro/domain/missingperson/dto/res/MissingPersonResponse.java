@@ -1,12 +1,10 @@
 package baro.baro.domain.missingperson.dto.res;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
 import java.time.ZonedDateTime;
 
-@Getter
-@Builder
+@Data
 public class MissingPersonResponse {
     private Long id;
     private String name;
@@ -16,4 +14,5 @@ public class MissingPersonResponse {
     private String location;
     private String address;
     private ZonedDateTime lastSeenDate;
+    private String url;
 }

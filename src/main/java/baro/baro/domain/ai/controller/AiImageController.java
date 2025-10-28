@@ -2,6 +2,8 @@ package baro.baro.domain.ai.controller;
 
 import baro.baro.domain.ai.dto.req.GenerateAiImageRequest;
 import baro.baro.domain.ai.dto.res.GenerateAiImageResponse;
+import baro.baro.domain.ai.dto.req.ApplyAiImageRequest;
+import baro.baro.domain.ai.dto.res.ApplyAiImageResponse;
 import baro.baro.domain.ai.service.AiImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -85,6 +87,26 @@ public class AiImageController {
 
         GenerateAiImageResponse response = aiImageService.generateImage(request);
 
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 생성된 AI 이미지 중 하나를 선택하여 MissingPerson의 대표 이미지로 적용
+     *
+     * <p><b>요청 예시:</b></p>
+     * <pre>
+     * POST /ai/images/apply
+     * {
+     *   "missingPersonId": 1,
+     *   "assetType": "AGE_PROGRESSION",
+     *   "sequenceOrder": 1
+     * }
+     * </pre>
+     */
+    @PostMapping("/apply")
+    @Operation(summary = "AI 이미지 적용", description = "생성된 이미지 중 선택한 이미지를 MissingPerson에 대표 이미지로 저장합니다.")
+    public ResponseEntity<ApplyAiImageResponse> applyAiImage(@RequestBody ApplyAiImageRequest request) {
+        ApplyAiImageResponse response = aiImageService.applySelectedImage(request);
         return ResponseEntity.ok(response);
     }
 }
