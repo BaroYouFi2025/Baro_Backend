@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/location")
+@RequestMapping("/location")
 @RequiredArgsConstructor
 @Tag(name = "Location", description = "위치 정보 API")
 public class LocationController {
