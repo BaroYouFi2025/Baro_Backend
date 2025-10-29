@@ -2,8 +2,11 @@ package baro.baro.domain.ai.service;
 
 import baro.baro.domain.ai.dto.external.GoogleGenAiRequest;
 import baro.baro.domain.ai.dto.external.GoogleGenAiResponse;
-import baro.baro.domain.ai.dto.external.NanobananaRequest;
-import baro.baro.domain.ai.dto.external.NanobananaResponse;
+import baro.baro.domain.ai.dto.external.GeminiImageRequest;
+import baro.baro.domain.ai.dto.external.GeminiImageResponse;
+import baro.baro.domain.ai.dto.external.ImagenRequest;
+import baro.baro.domain.ai.dto.external.ImagenResponse;
+import baro.baro.domain.ai.exception.AiQuotaExceededException;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +47,7 @@ public class GoogleGenAiService {
 
     private final WebClient webClient;
     private final baro.baro.domain.image.service.ImageService imageService;
+    private final RateLimiter rateLimiter;
 
     @Value("${google.genai.api.key:}")
     private String apiKey;
@@ -51,11 +55,29 @@ public class GoogleGenAiService {
     @Value("${google.genai.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent}")
     private String apiUrl;
 
-    @Value("${google.nanobanana.api.url:https://nanobanana.googleapis.com/v1/images/generate}")
-    private String nanobananaUrl;
+    @Value("${google.gemini.api.url:}")
+    private String geminiImageUrl;
 
-    @Value("${google.nanobanana.api.key:}")
-    private String nanobananaApiKey;
+    @Value("${google.gemini.api.key:}")
+    private String geminiApiKey;
+
+    @Value("${google.gemini.retry.max-attempts:3}")
+    private int maxRetryAttempts;
+
+    @Value("${google.gemini.retry.initial-delay-seconds:5}")
+    private int retryDelaySeconds;
+
+    @Value("${google.gemini.quota.daily-limit:50}")
+    private int dailyQuotaLimit;
+
+    @Value("${google.gemini.quota.enabled:true}")
+    private boolean quotaCheckEnabled;
+
+    @Value("${google.gemini.quota.rpm:10}")
+    private int quotaRpm;
+
+    @Value("${google.gemini.quota.rpd:100}")
+    private int quotaRpd;
 
     /**
      * 성장/노화 이미지 3장 생성
@@ -119,7 +141,6 @@ public class GoogleGenAiService {
      * <p>실종 당시 어린 시절 사진을 기반으로 현재 나이로 성장한 모습의 초상화를 생성하기 위한 프롬프트를 구성합니다.</p>
      *
      * @param person 실종자 정보
-     * @param styleVariant 스타일 변형 (0: 정면, 1: 측면, 2: 다른 각도)
      * @return 영문 프롬프트 텍스트
      */
     private String buildAgeProgressionPrompt(MissingPerson person) {
@@ -200,13 +221,13 @@ public class GoogleGenAiService {
     }
     
     /**
-     * 이미지 생성 (Nanobanana API 사용)
+     * 이미지 생성 (Gemini Image API 사용)
      *
      * <p>주어진 프롬프트로 이미지를 생성하고 로컬 스토리지에 저장합니다.</p>
      *
      * <p><b>처리 흐름:</b></p>
      * <ol>
-     *   <li>Google Nanobanana API를 통한 실제 이미지 생성</li>
+     *   <li>Google Gemini Image API를 통한 실제 이미지 생성</li>
      *   <li>Base64 이미지를 byte[]로 디코딩</li>
      *   <li>ImageService를 통해 로컬 스토리지에 저장</li>
      *   <li>저장된 이미지의 접근 가능한 URL 반환</li>
@@ -221,8 +242,8 @@ public class GoogleGenAiService {
                 sequenceOrder, prompt.substring(0, Math.min(100, prompt.length())));
 
         try {
-            // 1. Nanobanana API로 실제 이미지 생성
-            byte[] imageData = callNanobananaApi(prompt);
+            // 1. Gemini Image API로 실제 이미지 생성
+            byte[] imageData = callGeminiImageApi(prompt);
 
             // 2. ImageService를 통해 저장
             String filename = String.format("ai-generated-%s-%d.jpg",
@@ -251,66 +272,166 @@ public class GoogleGenAiService {
     }
 
     /**
-     * Nanobanana API를 통한 실제 이미지 생성
+     * Imagen API를 통한 실제 이미지 생성
      *
-     * <p>Google Nanobanana API를 호출하여 텍스트 프롬프트 기반으로
+     * <p>Google Imagen 3.0 API를 호출하여 텍스트 프롬프트 기반으로
      * 실제 AI 생성 이미지를 만들고 byte[] 데이터로 반환합니다.</p>
+     *
+     * <p><b>처리 흐름:</b></p>
+     * <ol>
+     *   <li>Rate Limiting 체크</li>
+     *   <li>Imagen API 호출 (predict 엔드포인트)</li>
+     *   <li>Base64 이미지 응답 디코딩</li>
+     *   <li>에러 시 재시도 (최대 3회)</li>
+     *   <li>실패 시 placeholder 이미지 반환</li>
+     * </ol>
      *
      * @param prompt 이미지 생성 프롬프트
      * @return 생성된 이미지의 byte[] 데이터
      * @throws RuntimeException API 호출 실패 또는 이미지 생성 실패 시
      */
-    private byte[] callNanobananaApi(String prompt) {
-        log.info("Nanobanana API 호출 시작 - Prompt: {}", prompt.substring(0, Math.min(50, prompt.length())));
+    private byte[] callGeminiImageApi(String prompt) {
+        log.info("Imagen API 호출 시작 - Prompt: {}", prompt.substring(0, Math.min(50, prompt.length())));
 
         // API Key가 설정되지 않은 경우 Placeholder 반환
-        if (nanobananaApiKey == null || nanobananaApiKey.isEmpty()) {
-            log.warn("Nanobanana API Key가 설정되지 않음 - Placeholder 이미지 반환");
+        if (geminiApiKey == null || geminiApiKey.isEmpty()) {
+            log.warn("Gemini API Key가 설정되지 않음 - Placeholder 이미지 반환");
             return generatePlaceholderImage(prompt, 0);
         }
 
-        try {
-            // 요청 DTO 생성
-            NanobananaRequest request = NanobananaRequest.createHighQuality(prompt);
-
-            // WebClient로 API 호출
-            NanobananaResponse response = webClient.post()
-                    .uri(nanobananaUrl + "?key=" + nanobananaApiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(request)
-                    .retrieve()
-                    .onStatus(
-                            status -> status.is4xxClientError() || status.is5xxServerError(),
-                            clientResponse -> clientResponse.bodyToMono(String.class)
-                                    .flatMap(errorBody -> {
-                                        log.error("Nanobanana API 에러 응답: {}", errorBody);
-                                        return Mono.error(new RuntimeException("Nanobanana API 호출 실패: " + errorBody));
-                                    })
-                    )
-                    .bodyToMono(NanobananaResponse.class)
-                    .block();
-
-            // 응답 검증 및 이미지 데이터 추출
-            if (response == null || !response.isSuccess()) {
-                String error = response != null ? response.getError() : "응답이 null";
-                throw new RuntimeException("Nanobanana API 응답 실패: " + error);
+        // Rate Limiting 체크
+        if (quotaCheckEnabled) {
+            if (!rateLimiter.tryAcquire(quotaRpm, quotaRpd)) {
+                long waitTime = rateLimiter.getWaitTimeSeconds(quotaRpm);
+                log.error("Rate Limit 초과 - 현재 RPM: {}/{}, RPD: {}/{}, 대기 시간: {}초",
+                        rateLimiter.getCurrentRpm(), quotaRpm,
+                        rateLimiter.getCurrentRpd(), quotaRpd,
+                        waitTime);
+                
+                // Rate limit 초과 시 placeholder 반환
+                return generatePlaceholderImage(prompt, 0);
             }
-
-            // Base64 이미지 데이터를 byte[]로 디코딩
-            String base64Image = response.getFirstImageBase64();
-            if (base64Image == null || base64Image.isEmpty()) {
-                throw new RuntimeException("생성된 이미지 데이터가 없습니다");
-            }
-
-            byte[] imageData = java.util.Base64.getDecoder().decode(base64Image);
-            log.info("Nanobanana API 호출 성공 - 이미지 크기: {} bytes", imageData.length);
-
-            return imageData;
-
-        } catch (Exception e) {
-            log.error("Nanobanana API 호출 중 오류 발생", e);
-            throw new RuntimeException("Nanobanana API 호출 실패", e);
+            
+            log.debug("Rate Limit 체크 통과 - 현재 RPM: {}/{}, RPD: {}/{}",
+                    rateLimiter.getCurrentRpm(), quotaRpm,
+                    rateLimiter.getCurrentRpd(), quotaRpd);
         }
+
+        int maxRetries = maxRetryAttempts;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                // Imagen API 요청 DTO 생성 (1:1 비율 이미지 1장)
+                ImagenRequest request = ImagenRequest.create(prompt);
+
+                // WebClient로 Imagen API 호출
+                ImagenResponse response = webClient.post()
+                        .uri(geminiImageUrl)
+                        .header("x-goog-api-key", geminiApiKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(request)
+                        .retrieve()
+                        .onStatus(
+                                status -> status.is4xxClientError() || status.is5xxServerError(),
+                                clientResponse -> clientResponse.bodyToMono(String.class)
+                                        .flatMap(errorBody -> {
+                                            log.error("Imagen API 에러 응답: {}", errorBody);
+                                            
+                                            // 429 에러 (Quota Exceeded) 체크
+                                            if (errorBody.contains("\"code\": 429") || errorBody.contains("RESOURCE_EXHAUSTED")) {
+                                                // retryDelay 파싱 시도
+                                                Integer retryAfter = parseRetryDelay(errorBody);
+                                                return Mono.error(new AiQuotaExceededException(
+                                                    "Imagen API quota exceeded", 
+                                                    "DAILY_OR_RATE_LIMIT", 
+                                                    retryAfter
+                                                ));
+                                            }
+                                            
+                                            return Mono.error(new RuntimeException("Imagen API 호출 실패: " + errorBody));
+                                        })
+                        )
+                        .bodyToMono(ImagenResponse.class)
+                        .block();
+
+                // 응답 검증 및 이미지 데이터 추출
+                if (response == null) {
+                    throw new RuntimeException("Imagen API 응답이 null");
+                }
+
+                // Base64 이미지 데이터를 byte[]로 디코딩
+                String base64Image = response.getFirstImageBase64();
+                if (base64Image == null || base64Image.isEmpty()) {
+                    throw new RuntimeException("생성된 이미지 데이터가 없습니다");
+                }
+
+                byte[] imageData = java.util.Base64.getDecoder().decode(base64Image);
+                log.info("Imagen API 호출 성공 - 이미지 크기: {} bytes", imageData.length);
+
+                return imageData;
+
+            } catch (AiQuotaExceededException e) {
+                log.warn("Imagen API Quota 초과 - Attempt {}/{}", attempt, maxRetries);
+                
+                // 마지막 시도가 아니면 재시도 대기
+                if (attempt < maxRetries) {
+                    // API 응답에서 제안한 재시도 시간 사용 또는 Exponential backoff
+                    int waitTime = e.getRetryAfterSeconds() != null 
+                        ? e.getRetryAfterSeconds() 
+                        : retryDelaySeconds * attempt;
+                    log.info("{}초 후 재시도...", waitTime);
+                    
+                    try {
+                        Thread.sleep(waitTime * 1000L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("재시도 대기 중 인터럽트 발생", ie);
+                    }
+                } else {
+                    log.error("최대 재시도 횟수 초과 - Placeholder 이미지 반환");
+                    return generatePlaceholderImage(prompt, 0);
+                }
+                
+            } catch (Exception e) {
+                log.error("Imagen API 호출 중 오류 발생 - Attempt {}/{}", attempt, maxRetries, e);
+                
+                // 일반 예외는 재시도하지 않음
+                if (attempt >= maxRetries) {
+                    throw new RuntimeException("Gemini Image API 호출 실패", e);
+                }
+            }
+        }
+
+        // 모든 재시도 실패 시 Placeholder 반환
+        log.warn("모든 재시도 실패 - Placeholder 이미지 반환");
+        return generatePlaceholderImage(prompt, 0);
+    }
+
+    /**
+     * API 응답에서 재시도 대기 시간 파싱
+     *
+     * @param errorBody API 에러 응답 본문
+     * @return 재시도 대기 시간 (초), 파싱 실패 시 null
+     */
+    private Integer parseRetryDelay(String errorBody) {
+        try {
+            // "retryDelay": "40s" 형식 파싱
+            int retryDelayIndex = errorBody.indexOf("\"retryDelay\":");
+            if (retryDelayIndex == -1) {
+                return null;
+            }
+            
+            int startIndex = errorBody.indexOf("\"", retryDelayIndex + 13) + 1;
+            int endIndex = errorBody.indexOf("s\"", startIndex);
+            
+            if (startIndex > 0 && endIndex > startIndex) {
+                String delayStr = errorBody.substring(startIndex, endIndex);
+                return Integer.parseInt(delayStr);
+            }
+        } catch (Exception e) {
+            log.warn("재시도 대기 시간 파싱 실패", e);
+        }
+        return null;
     }
 
     /**
