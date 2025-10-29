@@ -8,7 +8,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDate;
@@ -34,6 +36,7 @@ public class MissingPerson {
     private LocalDate birthDate;
     
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private GenderType gender;
     
     private Integer height;
@@ -119,7 +122,7 @@ public class MissingPerson {
      * @return 실종자의 신체 설명 (얼굴 특징, 체형 등)
      */
     public String getDescription() {
-        return this.body + ", " + this.bodyEtc;
+        return this.body;
     }
 
     /**
