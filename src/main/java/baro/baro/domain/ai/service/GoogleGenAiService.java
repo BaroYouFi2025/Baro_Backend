@@ -1,9 +1,6 @@
 package baro.baro.domain.ai.service;
 
-import baro.baro.domain.ai.dto.external.GoogleGenAiRequest;
-import baro.baro.domain.ai.dto.external.GoogleGenAiResponse;
-import baro.baro.domain.ai.dto.external.GeminiImageRequest;
-import baro.baro.domain.ai.dto.external.GeminiImageResponse;
+
 import baro.baro.domain.ai.dto.external.ImagenRequest;
 import baro.baro.domain.ai.dto.external.ImagenResponse;
 import baro.baro.domain.ai.exception.AiQuotaExceededException;
@@ -37,8 +34,6 @@ import java.util.*;
  *   <li>google.genai.api.url: API 엔드포인트 URL</li>
  * </ul>
  *
- * @see GoogleGenAiRequest
- * @see GoogleGenAiResponse
  */
 @Service
 @RequiredArgsConstructor
@@ -49,13 +44,7 @@ public class GoogleGenAiService {
     private final baro.baro.domain.image.service.ImageService imageService;
     private final RateLimiter rateLimiter;
 
-    @Value("${google.genai.api.key:}")
-    private String apiKey;
-
-    @Value("${google.genai.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent}")
-    private String apiUrl;
-
-    @Value("${google.gemini.api.url:}")
+@Value("${google.gemini.api.url:}")
     private String geminiImageUrl;
 
     @Value("${google.gemini.api.key:}")
@@ -462,71 +451,4 @@ public class GoogleGenAiService {
         return generatePlaceholderImage("fallback", sequenceOrder);
     }
 
-    /**
-     * WebClient를 사용한 Google GenAI API 호출
-     *
-     * <p>WebClient를 사용하여 Google GenAI (Gemini) API에 POST 요청을 보내고
-     * 생성된 텍스트 응답을 받아옵니다. 동기 방식(.block())을 사용하여 기존 코드와 호환됩니다.</p>
-     *
-     * <p><b>처리 흐름:</b></p>
-     * <ol>
-     *   <li>API Key 유효성 검증</li>
-     *   <li>요청 DTO 생성 (GoogleGenAiRequest)</li>
-     *   <li>WebClient POST 요청 (비동기)</li>
-     *   <li>에러 상태 코드 처리 (4xx, 5xx)</li>
-     *   <li>응답을 동기 방식으로 변환 (.block())</li>
-     *   <li>생성된 텍스트 추출 및 반환</li>
-     * </ol>
-     *
-     * <p><b>참고:</b> API Key가 없으면 Mock 데이터를 반환합니다.</p>
-     *
-     * @param prompt 텍스트 프롬프트
-     * @return 생성된 텍스트 응답
-     * @throws RuntimeException API 호출 실패 또는 응답이 null인 경우
-     */
-    private String callGoogleGenAiApi(String prompt) {
-        log.info("Google GenAI API 호출 시작");
-
-        // API Key가 설정되지 않은 경우
-        if (apiKey == null || apiKey.isEmpty()) {
-            log.warn("Google GenAI API Key가 설정되지 않음 - Mock 데이터 반환");
-            return "Mock response: Image description generated";
-        }
-
-        try {
-            // 요청 DTO 생성
-            GoogleGenAiRequest request = GoogleGenAiRequest.create(prompt);
-
-            // WebClient로 API 호출 (비동기 -> 동기 변환)
-            GoogleGenAiResponse response = webClient.post()
-                    .uri(apiUrl + "?key=" + apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(request)
-                    .retrieve()
-                    .onStatus(
-                            status -> status.is4xxClientError() || status.is5xxServerError(),
-                            clientResponse -> clientResponse.bodyToMono(String.class)
-                                    .flatMap(errorBody -> {
-                                        log.error("Google GenAI API 에러 응답: {}", errorBody);
-                                        return Mono.error(new RuntimeException("API 호출 실패: " + errorBody));
-                                    })
-                    )
-                    .bodyToMono(GoogleGenAiResponse.class)
-                    .block(); // 비동기 Mono를 동기 방식으로 변환
-
-            // 응답에서 텍스트 추출
-            if (response != null) {
-                String generatedText = response.getGeneratedText();
-                log.info("Google GenAI API 호출 성공 - 응답 길이: {}",
-                        generatedText != null ? generatedText.length() : 0);
-                return generatedText;
-            }
-
-            throw new RuntimeException("Google GenAI API 응답이 null입니다");
-
-        } catch (Exception e) {
-            log.error("Google GenAI API 호출 실패", e);
-            throw new RuntimeException("Google GenAI API 호출 중 오류 발생", e);
-        }
-    }
 }
