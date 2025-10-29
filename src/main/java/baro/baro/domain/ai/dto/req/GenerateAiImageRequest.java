@@ -1,6 +1,7 @@
 package baro.baro.domain.ai.dto.req;
 
 import baro.baro.domain.common.enums.AssetType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
@@ -15,18 +16,21 @@ import lombok.Data;
  * </pre>
  */
 @Data
+@Schema(description = "AI 이미지 생성 요청")
 public class GenerateAiImageRequest {
 
     /**
      * 실종자 ID
      * AI 이미지를 생성할 대상 실종자의 데이터베이스 ID
      */
+    @Schema(description = "실종자 ID", example = "1")
     private Long missingPersonId;
 
     /**
      * 에셋 타입
-     * AGE_PROGRESSION (성장/노화 이미지) 또는 DESCRIPTION (인상착의 기반 이미지)
+     * AGE_PROGRESSION (성장/노화 이미지) 또는 GENERATED_IMAGE (인상착의 기반 이미지)
      */
+    @Schema(description = "생성할 이미지 타입", example = "AGE_PROGRESSION", allowableValues = {"GENERATED_IMAGE", "AGE_PROGRESSION"})
     private AssetType assetType;
 
     /**
