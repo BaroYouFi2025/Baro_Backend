@@ -4,7 +4,9 @@ import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.dto.req.UpdateProfileRequest;
 import baro.baro.domain.user.dto.req.DeleteUserRequest;
+import baro.baro.domain.user.dto.req.UserSearchRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
+import baro.baro.domain.user.dto.res.UserPublicProfileResponse;
 import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.headers.Header;
 import baro.baro.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Tag(name = "User", description = "사용자 관리 API")
@@ -114,5 +118,31 @@ public class UserController {
     public ResponseEntity<DeleteUserResponse> deleteUser(@Valid @RequestBody DeleteUserRequest request) {
         DeleteUserResponse response = userService.deleteUser(request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "사용자 검색", 
+               description = "UID로 사용자를 검색합니다. UID가 비어있으면 모든 사용자를 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "사용자 검색 성공",
+            content = @Content(schema = @Schema(implementation = Slice.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @GetMapping("/search")
+    public ResponseEntity<Slice<UserPublicProfileResponse>> searchUsers(
+            @RequestParam(required = false) String uid,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        
+        UserSearchRequest request = UserSearchRequest.builder()
+                .uid(uid)
+                .page(page)
+                .size(size)
+                .build();
+        
+        Slice<UserPublicProfileResponse> users = userService.searchUsers(request);
+        return ResponseEntity.ok(users);
     }
 }
