@@ -1,5 +1,6 @@
 package baro.baro.domain.common.exception;
 
+import baro.baro.domain.ai.exception.AiException;
 import baro.baro.domain.auth.exception.EmailException;
 import baro.baro.domain.auth.exception.PhoneVerificationException;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,22 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(
                     e.getPhoneErrorCode().name(),
                     e.getPhoneErrorCode().getMessage()
+                ));
+    }
+
+    /**
+     * AI 도메인 예외 처리
+     * @param e AiException
+     * @return AI 에러 코드와 메시지를 포함한 응답
+     */
+    @ExceptionHandler(AiException.class)
+    public ResponseEntity<ApiErrorResponse> handleAi(AiException e) {
+        log.error("AI exception occurred: {} - {}", e.getErrorCode().name(), e.getMessage());
+        return ResponseEntity
+                .status(e.getErrorCode().getStatus())
+                .body(ApiErrorResponse.of(
+                    e.getErrorCode().name(),
+                    e.getMessage()
                 ));
     }
 
