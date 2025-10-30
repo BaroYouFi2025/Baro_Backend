@@ -4,6 +4,7 @@ import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
+import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
@@ -15,4 +16,5 @@ public interface MissingPersonService {
     Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request);
     Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request);
     MissingPersonDetailResponse getMissingPersonDetail(Long id);
+    void reportFound(FoundReportRequest request);
 }

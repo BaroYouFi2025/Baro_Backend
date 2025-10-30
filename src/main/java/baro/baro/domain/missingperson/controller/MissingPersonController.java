@@ -3,6 +3,7 @@ package baro.baro.domain.missingperson.controller;
 import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
+import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
@@ -94,6 +95,10 @@ public class MissingPersonController {
             responseCode = "200", 
             description = "실종자 상세 조회 성공",
             content = @Content(schema = @Schema(implementation = MissingPersonDetailResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
@@ -103,5 +108,26 @@ public class MissingPersonController {
     public ResponseEntity<MissingPersonDetailResponse> getMissingPersonDetail(@PathVariable Long id) {
         MissingPersonDetailResponse response = missingPersonService.getMissingPersonDetail(id);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "실종자 발견 신고", 
+               description = "실종자를 찾았을 때 발견 신고를 합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "발견 신고 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @PostMapping("/found")
+    public ResponseEntity<Void> reportFound(@Valid @RequestBody FoundReportRequest request) {
+        missingPersonService.reportFound(request);
+        return ResponseEntity.ok().build();
     }
 }

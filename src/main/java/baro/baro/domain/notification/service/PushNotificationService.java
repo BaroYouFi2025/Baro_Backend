@@ -117,6 +117,46 @@ public class PushNotificationService {
     }
 
     /**
+     * 실종자 발견 푸시 알림을 발송합니다.
+     *
+     * @param recipient         실종자 등록자
+     * @param missingPersonName 실종자 이름
+     * @param location          발견 위치
+     */
+    @Transactional
+    public void sendFoundNotification(User recipient, String missingPersonName, String location) {
+        try {
+            // 1. 수신자의 활성 기기들 조회
+            List<Device> devices = deviceRepository.findByUser(recipient).stream()
+                    .filter(Device::isActive)
+                    .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
+                    .toList();
+
+            if (devices.isEmpty()) {
+                log.warn("수신자 {}의 활성 기기 또는 FCM 토큰이 없습니다.", recipient.getName());
+                return;
+            }
+
+            // 2. 알림 메시지 생성
+            String title = "실종자를 찾았습니다";
+            String message = String.format("%s님을 찾았습니다. 위치: %s", missingPersonName, location);
+
+            // 3. 각 기기에 푸시 알림 발송
+            for (Device device : devices) {
+                sendPushNotificationWithData(device.getFcmToken(), title, message, "found", missingPersonName);
+            }
+
+            // 4. 알림 이력을 데이터베이스에 저장
+            saveNotification(recipient, NotificationType.FOUND_REPORT, title, message);
+
+            log.info("실종자 발견 푸시 알림 발송 완료 - 수신자: {}, 실종자: {}", recipient.getName(), missingPersonName);
+
+        } catch (Exception e) {
+            log.error("실종자 발견 푸시 알림 발송 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
      * FCM을 통해 푸시 알림을 발송합니다.
      *
      * @param fcmToken FCM 토큰
@@ -182,6 +222,46 @@ public class PushNotificationService {
 
         } catch (Exception e) {
             log.error("알림 이력 저장 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * FCM을 통해 데이터를 포함한 푸시 알림을 발송합니다.
+     *
+     * @param fcmToken          FCM 토큰
+     * @param title             알림 제목
+     * @param message           알림 내용
+     * @param type              알림 타입
+     * @param missingPersonName 실종자 이름
+     */
+    private void sendPushNotificationWithData(String fcmToken, String title, String message, String type, String missingPersonName) {
+        try {
+            // Firebase 앱이 초기화되지 않은 경우 초기화
+            if (FirebaseApp.getApps().isEmpty()) {
+                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                return;
+            }
+
+            // FCM 메시지 생성 (Deep Link 포함)
+            Message fcmMessage = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(com.google.firebase.messaging.Notification.builder()
+                            .setTitle(title)
+                            .setBody(message)
+                            .build())
+                    .putData("type", type)
+                    .putData("missingPersonName", missingPersonName)
+                    .putData("deepLink", "youfi://found?name=" + missingPersonName)
+                    .build();
+
+            // 푸시 알림 발송
+            String response = FirebaseMessaging.getInstance().send(fcmMessage);
+            log.info("FCM 푸시 알림 발송 성공 - 토큰: {}, 응답: {}", fcmToken, response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
+        } catch (Exception e) {
+            log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
         }
     }
 }

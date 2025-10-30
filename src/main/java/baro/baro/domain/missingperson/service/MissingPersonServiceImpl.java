@@ -4,17 +4,23 @@ import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
+import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.entity.MissingCase;
+import baro.baro.domain.missingperson.entity.Sighting;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
 import baro.baro.domain.missingperson.exception.MissingPersonException;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
+import baro.baro.domain.missingperson.repository.SightingRepository;
 import baro.baro.domain.user.entity.User;
+import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.LocationUtil;
+import baro.baro.domain.common.util.SecurityUtil;
+import baro.baro.domain.notification.service.PushNotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +42,10 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
     private final MissingPersonRepository missingPersonRepository;
     private final MissingCaseRepository missingCaseRepository;
+    private final SightingRepository sightingRepository;
+    private final UserRepository userRepository;
     private final LocationService locationService;
+    private final PushNotificationService pushNotificationService;
 
     @Override
     @Transactional
@@ -155,5 +164,41 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
         log.debug("실종자 상세 조회 완료: id={}, name={}", id, missingPerson.getName());
         return MissingPersonDetailResponse.from(missingPerson);
+    }
+
+    @Override
+    @Transactional
+    public void reportFound(FoundReportRequest request) {
+        // 1. 실종자 정보 조회
+        MissingPerson missingPerson = missingPersonRepository.findById(request.getMissingPersonId())
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
+
+        // 2. 실종 케이스 조회
+        MissingCase missingCase = missingCaseRepository.findByMissingPerson(missingPerson)
+                .orElseThrow(() -> new IllegalArgumentException("실종 케이스를 찾을 수 없습니다."));
+
+        // 3. 현재 사용자 조회 (발견 신고자)
+        String currentUid = SecurityUtil.getCurrentUserUid();
+        User reporter = userRepository.findByUid(currentUid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 4. 목격 신고 저장
+        Sighting sighting = Sighting.builder()
+                .missingCase(missingCase)
+                .reporter(reporter)
+                .location(request.getLocation())
+                .build();
+        sightingRepository.save(sighting);
+
+        // 5. 실종자 등록자에게 푸시 알림 발송
+        User originalReporter = missingCase.getReportedBy();
+        pushNotificationService.sendFoundNotification(
+                originalReporter,
+                missingPerson.getName(),
+                request.getLocation()
+        );
+
+        log.info("실종자 발견 신고 완료: id={}, name={}, reportedBy={}", 
+                missingPerson.getId(), missingPerson.getName(), reporter.getName());
     }
 }
