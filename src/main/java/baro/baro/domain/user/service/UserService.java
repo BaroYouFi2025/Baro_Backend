@@ -4,11 +4,13 @@ import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.user.dto.req.SignupRequest;
 import baro.baro.domain.user.dto.req.UpdateProfileRequest;
 import baro.baro.domain.user.dto.req.DeleteUserRequest;
+import baro.baro.domain.user.dto.req.UserSearchRequest;
 import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.user.dto.res.UserPublicProfileResponse;
 import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import baro.baro.domain.user.entity.User;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.domain.Slice;
 
 public interface UserService {
     User createUser(String uid, String rawPassword, String phone, String name, String birthDateIso);
@@ -16,5 +18,5 @@ public interface UserService {
     UserProfileResponse getProfile();
     UserProfileResponse updateProfile(UpdateProfileRequest request);
     DeleteUserResponse deleteUser(DeleteUserRequest request);
-    UserPublicProfileResponse getUserByUid(String uid);
+    Slice<UserPublicProfileResponse> searchUsers(UserSearchRequest request);
 }
