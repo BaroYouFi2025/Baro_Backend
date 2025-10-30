@@ -6,12 +6,10 @@ import baro.baro.domain.common.repository.NotificationRepository;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.user.entity.User;
-// Firebase imports - 실제 환경에서 Firebase 설정 후 활성화
-// import com.google.firebase.FirebaseApp;
-// import com.google.firebase.messaging.FirebaseMessaging;
-// import com.google.firebase.messaging.FirebaseMessagingException;
-// import com.google.firebase.messaging.Message;
-// import com.google.firebase.messaging.Notification;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,8 +35,8 @@ public class PushNotificationService {
     /**
      * 초대 요청 푸시 알림을 발송합니다.
      *
-     * @param invitee 초대받은 사용자
-     * @param inviter 초대한 사용자
+     * @param invitee  초대받은 사용자
+     * @param inviter  초대한 사용자
      * @param relation 관계 (예: 아들, 딸, 아버지, 어머니)
      */
     @Transactional
@@ -46,7 +44,7 @@ public class PushNotificationService {
         try {
             // 1. 초대받은 사용자의 활성 기기들 조회
             List<Device> devices = deviceRepository.findByUser(invitee).stream()
-                    .filter(Device::isActive)
+                    .filter(device -> device.isActive())
                     .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
                     .toList();
 
@@ -67,7 +65,7 @@ public class PushNotificationService {
             // 4. 알림 이력을 데이터베이스에 저장
             saveNotification(invitee, NotificationType.INVITE_REQUEST, title, message);
 
-            log.info("초대 요청 푸시 알림 발송 완료 - 초대받은 사용자: {}, 초대한 사용자: {}", 
+            log.info("초대 요청 푸시 알림 발송 완료 - 초대받은 사용자: {}, 초대한 사용자: {}",
                     invitee.getName(), inviter.getName());
 
         } catch (Exception e) {
@@ -78,17 +76,17 @@ public class PushNotificationService {
     /**
      * 초대 응답 푸시 알림을 발송합니다.
      *
-     * @param inviter 초대한 사용자
-     * @param invitee 초대받은 사용자
+     * @param inviter    초대한 사용자
+     * @param invitee    초대받은 사용자
      * @param isAccepted 수락 여부
-     * @param relation 관계
+     * @param relation   관계
      */
     @Transactional
     public void sendInvitationResponseNotification(User inviter, User invitee, boolean isAccepted, String relation) {
         try {
             // 1. 초대한 사용자의 활성 기기들 조회
             List<Device> devices = deviceRepository.findByUser(inviter).stream()
-                    .filter(Device::isActive)
+                    .filter(device -> device.isActive())
                     .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
                     .toList();
 
@@ -99,7 +97,7 @@ public class PushNotificationService {
 
             // 2. 알림 메시지 생성
             String title = isAccepted ? "초대 요청이 수락되었습니다" : "초대 요청이 거절되었습니다";
-            String message = String.format("%s님이 %s 초대 요청을 %s했습니다.", 
+            String message = String.format("%s님이 %s 초대 요청을 %s했습니다.",
                     invitee.getName(), relation, isAccepted ? "수락" : "거절");
 
             // 3. 각 기기에 푸시 알림 발송
@@ -110,7 +108,7 @@ public class PushNotificationService {
             // 4. 알림 이력을 데이터베이스에 저장
             saveNotification(inviter, NotificationType.INVITE_REQUEST, title, message);
 
-            log.info("초대 응답 푸시 알림 발송 완료 - 초대한 사용자: {}, 초대받은 사용자: {}, 수락여부: {}", 
+            log.info("초대 응답 푸시 알림 발송 완료 - 초대한 사용자: {}, 초대받은 사용자: {}, 수락여부: {}",
                     inviter.getName(), invitee.getName(), isAccepted);
 
         } catch (Exception e) {
@@ -122,26 +120,21 @@ public class PushNotificationService {
      * FCM을 통해 푸시 알림을 발송합니다.
      *
      * @param fcmToken FCM 토큰
-     * @param title 알림 제목
-     * @param message 알림 내용
+     * @param title    알림 제목
+     * @param message  알림 내용
      */
     private void sendPushNotification(String fcmToken, String title, String message) {
         try {
-            // TODO: Firebase 설정 후 실제 FCM 발송 로직 구현
-            // 현재는 로그만 출력 (개발 환경용)
-            log.info("푸시 알림 발송 시뮬레이션 - 토큰: {}, 제목: {}, 내용: {}", fcmToken, title, message);
-            
-            // 실제 Firebase FCM 발송 코드 (Firebase 설정 후 활성화)
-            /*
             // Firebase 앱이 초기화되지 않은 경우 초기화
             if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseApp.initializeApp();
+                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                return;
             }
 
             // FCM 메시지 생성 (액션 버튼 포함)
             Message fcmMessage = Message.builder()
                     .setToken(fcmToken)
-                    .setNotification(Notification.builder()
+                    .setNotification(com.google.firebase.messaging.Notification.builder()
                             .setTitle(title)
                             .setBody(message)
                             .build())
@@ -157,8 +150,9 @@ public class PushNotificationService {
             // 푸시 알림 발송
             String response = FirebaseMessaging.getInstance().send(fcmMessage);
             log.info("FCM 푸시 알림 발송 성공 - 토큰: {}, 응답: {}", fcmToken, response);
-            */
 
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
         } catch (Exception e) {
             log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
         }
@@ -167,9 +161,9 @@ public class PushNotificationService {
     /**
      * 알림 이력을 데이터베이스에 저장합니다.
      *
-     * @param user 사용자
-     * @param type 알림 타입
-     * @param title 제목
+     * @param user    사용자
+     * @param type    알림 타입
+     * @param title   제목
      * @param message 내용
      */
     private void saveNotification(User user, NotificationType type, String title, String message) {
