@@ -2,6 +2,8 @@ package baro.baro.domain.ai.dto.req;
 
 import baro.baro.domain.common.enums.AssetType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -14,33 +16,35 @@ public class ApplyAiImageRequest {
      * 실종자 ID
      */
     @Schema(description = "실종자 ID", example = "1")
+    @NotNull(message = "실종자 ID는 필수입니다.")
     private Long missingPersonId;
 
     /**
      * 에셋 타입 (AGE_PROGRESSION 또는 GENERATED_IMAGE)
      */
     @Schema(description = "이미지 타입", example = "AGE_PROGRESSION", allowableValues = {"GENERATED_IMAGE", "AGE_PROGRESSION"})
+    @NotNull(message = "에셋 타입은 필수입니다.")
     private AssetType assetType;
 
     /**
-     * 선택한 이미지 순서 (0, 1, 2 중 하나)
+     * 선택한 이미지 Url
      */
-    @Schema(description = "선택한 이미지 순서", example = "0", allowableValues = {"0", "1", "2"})
-    private Integer sequenceOrder;
-
+    @Schema(description = "선택한 이미지 url", example = "http://example.com/image.jpg")
+    @NotBlank(message = "이미지 URL은 필수입니다.")
+    private String selectedImageUrl;
     /**
      * 요청 생성 팩토리 메서드
      *
      * @param missingPersonId 실종자 ID
      * @param assetType 에셋 타입
-     * @param sequenceOrder 선택한 이미지 순서
+     * @param selectedImageUrl 선택한 이미지 url
      * @return 생성된 ApplyAiImageRequest 객체
      */
-    public static ApplyAiImageRequest create(Long missingPersonId, AssetType assetType, Integer sequenceOrder) {
+    public static ApplyAiImageRequest create(Long missingPersonId, AssetType assetType, String selectedImageUrl) {
         ApplyAiImageRequest request = new ApplyAiImageRequest();
         request.missingPersonId = missingPersonId;
         request.assetType = assetType;
-        request.sequenceOrder = sequenceOrder;
+        request.selectedImageUrl= selectedImageUrl;
         return request;
     }
 }

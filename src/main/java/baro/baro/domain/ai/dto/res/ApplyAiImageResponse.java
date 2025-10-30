@@ -10,7 +10,6 @@ import lombok.Data;
 public class ApplyAiImageResponse {
     private Long missingPersonId;
     private AssetType assetType;
-    private Integer sequenceOrder;
     private String appliedUrl;
 
     /**
@@ -18,16 +17,14 @@ public class ApplyAiImageResponse {
      *
      * @param missingPersonId 실종자 ID
      * @param assetType 에셋 타입
-     * @param sequenceOrder 선택한 이미지 순서
      * @param appliedUrl 적용된 이미지 URL
      * @return 생성된 ApplyAiImageResponse 객체
      */
     public static ApplyAiImageResponse create(Long missingPersonId, AssetType assetType,
-                                              Integer sequenceOrder, String appliedUrl) {
+                                             String appliedUrl) {
         ApplyAiImageResponse response = new ApplyAiImageResponse();
         response.missingPersonId = missingPersonId;
         response.assetType = assetType;
-        response.sequenceOrder = sequenceOrder;
         response.appliedUrl = appliedUrl;
         return response;
     }

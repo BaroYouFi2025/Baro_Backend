@@ -7,6 +7,7 @@ import baro.baro.domain.ai.dto.res.ApplyAiImageResponse;
 import baro.baro.domain.ai.service.AiImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -80,7 +81,7 @@ public class AiImageController {
     @PostMapping("/generate")
     @Operation(summary = "AI 이미지 생성", description = "실종자 정보 기반으로 AI 이미지를 생성합니다. (성장/노화: 3장, 인상착의: 1장)")
     public ResponseEntity<GenerateAiImageResponse> generateAiImage(
-            @RequestBody GenerateAiImageRequest request) {
+            @Valid @RequestBody GenerateAiImageRequest request) {
 
         log.info("AI 이미지 생성 API 호출 - MissingPersonId: {}, AssetType: {}",
                 request.getMissingPersonId(), request.getAssetType());
@@ -105,7 +106,7 @@ public class AiImageController {
      */
     @PostMapping("/apply")
     @Operation(summary = "AI 이미지 적용", description = "생성된 이미지 중 선택한 이미지를 MissingPerson에 대표 이미지로 저장합니다.")
-    public ResponseEntity<ApplyAiImageResponse> applyAiImage(@RequestBody ApplyAiImageRequest request) {
+    public ResponseEntity<ApplyAiImageResponse> applyAiImage(@Valid @RequestBody ApplyAiImageRequest request) {
         ApplyAiImageResponse response = aiImageService.applySelectedImage(request);
         return ResponseEntity.ok(response);
     }

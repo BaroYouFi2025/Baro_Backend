@@ -34,7 +34,7 @@ public class GenerateAiImageResponse {
 
     /**
      * 생성된 이미지 URL 리스트
-     * AGE_PROGRESSION의 경우 3개 (현재, +5년, +10년)
+     * AGE_PROGRESSION의 경우 3개
      * DESCRIPTION의 경우 1개 (인상착의 기반 이미지)
      */
     private List<String> imageUrls;
