@@ -22,9 +22,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * 특정 위치 기준으로 가까운 순서로 활성 사용자 조회
      * 
-     * @param latitude 기준 위도
-     * @param longitude 기준 경도
-     * @param pageable 페이징 정보
+     * @param-latitude 기준 위도
+     * @param-longitude 기준 경도
+     * @param-pageable 페이징 정보
      * @return 거리순으로 정렬된 사용자 목록
      */
     @Query(value = "SELECT DISTINCT u.* FROM youfi.users u " +
