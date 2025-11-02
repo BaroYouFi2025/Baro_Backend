@@ -1,7 +1,7 @@
 package baro.baro.domain.ai.repository;
 
 import baro.baro.domain.ai.entity.AiAsset;
-import baro.baro.domain.common.enums.AssetType;
+import baro.baro.domain.ai.entity.AssetType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,6 +1,6 @@
 package baro.baro.domain.ai.dto.res;
 
-import baro.baro.domain.common.enums.AssetType;
+import baro.baro.domain.ai.entity.AssetType;
 import lombok.Data;
 
 import java.util.List;
