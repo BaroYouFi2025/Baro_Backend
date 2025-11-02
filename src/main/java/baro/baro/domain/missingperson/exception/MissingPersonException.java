@@ -16,8 +16,9 @@ public class MissingPersonException extends BusinessException {
     private static ErrorCode convertToErrorCode(MissingPersonErrorCode missingPersonErrorCode) {
         return switch (missingPersonErrorCode.getStatus()) {
             case 404 -> ErrorCode.NOT_FOUND;
-            case 409 -> ErrorCode.CONFLICT;
             case 400 -> ErrorCode.BAD_REQUEST;
+            case 403 -> ErrorCode.FORBIDDEN;
+            case 500 -> ErrorCode.INTERNAL_ERROR;
             default -> ErrorCode.INTERNAL_ERROR;
         };
     }

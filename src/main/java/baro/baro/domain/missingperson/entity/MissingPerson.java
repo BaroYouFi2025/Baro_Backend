@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.entity;
 
+import baro.baro.domain.ai.entity.AssetType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -43,7 +44,7 @@ public class MissingPerson {
     private Integer weight;
     
     @Column(columnDefinition = "TEXT")
-    private String body;
+    private String body; // 체형 (마름, 보통, 통통 등)
     
     @Column(name = "body_etc", columnDefinition = "TEXT")
     private String bodyEtc;
@@ -84,9 +85,18 @@ public class MissingPerson {
     private ZonedDateTime updatedAt;
 
     /**
-     * 실종자의 나이를 계산하여 반환합니다.
+     * 선택된 대표 이미지 URL (AI 생성 이미지 등)
+     */
+    @Column(name = "predicted_face_url")
+    private String predictedFaceUrl;
+
+    @Column(name = "appearance_image_url")
+    private String appearanceImageUrl;
+
+    /**
+     * 실종자의 현재 나이를 계산하여 반환합니다.
      *
-     * @return 실종자의 나이 (Integer)
+     * @return 실종자의 현재 나이 (Integer)
      */
     public Integer getAge() {
         if (birthDate == null) {
@@ -94,7 +104,27 @@ public class MissingPerson {
         }
         return LocalDate.now().getYear() - birthDate.getYear();
     }
-    
+
+    public Integer getMissingAge(){
+        if (birthDate == null || missingDate == null) {
+            return null;
+        }
+        return missingDate.getYear() - birthDate.getYear();
+    }
+
+
+    /**
+     * 실종자의 신체 설명을 반환합니다.
+     * body 필드의 별칭(alias) 메서드입니다.
+     *
+     * <p>AI 이미지 생성 시 프롬프트에 사용됩니다.</p>
+     *
+     * @return 실종자의 신체 설명 (얼굴 특징, 체형 등)
+     */
+    public String getDescription() {
+        return this.body;
+    }
+
     /**
      * 실종자 정보 생성 (Factory Method)
      * DTO에서 직접 생성하여 서비스 레이어 의존성 제거
@@ -204,7 +234,7 @@ public class MissingPerson {
         this.location = location;
         this.address = address;
     }
-    
+
     /**
      * 위도 가져오기
      */
@@ -212,12 +242,22 @@ public class MissingPerson {
         if (location == null)  throw new IllegalStateException("Location is not set");
         return location.getY();
     }
-    
+
     /**
      * 경도 가져오기
      */
     public Double getLongitude() {
         if (location == null)  throw new IllegalStateException("Location is not set");
         return location.getX();
+    }
+
+
+    public void updateAiImage(String assetUrl, AssetType assetType) {
+        if (assetType == AssetType.AGE_PROGRESSION) {
+            this.predictedFaceUrl = assetUrl;
+        }
+        else {
+            this.appearanceImageUrl = assetUrl;
+        }
     }
 }

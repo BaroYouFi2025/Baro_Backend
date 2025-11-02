@@ -17,6 +17,7 @@ public class UserException extends BusinessException {
             case 404 -> ErrorCode.NOT_FOUND;
             case 409 -> ErrorCode.CONFLICT;
             case 400 -> ErrorCode.BAD_REQUEST;
+            case 403 -> ErrorCode.FORBIDDEN;
             default -> ErrorCode.INTERNAL_ERROR;
         };
     }

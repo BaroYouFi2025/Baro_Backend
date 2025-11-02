@@ -5,9 +5,9 @@ import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.auth.dto.res.LogoutResponse;
 import baro.baro.domain.auth.dto.res.RefreshResponse;
 import baro.baro.domain.auth.entity.BlacklistedToken;
+import baro.baro.domain.auth.exception.AuthErrorCode;
 import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
-import baro.baro.domain.common.exception.ErrorCode;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -35,15 +35,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthTokensResponse login(LoginRequest request, HttpServletResponse response) {
         User user = userRepository.findByUid(request.getUid())
-                .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
 
         // 비활성화된 사용자 로그인 차단
         if (!user.isActive()) {
-            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+            throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+            throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
         String access = jwtTokenProvider.createAccessToken(user.getUid());
@@ -67,12 +67,12 @@ public class AuthServiceImpl implements AuthService {
     public LogoutResponse logout(String refreshToken, HttpServletResponse response) {
         // Refresh token 검증
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // 블랙리스트에 이미 등록된 토큰인지 확인
         if (blacklistedTokenRepository.existsByToken(refreshToken)) {
-            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // 토큰에서 사용자 정보 및 만료 시간 추출
@@ -105,12 +105,12 @@ public class AuthServiceImpl implements AuthService {
     public RefreshResponse refresh(String refreshToken, HttpServletResponse response) {
         // Refresh token 검증
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // 블랙리스트에 있는 토큰인지 확인
         if (blacklistedTokenRepository.existsByToken(refreshToken)) {
-            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         // Refresh token에서 사용자 정보 추출
@@ -118,11 +118,11 @@ public class AuthServiceImpl implements AuthService {
 
         // 사용자 존재 확인
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         // 비활성화된 사용자 토큰 재발급 차단
         if (!user.isActive()) {
-            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+            throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
         // 기존 Refresh Token을 블랙리스트에 추가 (토큰 재사용 방지)
