@@ -10,8 +10,10 @@ import baro.baro.domain.ai.dto.res.ApplyAiImageResponse;
 public interface AiImageService {
 
     // AI 이미지 생성 (성장/노화 또는 인상착의)
+    // - 인상착의 이미지는 생성 즉시 MissingPerson에 자동 저장됨
     GenerateAiImageResponse generateImage(GenerateAiImageRequest request);
 
-    // 선택한 AI 이미지를 MissingPerson 대표 이미지로 적용
+    // 성장/노화 이미지만 선택하여 MissingPerson 대표 이미지로 적용
+    // - 인상착의 이미지는 이 메서드 사용 불가 (생성 시 자동 저장됨)
     ApplyAiImageResponse applySelectedImage(ApplyAiImageRequest request);
 }
