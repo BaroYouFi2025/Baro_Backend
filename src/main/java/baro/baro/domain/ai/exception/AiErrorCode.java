@@ -16,6 +16,7 @@ public enum AiErrorCode {
     // 400 잘못된 요청
     PHOTO_URL_REQUIRED(400, "실종자의 사진 URL은 필수입니다."),
     INVALID_PROMPT(400, "프롬프트 생성에 필요한 정보가 부족합니다."),
+    INVALID_ASSET_TYPE(400, "인상착의 이미지는 생성 시 자동 적용됩니다. 성장/노화 이미지만 선택 가능합니다."),
 
     // 404 리소스를 찾을 수 없음
     MISSING_PERSON_NOT_FOUND(404, "실종자를 찾을 수 없습니다."),
