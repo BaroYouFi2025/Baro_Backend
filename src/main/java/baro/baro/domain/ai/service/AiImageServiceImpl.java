@@ -66,14 +66,6 @@ public class AiImageServiceImpl implements AiImageService {
         log.info("AI 이미지 생성 요청 - MissingPersonId: {}, AssetType: {}",
                 request.getMissingPersonId(), request.getAssetType());
 
-        // 0. 입력 검증
-        if (request.getMissingPersonId() == null) {
-            throw new AiException(AiErrorCode.MISSING_PERSON_ID_REQUIRED);
-        }
-        if (request.getAssetType() == null) {
-            throw new AiException(AiErrorCode.ASSET_TYPE_REQUIRED);
-        }
-
         // 1. MissingPerson 조회 및 검증
         MissingCase missingCase = missingCaseRepository.findByMissingPersonId(request.getMissingPersonId())
                 .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_CASE_NOT_FOUND));
@@ -93,7 +85,7 @@ public class AiImageServiceImpl implements AiImageService {
         List<String> imageUrls;
         try {
             if (request.getAssetType() == AssetType.AGE_PROGRESSION) {
-                // 성장/노화: 3장 생성
+                // 성장/노화: 4장 생성
                 imageUrls = googleGenAiService.generateAgeProgressionImages(missingPerson);
             } else {
                 // 인상착의: 1장 생성
@@ -106,17 +98,11 @@ public class AiImageServiceImpl implements AiImageService {
                 throw new AiException(AiErrorCode.EMPTY_RESPONSE);
             }
             
-            for (String url : imageUrls) {
-                if (url == null || url.isBlank()) {
-                    throw new AiException(AiErrorCode.INVALID_IMAGE_URL);
-                }
-            }
-            
         } catch (AiException e) {
             throw e; // AiException은 그대로 전파
         } catch (Exception e) {
             log.error("이미지 생성 중 예외 발생", e);
-            throw new AiException(AiErrorCode.IMAGE_GENERATION_FAILED, e);
+            throw new AiException(AiErrorCode.IMAGE_GENERATION_FAILED);
         }
 
         // 3. AiAsset에 저장 (여러 레코드)
@@ -143,17 +129,6 @@ public class AiImageServiceImpl implements AiImageService {
     @Transactional
     public ApplyAiImageResponse applySelectedImage(ApplyAiImageRequest request) {
         User currentUser = getCurrentUser(); // 현재 인증된 사용자 정보 조회
-
-        // 0. 입력 검증
-        if (request.getMissingPersonId() == null) {
-            throw new AiException(AiErrorCode.MISSING_PERSON_ID_REQUIRED);
-        }
-        if (request.getAssetType() == null) {
-            throw new AiException(AiErrorCode.ASSET_TYPE_REQUIRED);
-        }
-        if (request.getSelectedImageUrl() == null || request.getSelectedImageUrl().isBlank()) {
-            throw new AiException(AiErrorCode.IMAGE_URL_REQUIRED);
-        }
 
         // 1) MissingCase 조회 및 검증
         MissingCase missingCase = missingCaseRepository.findByMissingPersonId(request.getMissingPersonId())
