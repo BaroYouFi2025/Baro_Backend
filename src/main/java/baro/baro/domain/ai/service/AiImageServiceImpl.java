@@ -8,7 +8,7 @@ import baro.baro.domain.ai.entity.AiAsset;
 import baro.baro.domain.ai.exception.AiErrorCode;
 import baro.baro.domain.ai.exception.AiException;
 import baro.baro.domain.ai.repository.AiAssetRepository;
-import baro.baro.domain.common.enums.AssetType;
+import baro.baro.domain.ai.entity.AssetType;
 import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;

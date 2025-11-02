@@ -1,6 +1,6 @@
 package baro.baro.domain.ai.dto.res;
 
-import baro.baro.domain.common.enums.AssetType;
+import baro.baro.domain.ai.entity.AssetType;
 import lombok.Data;
 
 // 선택한 AI 이미지를 적용한 결과 응답 DTO
