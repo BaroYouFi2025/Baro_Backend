@@ -1,67 +1,37 @@
 package baro.baro.domain.ai.exception;
 
-import lombok.Getter;
+import baro.baro.domain.common.exception.BusinessException;
+import baro.baro.domain.common.exception.ErrorCode;
 
-/**
- * AI 도메인 예외
- *
- * <p>AI 이미지 생성 및 관리 중 발생하는 모든 예외를 처리합니다.</p>
- *
- * <p><b>사용 예시:</b></p>
- * <pre>
- * throw new AiException(AiErrorCode.IMAGE_GENERATION_FAILED);
- * throw new AiException(AiErrorCode.MISSING_PERSON_ID_REQUIRED, "추가 상세 정보");
- * </pre>
- *
- * @see AiErrorCode
- */
-@Getter
-public class AiException extends RuntimeException {
+// AI 도메인 예외
+// AI 이미지 생성 및 관리 중 발생하는 모든 예외를 처리
+// 다른 도메인과 동일하게 BusinessException을 상속하여 일관된 예외 처리 구조를 유지
+//
+// 사용 예시:
+// throw new AiException(AiErrorCode.IMAGE_GENERATION_FAILED);
+public class AiException extends BusinessException {
 
-    private final AiErrorCode errorCode;
-    private final String detailMessage;
+    private final AiErrorCode aiErrorCode;
 
-    /**
-     * 에러 코드만으로 예외 생성
-     *
-     * @param errorCode AI 에러 코드
-     */
-    public AiException(AiErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
-        this.detailMessage = null;
+    // 에러 코드로 예외 생성
+    public AiException(AiErrorCode aiErrorCode) {
+        super(convertToErrorCode(aiErrorCode));
+        this.aiErrorCode = aiErrorCode;
     }
 
-    /**
-     * 에러 코드와 상세 메시지로 예외 생성
-     *
-     * @param errorCode AI 에러 코드
-     * @param detailMessage 추가 상세 정보
-     */
-    public AiException(AiErrorCode errorCode, String detailMessage) {
-        super(errorCode.getMessage() + (detailMessage != null ? " - " + detailMessage : ""));
-        this.errorCode = errorCode;
-        this.detailMessage = detailMessage;
+    // AI 에러 코드를 공통 ErrorCode로 변환
+    private static ErrorCode convertToErrorCode(AiErrorCode aiErrorCode) {
+        return switch (aiErrorCode.getStatus()) {
+            case 400 -> ErrorCode.BAD_REQUEST;
+            case 404 -> ErrorCode.NOT_FOUND;
+            case 429 -> ErrorCode.TOO_MANY_REQUESTS;
+            case 503 -> ErrorCode.SERVICE_UNAVAILABLE;
+            default -> ErrorCode.INTERNAL_ERROR;
+        };
     }
 
-    /**
-     * 에러 코드와 원인 예외로 예외 생성
-     *
-     * @param errorCode AI 에러 코드
-     * @param cause 원인 예외
-     */
-    public AiException(AiErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
-        this.errorCode = errorCode;
-        this.detailMessage = cause.getMessage();
-    }
-
-    /**
-     * HTTP 상태 코드 반환
-     *
-     * @return HTTP 상태 코드
-     */
-    public int getStatus() {
-        return errorCode.getStatus();
+    // AI 에러 코드 반환
+    public AiErrorCode getAiErrorCode() {
+        return aiErrorCode;
     }
 }
