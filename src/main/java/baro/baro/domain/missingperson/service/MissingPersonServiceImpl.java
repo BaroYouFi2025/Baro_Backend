@@ -43,6 +43,11 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
         User currentUser = getCurrentUser();
 
+        long registeredCount = missingCaseRepository.countByReportedById(currentUser.getId());
+        if (registeredCount >= 4) {
+            throw new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_LIMIT_EXCEEDED);
+        }
+
         // 도메인 서비스: 위치 정보 생성
         LocationService.LocationInfo locationInfo = locationService.createLocationInfo(
                 request.getLatitude(),
@@ -124,6 +129,19 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         log.debug("실종자 검색 완료: page={}, size={}, totalElements={}",
                 request.getPage(), request.getSize(), missingPersons.getTotalElements());
         return missingPersons.map(MissingPersonResponse::from);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MissingPersonResponse> getMyMissingPersons() {
+        User currentUser = getCurrentUser();
+        List<MissingPerson> missingPersons = missingPersonRepository.findAllByReporterId(currentUser.getId());
+
+        log.debug("내가 등록한 실종자 조회 완료: userId={}, count={}",
+                currentUser.getId(), missingPersons.size());
+        return missingPersons.stream()
+                .map(MissingPersonResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Override
