@@ -19,6 +19,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "MissingPerson", description = "실종자 관리 API")
 @RestController
 @RequestMapping("/missing-persons")
@@ -84,6 +86,24 @@ public class MissingPersonController {
     @GetMapping("/search")
     public ResponseEntity<Page<MissingPersonResponse>> searchMissingPersons(@Valid SearchMissingPersonRequest request) {
         Page<MissingPersonResponse> response = missingPersonService.searchMissingPersons(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "내가 등록한 실종자 조회",
+               description = "현재 로그인한 사용자가 등록한 실종자 목록을 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "내가 등록한 실종자 조회 성공",
+            content = @Content(schema = @Schema(implementation = MissingPersonResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @GetMapping("/me")
+    public ResponseEntity<List<MissingPersonResponse>> getMyMissingPersons() {
+        List<MissingPersonResponse> response = missingPersonService.getMyMissingPersons();
         return ResponseEntity.ok(response);
     }
 
