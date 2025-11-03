@@ -7,6 +7,7 @@ import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
+import baro.baro.domain.missingperson.entity.CaseStatusType;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
@@ -124,7 +125,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Transactional(readOnly = true)
     public Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(pageable);
+        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(CaseStatusType.OPEN, pageable);
 
         log.debug("실종자 검색 완료: page={}, size={}, totalElements={}",
                 request.getPage(), request.getSize(), missingPersons.getTotalElements());
@@ -135,7 +136,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Transactional(readOnly = true)
     public List<MissingPersonResponse> getMyMissingPersons() {
         User currentUser = getCurrentUser();
-        List<MissingPerson> missingPersons = missingPersonRepository.findAllByReporterId(currentUser.getId());
+        List<MissingPerson> missingPersons = missingPersonRepository.findAllByReporterId(currentUser.getId(), CaseStatusType.OPEN);
 
         log.debug("내가 등록한 실종자 조회 완료: userId={}, count={}",
                 currentUser.getId(), missingPersons.size());
