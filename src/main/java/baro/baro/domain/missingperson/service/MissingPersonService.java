@@ -9,10 +9,13 @@ import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
+
 public interface MissingPersonService {
     RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request);
     RegisterMissingPersonResponse updateMissingPerson(Long id, UpdateMissingPersonRequest request);
     Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request);
+    List<MissingPersonResponse> getMyMissingPersons();
     Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request);
     MissingPersonDetailResponse getMissingPersonDetail(Long id);
 }
