@@ -13,7 +13,8 @@ public enum MissingPersonErrorCode {
     INVALID_PAGINATION(400, "페이지 정보가 올바르지 않습니다."),
     MISSING_CASE_NOT_FOUND(404, "실종 케이스를 찾을 수 없습니다."),
     GEOCODING_SERVICE_ERROR(500, "지오코딩 서비스 오류가 발생했습니다."),
-    UNAUTHORIZED_ACCESS(403, "해당 실종자 정보에 접근 권한이 없습니다.");
+    UNAUTHORIZED_ACCESS(403, "해당 실종자 정보에 접근 권한이 없습니다."),
+    MISSING_PERSON_LIMIT_EXCEEDED(400, "실종자 등록은 최대 4명까지 가능합니다.");
 
     private final int status;
     private final String message;
