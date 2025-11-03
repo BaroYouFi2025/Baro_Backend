@@ -42,4 +42,10 @@ ORDER BY distance
     List<MissingPerson> findNearbyMissingPersons(@Param("latitude") Double latitude, 
                                                 @Param("longitude") Double longitude, 
                                                 @Param("radius") Integer radius);
+
+    @Query("SELECT DISTINCT mp FROM MissingPerson mp " +
+            "JOIN MissingCase mc ON mc.missingPerson = mp " +
+            "WHERE mc.reportedBy.id = :userId and mc.caseStatus = 'OPEN' " +
+            "ORDER BY mp.createdAt DESC")
+    List<MissingPerson> findAllByReporterId(@Param("userId") Long userId);
 }
