@@ -1,6 +1,7 @@
 package baro.baro.domain.missingperson.entity;
 
 import baro.baro.domain.missingperson.dto.external.PoliceApiMissingPerson;
+import baro.baro.domain.missingperson.dto.res.MissingPersonPoliceResponse;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -113,6 +114,15 @@ public class MissingPersonPolice {
         this.photoLength = apiData.getTknphotolength();
         this.photoBase64Temp = apiData.getTknphotoFile(); // Base64 데이터 임시 저장 (DB 저장 안 함)
         this.collectedAt = new Date();
+    }
+
+    public MissingPersonPoliceResponse toDto(){
+        MissingPersonPoliceResponse response = new MissingPersonPoliceResponse();
+        response.setMissingPersonPoliceId(this.getId());
+        response.setName(this.name);
+        response.setDress(this.dress);
+        response.setAddress(this.occurrenceAddress);
+        return response;
     }
 
     // ============ 도메인 메서드 (사진 처리) ============

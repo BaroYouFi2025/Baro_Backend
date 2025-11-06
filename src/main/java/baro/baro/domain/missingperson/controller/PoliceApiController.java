@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.controller;
 
+import baro.baro.domain.missingperson.dto.res.MissingPersonPoliceDetailResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonPoliceResponse;
 import baro.baro.domain.missingperson.entity.MissingPersonPolice;
 import baro.baro.domain.missingperson.service.PoliceApiService;
@@ -12,15 +13,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Police API", description = "경찰청 실종자 데이터 동기화 API")
@@ -61,23 +58,13 @@ public class PoliceApiController {
     public ResponseEntity<Map<String, Object>> syncMissingPersonsNow() {
         log.info("경찰청 실종자 데이터 수동 동기화 요청");
 
-        try {
-            policeApiService.syncMissingPersonsFromPoliceApi();
+        policeApiService.syncMissingPersonsFromPoliceApi();
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "경찰청 실종자 데이터 동기화 완료");
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "경찰청 실종자 데이터 동기화 완료");
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("경찰청 실종자 데이터 동기화 실패: {}", e.getMessage());
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "동기화 실패: " + e.getMessage());
-
-            return ResponseEntity.internalServerError().body(response);
-        }
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "동기화된 경찰청 실종자 목록 조회 (페이징)",
@@ -100,8 +87,29 @@ public class PoliceApiController {
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.") @Max(value = 100, message = "페이지 크기는 100 이하여야 합니다.") Integer size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<MissingPersonPolice> persons = policeApiService.getAllMissingPersons(pageable);
-        Page<MissingPersonPoliceResponse> response = persons.map(MissingPersonPoliceResponse::from);
+        Page<MissingPersonPoliceResponse> response = policeApiService.getAllMissingPersons(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "경찰청 실종자 개별 조회",
+            description = "경찰청 실종자 ID로 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = MissingPersonPoliceDetailResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+                    content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @GetMapping("/missing-persons/{id}")
+    public ResponseEntity<MissingPersonPoliceDetailResponse> getMissingPersonById(
+            @Parameter(description = "경찰청 실종자 ID", example = "123456789", required = true)
+            @PathVariable Long id
+    ) {
+        MissingPersonPolice missingPerson = policeApiService.getMissingPersonById(id);
+        MissingPersonPoliceDetailResponse response = MissingPersonPoliceDetailResponse.from(missingPerson);
         return ResponseEntity.ok(response);
     }
 
