@@ -58,32 +58,13 @@ public class LocationController {
 
             @Parameter(description = "경도", example = "126.9780", required = true)
             @RequestParam Double longitude) {
-        
+
         log.info("주소 변환 요청: latitude={}, longitude={}", latitude, longitude);
-        
-        try {
-            String address = geocodingService.getAddressFromCoordinates(latitude, longitude);
-            
-            boolean success = address != null && 
-                             !address.startsWith("위치:") && 
-                             !address.equals("위치 정보 없음");
-            
-            AddressResponse response = AddressResponse.create(latitude, longitude, address, success);
-            
-            log.info("주소 변환 성공: {}", address);
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("주소 변환 실패: {}", e.getMessage(), e);
-            
-            AddressResponse response = AddressResponse.create(
-                latitude, 
-                longitude, 
-                "주소 변환에 실패했습니다: " + e.getMessage(),
-                false
-            );
-            
-            return ResponseEntity.ok(response);
-        }
+
+        String address = geocodingService.getAddressFromCoordinates(latitude, longitude);
+        AddressResponse response = AddressResponse.create(latitude, longitude, address, true);
+
+        log.info("주소 변환 성공: {}", address);
+        return ResponseEntity.ok(response);
     }
 }

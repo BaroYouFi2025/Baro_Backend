@@ -14,6 +14,14 @@ public enum MissingPersonErrorCode {
     MISSING_CASE_NOT_FOUND(404, "실종 케이스를 찾을 수 없습니다."),
     GEOCODING_SERVICE_ERROR(500, "지오코딩 서비스 오류가 발생했습니다."),
     UNAUTHORIZED_ACCESS(403, "해당 실종자 정보에 접근 권한이 없습니다."),
+    MISSING_PERSON_LIMIT_EXCEEDED(400, "실종자 등록은 최대 4명까지 가능합니다."),
+
+    // Police API 관련 에러
+    POLICE_API_CALL_FAILED(500, "경찰청 API 호출에 실패했습니다."),
+    POLICE_API_NETWORK_ERROR(500, "경찰청 API 네트워크 연결에 실패했습니다."),
+    POLICE_API_RESPONSE_ERROR(500, "경찰청 API 응답 처리 중 오류가 발생했습니다."),
+    POLICE_API_DATA_SAVE_FAILED(500, "경찰청 실종자 데이터 저장에 실패했습니다."),
+
     CASE_ALREADY_CLOSED(400, "이미 종료된 실종 케이스입니다."),
     SIGHTING_REPORT_FAILED(500, "발견 신고 처리 중 오류가 발생했습니다."),
     NO_ACTIVE_CASE_FOUND(404, "활성화된 실종 케이스를 찾을 수 없습니다."),
