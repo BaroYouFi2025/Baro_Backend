@@ -56,7 +56,7 @@ public class PhoneVerificationService {
      * 토큰을 사용한 전화번호 인증 처리
      */
     @Transactional
-    protected void authenticateWithToken(String token, String phoneNumber) {
+    public void authenticateWithToken(String token, String phoneNumber) {
         if (token == null || token.trim().isEmpty()) {
             throw new PhoneVerificationException(PhoneVerificationErrorCode.INVALID_TOKEN);
         }

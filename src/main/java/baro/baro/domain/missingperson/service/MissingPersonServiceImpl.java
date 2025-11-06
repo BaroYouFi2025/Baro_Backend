@@ -182,20 +182,29 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         User reporter = userRepository.findByUid(currentUid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 4. 목격 신고 저장
+        // 4. 위치 Point 객체 생성
+        Point locationPoint = LocationUtil.createPoint(
+                request.getLatitude(),
+                request.getLongitude()
+        );
+
+        // 5. 목격 신고 저장
         Sighting sighting = Sighting.builder()
                 .missingCase(missingCase)
                 .reporter(reporter)
-                .location(request.getLocation())
+                .location(locationPoint)
                 .build();
         sightingRepository.save(sighting);
 
-        // 5. 실종자 등록자에게 푸시 알림 발송
+        // 6. 실종자 등록자에게 푸시 알림 발송
         User originalReporter = missingCase.getReportedBy();
+        String locationText = request.getLocation() != null 
+                ? request.getLocation() 
+                : String.format("위도: %.6f, 경도: %.6f", request.getLatitude(), request.getLongitude());
         pushNotificationService.sendFoundNotification(
                 originalReporter,
                 missingPerson.getName(),
-                request.getLocation()
+                locationText
         );
 
         log.info("실종자 발견 신고 완료: id={}, name={}, reportedBy={}", 

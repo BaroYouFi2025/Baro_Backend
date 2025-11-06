@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Auth Controller - 인증 불필요
                         .requestMatchers(HttpMethod.POST, "/auth/phone/verifications").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/phone/verifications/test").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/phone/verifications").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/logout").permitAll()

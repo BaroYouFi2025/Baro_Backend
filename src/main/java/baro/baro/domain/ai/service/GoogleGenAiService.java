@@ -132,8 +132,8 @@ public class GoogleGenAiService {
             prompt.append("- Height: approximately ").append(person.getHeight()).append(" cm\n");
         }
         
-        if (person.getDescription() != null && !person.getDescription().isEmpty()) {
-            prompt.append("- Physical description: ").append(person.getDescription()).append("\n");
+        if (person.getBody() != null && !person.getBody().isEmpty()) {
+            prompt.append("- Physical description: ").append(person.getBody()).append("\n");
         }
         
         if (person.getBodyEtc() != null && !person.getBodyEtc().isEmpty()) {
@@ -180,8 +180,8 @@ public class GoogleGenAiService {
             prompt.append("- Additional clothing: ").append(person.getClothesEtc()).append("\n");
         }
         
-        if (person.getDescription() != null && !person.getDescription().isEmpty()) {
-            prompt.append("- Physical description: ").append(person.getDescription()).append("\n");
+        if (person.getBody() != null && !person.getBody().isEmpty()) {
+            prompt.append("- Physical description: ").append(person.getBody()).append("\n");
         }
         
         prompt.append("\nStyle: Photorealistic, high quality, full-body portrait");

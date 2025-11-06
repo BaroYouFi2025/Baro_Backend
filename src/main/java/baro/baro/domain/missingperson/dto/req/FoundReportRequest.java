@@ -14,9 +14,15 @@ public class FoundReportRequest {
     @NotNull(message = "실종자 ID는 필수입니다.")
     private Long missingPersonId;
     
-    @NotNull(message = "위치는 필수입니다.")
-    private String location;
+    @NotNull(message = "위도는 필수입니다.")
+    private Double latitude;
+    
+    @NotNull(message = "경도는 필수입니다.")
+    private Double longitude;
+    
+    private String location; // 주소 또는 위치 설명 (선택)
     
     private String description;
 }
+
 
