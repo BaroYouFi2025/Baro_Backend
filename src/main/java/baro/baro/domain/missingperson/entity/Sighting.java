@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.locationtech.jts.geom.Point;
 import baro.baro.domain.user.entity.User;
 
 import java.time.ZonedDateTime;
@@ -31,7 +32,7 @@ public class Sighting {
     private User reporter;
     
     @Column(columnDefinition = "geography(Point,4326)", nullable = false)
-    private String location;
+    private Point location;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
