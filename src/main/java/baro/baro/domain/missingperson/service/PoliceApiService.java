@@ -2,6 +2,7 @@ package baro.baro.domain.missingperson.service;
 
 import baro.baro.domain.missingperson.dto.external.PoliceApiMissingPerson;
 import baro.baro.domain.missingperson.dto.external.PoliceApiResponse;
+import baro.baro.domain.missingperson.dto.res.MissingPersonPoliceResponse;
 import baro.baro.domain.missingperson.entity.MissingPersonPolice;
 import baro.baro.domain.missingperson.event.PhotoProcessingEvent;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
@@ -269,8 +270,18 @@ public class PoliceApiService {
      * 전체 실종자 목록 조회 (페이징)
      */
     @Transactional(readOnly = true)
-    public Page<MissingPersonPolice> getAllMissingPersons(Pageable pageable) {
-        return policeRepository.findAll(pageable);
+    public Page<MissingPersonPoliceResponse> getAllMissingPersons(Pageable pageable) {
+        return policeRepository.findAll(pageable)
+                .map(MissingPersonPolice::toDto);
+    }
+
+    /**
+     * 실종자 개별 조회
+     */
+    @Transactional(readOnly = true)
+    public MissingPersonPolice getMissingPersonById(Long id) {
+        return policeRepository.findById(id)
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
     }
 
     /**
