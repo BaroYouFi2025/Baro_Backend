@@ -212,7 +212,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 currentUser,
                 locationInfo.point(),
                 locationInfo.address(),
-                request.getDescription()
+                null  // description 제거
         );
         sighting = sightingRepository.save(sighting);
         
@@ -235,6 +235,6 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         log.info("실종자 발견 신고 완료 - 실종자: {}, 신고자: {}, 등록자: {}, 위치: {}",
                 missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), locationInfo.address());
         
-        return ReportSightingResponse.from(sighting);
+        return ReportSightingResponse.success();
     }
 }

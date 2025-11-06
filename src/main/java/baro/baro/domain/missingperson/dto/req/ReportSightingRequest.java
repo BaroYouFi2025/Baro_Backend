@@ -28,8 +28,5 @@ public class ReportSightingRequest {
     @NotNull(message = "경도는 필수입니다.")
     @Schema(description = "발견 위치 경도", example = "126.9780", required = true)
     private Double longitude;
-    
-    @Schema(description = "발견 상황 설명", example = "서울역 근처에서 비슷한 사람을 목격했습니다.")
-    private String description;
 }
 
