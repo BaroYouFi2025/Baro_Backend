@@ -20,7 +20,12 @@ public enum MissingPersonErrorCode {
     POLICE_API_CALL_FAILED(500, "경찰청 API 호출에 실패했습니다."),
     POLICE_API_NETWORK_ERROR(500, "경찰청 API 네트워크 연결에 실패했습니다."),
     POLICE_API_RESPONSE_ERROR(500, "경찰청 API 응답 처리 중 오류가 발생했습니다."),
-    POLICE_API_DATA_SAVE_FAILED(500, "경찰청 실종자 데이터 저장에 실패했습니다.");
+    POLICE_API_DATA_SAVE_FAILED(500, "경찰청 실종자 데이터 저장에 실패했습니다."),
+
+    CASE_ALREADY_CLOSED(400, "이미 종료된 실종 케이스입니다."),
+    SIGHTING_REPORT_FAILED(500, "발견 신고 처리 중 오류가 발생했습니다."),
+    NO_ACTIVE_CASE_FOUND(404, "활성화된 실종 케이스를 찾을 수 없습니다."),
+    DUPLICATE_SIGHTING_REPORT(400, "이미 최근에 해당 실종자를 신고하셨습니다. 잠시 후 다시 시도해주세요.");
 
     private final int status;
     private final String message;
