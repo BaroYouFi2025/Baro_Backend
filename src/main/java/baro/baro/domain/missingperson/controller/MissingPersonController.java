@@ -3,9 +3,11 @@ package baro.baro.domain.missingperson.controller;
 import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
+import baro.baro.domain.missingperson.dto.req.ReportSightingRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
+import baro.baro.domain.missingperson.dto.res.ReportSightingResponse;
 import baro.baro.domain.missingperson.service.MissingPersonService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -102,6 +104,29 @@ public class MissingPersonController {
     @GetMapping("/{id}")
     public ResponseEntity<MissingPersonDetailResponse> getMissingPersonDetail(@PathVariable Long id) {
         MissingPersonDetailResponse response = missingPersonService.getMissingPersonDetail(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "실종자 발견 신고", 
+               description = "실종자를 발견했을 때 신고합니다. 신고가 접수되면 실종자 등록자에게 푸시 알림이 전송됩니다.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "발견 신고 성공",
+            content = @Content(schema = @Schema(implementation = ReportSightingResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패 또는 이미 종료된 케이스)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음 또는 활성 케이스가 없음",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @PostMapping("/sightings")
+    public ResponseEntity<ReportSightingResponse> reportSighting(
+            @Valid @RequestBody ReportSightingRequest request) {
+        ReportSightingResponse response = missingPersonService.reportSighting(request);
         return ResponseEntity.ok(response);
     }
 }
