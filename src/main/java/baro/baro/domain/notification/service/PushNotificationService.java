@@ -117,6 +117,60 @@ public class PushNotificationService {
     }
 
     /**
+     * 실종자 발견 신고 푸시 알림을 발송합니다.
+     * 
+     * @param reporter           신고자 (실종자를 발견한 사용자)
+     * @param missingPersonOwner 실종자 등록자 (알림을 받을 사용자)
+     * @param missingPersonName  실종자 이름
+     * @param reporterName       신고자 이름
+     * @param address            발견 위치 주소
+     */
+    @Transactional
+    public void sendMissingPersonFoundNotification(
+            User reporter,
+            User missingPersonOwner,
+            String missingPersonName,
+            String reporterName,
+            String address) {
+        
+        try {
+            // 1. 실종자 등록자의 활성 기기들 조회
+            List<Device> devices = deviceRepository.findByUser(missingPersonOwner).stream()
+                    .filter(device -> device.isActive())
+                    .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
+                    .toList();
+
+            if (devices.isEmpty()) {
+                log.warn("실종자 등록자 {}의 활성 기기 또는 FCM 토큰이 없습니다.", missingPersonOwner.getName());
+                return;
+            }
+
+            // 2. 알림 메시지 생성
+            String title = "실종자가 발견되었습니다!";
+            String message = String.format("실종자 %s님이 발견되었습니다\n\n" +
+                    "착은 팀: %s 님\n" +
+                    "발견 위치: %s",
+                    missingPersonName,
+                    reporterName,
+                    address != null ? address : "위치 정보 없음");
+
+            // 3. 각 기기에 푸시 알림 발송
+            for (Device device : devices) {
+                sendPushNotification(device.getFcmToken(), title, message, "missing_person_found");
+            }
+
+            // 4. 알림 이력을 데이터베이스에 저장
+            saveNotification(missingPersonOwner, NotificationType.FOUND_REPORT, title, message);
+
+            log.info("실종자 발견 신고 푸시 알림 발송 완료 - 실종자: {}, 신고자: {}, 등록자: {}",
+                    missingPersonName, reporterName, missingPersonOwner.getName());
+
+        } catch (Exception e) {
+            log.error("실종자 발견 신고 푸시 알림 발송 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
      * FCM을 통해 푸시 알림을 발송합니다.
      *
      * @param fcmToken FCM 토큰
@@ -124,6 +178,18 @@ public class PushNotificationService {
      * @param message  알림 내용
      */
     private void sendPushNotification(String fcmToken, String title, String message) {
+        sendPushNotification(fcmToken, title, message, "invitation");
+    }
+
+    /**
+     * FCM을 통해 푸시 알림을 발송합니다. (타입 지정 가능)
+     *
+     * @param fcmToken FCM 토큰
+     * @param title    알림 제목
+     * @param message  알림 내용
+     * @param type     알림 타입 (invitation, missing_person_found 등)
+     */
+    private void sendPushNotification(String fcmToken, String title, String message, String type) {
         try {
             // Firebase 앱이 초기화되지 않은 경우 초기화
             if (FirebaseApp.getApps().isEmpty()) {
@@ -138,12 +204,12 @@ public class PushNotificationService {
                             .setTitle(title)
                             .setBody(message)
                             .build())
-                    .putData("type", "invitation")
+                    .putData("type", type)
                     .build();
 
             // 푸시 알림 발송
             String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 푸시 알림 발송 성공 - 토큰: {}, 응답: {}", fcmToken, response);
+            log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", type, fcmToken, response);
 
         } catch (FirebaseMessagingException e) {
             log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
