@@ -1,17 +1,18 @@
 package baro.baro.domain.common.entity;
 
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+
 import baro.baro.domain.user.entity.User;
 
-import java.time.ZonedDateTime;
-
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", schema = "youfi")
 @Getter
 @Builder
 @NoArgsConstructor

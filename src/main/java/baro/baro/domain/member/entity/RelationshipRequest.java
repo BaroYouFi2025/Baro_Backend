@@ -1,15 +1,16 @@
 package baro.baro.domain.member.entity;
 
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+
 import baro.baro.domain.common.enums.RelationshipRequestStatus;
 import baro.baro.domain.user.entity.User;
-
-import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "relationship_requests", schema = "youfi")

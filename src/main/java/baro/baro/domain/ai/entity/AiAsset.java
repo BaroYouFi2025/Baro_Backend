@@ -1,15 +1,16 @@
 package baro.baro.domain.ai.entity;
 
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+
 import baro.baro.domain.common.enums.AssetType;
 import baro.baro.domain.missingperson.entity.MissingPerson;
-
-import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "ai_assets", schema = "youfi")

@@ -1,5 +1,8 @@
 package baro.baro.domain.user.entity;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,8 +11,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import baro.baro.domain.common.enums.UserRole;
 
 @Entity

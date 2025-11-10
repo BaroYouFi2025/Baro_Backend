@@ -1,6 +1,6 @@
 package baro.baro.domain.user.repository;
 
-import baro.baro.domain.user.service.UserService;
+import baro.baro.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {

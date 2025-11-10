@@ -1,15 +1,16 @@
 package baro.baro.domain.member.entity;
 
+import java.time.ZonedDateTime;
+import java.util.UUID;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import baro.baro.domain.missingperson.entity.MissingPerson;
 
-import java.time.ZonedDateTime;
-import java.util.UUID;
+import baro.baro.domain.missingperson.entity.MissingPerson;
 
 @Entity
 @Table(name = "devices", schema = "youfi")

@@ -1,14 +1,15 @@
 package baro.baro.domain.image.entity;
 
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import baro.baro.domain.missingperson.entity.MissingPerson;
 
-import java.time.ZonedDateTime;
+import baro.baro.domain.missingperson.entity.MissingPerson;
 
 @Entity
 @Table(name = "person_media", schema = "youfi")

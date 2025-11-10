@@ -1,5 +1,8 @@
 package baro.baro.domain.missingperson.entity;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,10 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import baro.baro.domain.common.enums.GenderType;
 
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import baro.baro.domain.common.enums.GenderType;
 
 @Entity
 @Table(name = "missing_persons", schema = "youfi")
