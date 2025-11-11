@@ -26,15 +26,15 @@ public interface MissingPersonRepository extends JpaRepository<MissingPerson, Lo
 SELECT DISTINCT
   mp.*,
   ST_Distance(
-    mp.location::geography,
-    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+    mp.location::public.geography,
+    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::public.geography
   ) AS distance
 FROM youfi.missing_persons mp
 JOIN youfi.missing_cases mc ON mp.id = mc.missing_person_id
 WHERE mc.case_status = 'OPEN'
   AND ST_DWithin(
-    mp.location::geography,
-    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
+    mp.location::public.geography,
+    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::public.geography,
     :radius
   )
 ORDER BY distance
