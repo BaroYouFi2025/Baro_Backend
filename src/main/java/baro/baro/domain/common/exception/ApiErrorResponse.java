@@ -21,4 +21,13 @@ public record ApiErrorResponse(String code, String message, int status, LocalDat
                 LocalDateTime.now()
         );
     }
+
+    public static ApiErrorResponse of(String code, String message, int status) {
+        return new ApiErrorResponse(
+                code,
+                message,
+                status,
+                LocalDateTime.now()
+        );
+    }
 }
