@@ -217,7 +217,7 @@ public class GlobalExceptionHandler {
         log.error("Database exception occurred: {}", e.getMessage());
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ApiErrorResponse.of("DATABASE_ERROR", "데이터베이스 오류가 발생했습니다."));
+                .body(ApiErrorResponse.of("DATABASE_ERROR", "데이터베이스 오류가 발생했습니다.", ErrorCode.INTERNAL_ERROR.getStatus()));
     }
 
     /**
