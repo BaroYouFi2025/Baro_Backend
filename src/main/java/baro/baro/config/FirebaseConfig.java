@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.util.ResourceUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,11 +34,7 @@ public class FirebaseConfig {
     public void initialize() {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                Resource resource = resourceLoader.getResource(credentialsPath);
-                if (!resource.exists()) {
-                    log.error("Firebase credentials file not found at: {}", credentialsPath);
-                    throw new IOException("Firebase credentials file not found.");
-                }
+                Resource resource = loadCredentialsResource();
 
                 InputStream serviceAccount = resource.getInputStream();
 
@@ -54,5 +51,26 @@ public class FirebaseConfig {
         } catch (IOException e) {
             log.error("Firebase 초기화 중 오류 발생: {}", e.getMessage(), e);
         }
+    }
+
+    private Resource loadCredentialsResource() throws IOException {
+        Resource resource = resourceLoader.getResource(credentialsPath);
+
+        if (!resource.exists() && !credentialsPath.contains(":")) {
+            String fallbackPath = ResourceUtils.CLASSPATH_URL_PREFIX + credentialsPath;
+            Resource fallbackResource = resourceLoader.getResource(fallbackPath);
+            if (fallbackResource.exists()) {
+                log.info("Firebase credentials not found at '{}'. Falling back to classpath resource '{}'", credentialsPath, fallbackPath);
+                resource = fallbackResource;
+            }
+        }
+
+
+        if (!resource.exists()) {
+            log.error("Firebase credentials file not found at: {}", credentialsPath);
+            throw new IOException("Firebase credentials file not found.");
+        }
+
+        return resource;
     }
 }
