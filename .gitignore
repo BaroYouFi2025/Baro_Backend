@@ -38,9 +38,7 @@ out/
 
 .env
 
-# Firebase credentials
-firebase-adminsdk*.json
-**/firebase-adminsdk*.json
+src/main/resources/firebase-adminsdk.json
 
 .serena
 .serena/cache
