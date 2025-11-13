@@ -1,6 +1,6 @@
 package baro.baro.domain.device.service;
 
-import baro.baro.domain.common.enums.NotificationType;
+
 import baro.baro.domain.common.util.GpsUtils;
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
 import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
@@ -18,6 +18,8 @@ import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
+import baro.baro.domain.notification.entity.Notification;
+import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.user.entity.User;
@@ -63,8 +65,8 @@ public class DeviceServiceImpl implements DeviceService {
     private final GeometryFactory geometryFactory = new GeometryFactory();
 
     /** NEARBY_ALERT 검색 반경 (미터) */
-    @Value("${nearby.alert.radius.meters:500}")
-    private double nearbyAlertRadiusMeters;
+    @Value("${nearby.alert.radius.meters}")
+    private int nearbyAlertRadiusMeters;
 
     /** NEARBY_ALERT 쿨타임 (시간) */
     @Value("${nearby.alert.cooldown.hours:24}")
@@ -320,7 +322,7 @@ public class DeviceServiceImpl implements DeviceService {
     private boolean shouldSendNearbyAlert(User user, MissingPerson missingPerson, Point currentLocation) {
         // 1. 최근 24시간 이내의 NEARBY_ALERT 조회
         LocalDateTime threshold = LocalDateTime.now().minusHours(nearbyAlertCooldownHours);
-        List<baro.baro.domain.common.entity.Notification> recentAlerts =
+        List<Notification> recentAlerts =
                 notificationRepository.findRecentNearbyAlerts(
                         user,
                         missingPerson.getId(),
@@ -333,7 +335,7 @@ public class DeviceServiceImpl implements DeviceService {
         }
 
         // 2. 이전 알림 위치 중 현재 위치에서 500m 이내가 있는지 확인
-        for (baro.baro.domain.common.entity.Notification alert : recentAlerts) {
+        for (Notification alert : recentAlerts) {
             if (alert.getRelatedLocation() != null) {
                 double distance = GpsUtils.calculateDistance(
                         alert.getRelatedLocation(),

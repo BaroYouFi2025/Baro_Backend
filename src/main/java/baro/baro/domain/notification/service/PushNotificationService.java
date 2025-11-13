@@ -1,7 +1,7 @@
 package baro.baro.domain.notification.service;
 
-import baro.baro.domain.common.entity.Notification;
-import baro.baro.domain.common.entity.NotificationType;
+import baro.baro.domain.notification.entity.Notification;
+import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.repository.DeviceRepository;
