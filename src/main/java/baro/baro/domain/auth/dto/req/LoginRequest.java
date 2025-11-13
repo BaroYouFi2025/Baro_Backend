@@ -11,11 +11,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class LoginRequest {
-    @Schema(description = "사용자 ID", example = "baro")
+    @Schema(description = "사용자 ID", example = "testUser")
     @NotBlank(message = "User ID is required")
     private String uid;
 
-    @Schema(description = "비밀번호", example = "barobaro")
+    @Schema(description = "비밀번호", example = "securePass123!")
     @NotBlank(message = "Password is required")
     private String password;
 }

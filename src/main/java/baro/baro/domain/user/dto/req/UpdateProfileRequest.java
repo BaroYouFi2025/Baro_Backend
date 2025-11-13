@@ -11,7 +11,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UpdateProfileRequest {
     
-    @Schema(description = "사용자 이름", example = "홍길동")
+    @Schema(description = "사용자 이름", example = "배성민")
     private String name;
     
     @Schema(description = "칭호", example = "수색 초보자")
@@ -20,7 +20,7 @@ public class UpdateProfileRequest {
     @Schema(description = "프로필 사진 URL", example = "https://example.com/profile.jpg")
     private String profileUrl;
     
-    @Schema(description = "프로필 배경 색상 (HEX 코드)", example = "#FFFFFF")
+    @Schema(description = "프로필 배경 색상 (색)", example = "#FFFFFF")
     private String profileBackgroundColor;
     
     public static UpdateProfileRequest create(String name, String title, String profileUrl, String profileBackgroundColor) {
