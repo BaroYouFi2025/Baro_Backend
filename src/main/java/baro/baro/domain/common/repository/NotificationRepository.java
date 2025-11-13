@@ -27,4 +27,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      * 사용자의 특정 타입 알림을 조회합니다.
      */
     List<Notification> findByUserAndTypeOrderByCreatedAtDesc(User user, String type);
+
+    /**
+     * 사용자의 읽지 않은 알림만 조회합니다.
+     */
+    List<Notification> findByUserAndIsReadFalseOrderByCreatedAtDesc(User user);
 }
