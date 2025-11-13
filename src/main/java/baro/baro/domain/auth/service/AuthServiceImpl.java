@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
         response.addCookie(refreshTokenCookie);
 
         // Response에서 refreshToken 제거 (Cookie에만 저장)
-        return new AuthTokensResponse(access, expiresIn);
+        return AuthTokensResponse.forLogin(access, expiresIn);
     }
 
     @Override

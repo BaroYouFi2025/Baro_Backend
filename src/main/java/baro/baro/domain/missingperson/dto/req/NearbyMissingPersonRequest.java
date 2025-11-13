@@ -12,15 +12,15 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NearbyMissingPersonRequest {
-    @Schema(description = "검색 중심 위도", example = "37.5665")
+    @Schema(description = "위도", example = "35.1763")
     @NotNull(message = "위도는 필수입니다.")
     private Double latitude;
 
-    @Schema(description = "검색 중심 경도", example = "126.9780")
+    @Schema(description = "경도", example = "128.9664")
     @NotNull(message = "경도는 필수입니다.")
     private Double longitude;
 
-    @Schema(description = "검색 반경 (미터)", example = "5000")
+    @Schema(description = "반경 (미터)", example = "1000")
     @NotNull(message = "반경은 필수입니다.")
     @Min(value = 1, message = "반경은 1 이상이어야 합니다.")
     private Integer radius;
