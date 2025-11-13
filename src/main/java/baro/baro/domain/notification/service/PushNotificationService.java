@@ -35,12 +35,13 @@ public class PushNotificationService {
     /**
      * 초대 요청 푸시 알림을 발송합니다.
      *
-     * @param invitee  초대받은 사용자
-     * @param inviter  초대한 사용자
-     * @param relation 관계 (예: 아들, 딸, 아버지, 어머니)
+     * @param invitee      초대받은 사용자
+     * @param inviter      초대한 사용자
+     * @param relation     관계 (예: 아들, 딸, 아버지, 어머니)
+     * @param invitationId 초대 ID
      */
     @Transactional
-    public void sendInvitationNotification(User invitee, User inviter, String relation) {
+    public void sendInvitationNotification(User invitee, User inviter, String relation, Long invitationId) {
         try {
             // 1. 초대받은 사용자의 활성 기기들 조회
             List<Device> devices = deviceRepository.findByUser(invitee).stream()
@@ -57,16 +58,16 @@ public class PushNotificationService {
             String title = "새로운 구성원 초대 요청";
             String message = String.format("%s님이 %s로 초대 요청을 보냈습니다.", inviter.getName(), relation);
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (초대 데이터 포함)
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message);
+                sendInvitationPushNotification(device.getFcmToken(), title, message, invitationId, inviter.getName(), relation);
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
             saveNotification(invitee, NotificationType.INVITE_REQUEST, title, message);
 
-            log.info("초대 요청 푸시 알림 발송 완료 - 초대받은 사용자: {}, 초대한 사용자: {}",
-                    invitee.getName(), inviter.getName());
+            log.info("초대 요청 푸시 알림 발송 완료 - 초대받은 사용자: {}, 초대한 사용자: {}, 초대 ID: {}",
+                    invitee.getName(), inviter.getName(), invitationId);
 
         } catch (Exception e) {
             log.error("초대 요청 푸시 알림 발송 중 오류 발생: {}", e.getMessage(), e);
@@ -101,8 +102,9 @@ public class PushNotificationService {
                     invitee.getName(), relation, isAccepted ? "수락" : "거절");
 
             // 3. 각 기기에 푸시 알림 발송
+            String notificationType = isAccepted ? "invitation_accepted" : "invitation_rejected";
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message);
+                sendPushNotification(device.getFcmToken(), title, message, notificationType);
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
@@ -188,7 +190,7 @@ public class PushNotificationService {
             // 2. 알림 메시지 생성
             String title = "실종자가 발견되었습니다!";
             String message = String.format("실종자 %s님이 발견되었습니다\n\n" +
-                    "착은 팀: %s 님\n" +
+                    "찾은 팀: %s 님\n" +
                     "발견 위치: %s",
                     missingPersonName,
                     reporterName,
@@ -211,14 +213,46 @@ public class PushNotificationService {
     }
 
     /**
-     * FCM을 통해 푸시 알림을 발송합니다.
+     * 초대 요청 FCM 푸시 알림을 발송합니다.
      *
-     * @param fcmToken FCM 토큰
-     * @param title    알림 제목
-     * @param message  알림 내용
+     * @param fcmToken     FCM 토큰
+     * @param title        알림 제목
+     * @param message      알림 내용
+     * @param invitationId 초대 ID
+     * @param inviterName  초대한 사용자 이름
+     * @param relation     관계
      */
-    private void sendPushNotification(String fcmToken, String title, String message) {
-        sendPushNotification(fcmToken, title, message, "invitation");
+    private void sendInvitationPushNotification(String fcmToken, String title, String message,
+                                                 Long invitationId, String inviterName, String relation) {
+        try {
+            // Firebase 앱이 초기화되지 않은 경우 초기화
+            if (FirebaseApp.getApps().isEmpty()) {
+                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                return;
+            }
+
+            // FCM 메시지 생성 (실제 초대 데이터 포함)
+            Message fcmMessage = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(com.google.firebase.messaging.Notification.builder()
+                            .setTitle(title)
+                            .setBody(message)
+                            .build())
+                    .putData("type", "invitation")
+                    .putData("invitationId", String.valueOf(invitationId))
+                    .putData("inviterName", inviterName)
+                    .putData("relation", relation)
+                    .build();
+
+            // 푸시 알림 발송
+            String response = FirebaseMessaging.getInstance().send(fcmMessage);
+            log.info("FCM 초대 푸시 알림 발송 성공 - 초대 ID: {}, 토큰: {}, 응답: {}", invitationId, fcmToken, response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM 초대 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
+        } catch (Exception e) {
+            log.error("초대 푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
+        }
     }
 
     /**
@@ -227,7 +261,7 @@ public class PushNotificationService {
      * @param fcmToken FCM 토큰
      * @param title    알림 제목
      * @param message  알림 내용
-     * @param type     알림 타입 (invitation, missing_person_found 등)
+     * @param type     알림 타입 (missing_person_found, nearby_alert 등)
      */
     private void sendPushNotification(String fcmToken, String title, String message, String type) {
         try {
@@ -237,20 +271,13 @@ public class PushNotificationService {
                 return;
             }
 
-            // FCM 메시지 생성 (액션 버튼 포함)
+            // FCM 메시지 생성
             Message fcmMessage = Message.builder()
                     .setToken(fcmToken)
                     .setNotification(com.google.firebase.messaging.Notification.builder()
                             .setTitle(title)
                             .setBody(message)
                             .build())
-                    .putData("type", "invitation")
-                    .putData("invitationId", "1") // 실제 초대 ID
-                    .putData("inviterName", "홍길동") // 실제 초대자 이름
-                    .putData("relation", "가족") // 실제 관계
-                    .putData("actions", "[\"accept\", \"reject\"]") // 액션 버튼
-                    .putData("acceptUrl", "https://your-app.com/api/members/invitations/accept")
-                    .putData("rejectUrl", "https://your-app.com/api/members/invitations/reject")
                     .putData("type", type)
                     .build();
 

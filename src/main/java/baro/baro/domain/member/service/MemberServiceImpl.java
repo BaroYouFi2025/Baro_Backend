@@ -60,10 +60,10 @@ public class MemberServiceImpl implements MemberService {
                 .build();
 
         Invitation created = invitationRepository.save(invitationRequest);
-        
-        // 푸시 알림 발송
-        pushNotificationService.sendInvitationNotification(invitee, currentUser, request.getRelation());
-        
+
+        // 푸시 알림 발송 (초대 ID 포함)
+        pushNotificationService.sendInvitationNotification(invitee, currentUser, request.getRelation(), created.getId());
+
         return new InvitationResponse(created.getId());
     }
 
