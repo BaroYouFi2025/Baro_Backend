@@ -13,6 +13,6 @@ import lombok.Setter;
 public class FcmTokenUpdateRequest {
 
     @NotBlank(message = "FCM token is required")
-    @Schema(description = "FCM 토큰", example = "fcm-token-string", required = true)
+    @Schema(description = "FCM 토큰", example = "fcm-token-string")
     private String fcmToken;
 }

@@ -4,6 +4,10 @@ import baro.baro.domain.common.geocoding.dto.AddressResponse;
 import baro.baro.domain.common.geocoding.service.GeocodingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,38 +38,33 @@ public class LocationController {
         summary = "좌표를 주소로 변환",
         description = "위도와 경도를 입력받아 해당 위치의 주소를 반환합니다. Google Maps Geocoding API를 사용합니다."
     )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "주소 변환 성공",
+            content = @Content(schema = @Schema(implementation = AddressResponse.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (유효하지 않은 좌표)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류 또는 Geocoding API 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
     public ResponseEntity<AddressResponse> getAddressFromCoordinates(
             @Parameter(description = "위도", example = "37.5665", required = true)
             @RequestParam Double latitude,
-            
+
             @Parameter(description = "경도", example = "126.9780", required = true)
             @RequestParam Double longitude) {
-        
+
         log.info("주소 변환 요청: latitude={}, longitude={}", latitude, longitude);
-        
-        try {
-            String address = geocodingService.getAddressFromCoordinates(latitude, longitude);
-            
-            boolean success = address != null && 
-                             !address.startsWith("위치:") && 
-                             !address.equals("위치 정보 없음");
-            
-            AddressResponse response = AddressResponse.create(latitude, longitude, address, success);
-            
-            log.info("주소 변환 성공: {}", address);
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("주소 변환 실패: {}", e.getMessage(), e);
-            
-            AddressResponse response = AddressResponse.create(
-                latitude, 
-                longitude, 
-                "주소 변환에 실패했습니다: " + e.getMessage(),
-                false
-            );
-            
-            return ResponseEntity.ok(response);
-        }
+
+        String address = geocodingService.getAddressFromCoordinates(latitude, longitude);
+        AddressResponse response = AddressResponse.create(latitude, longitude, address, true);
+
+        log.info("주소 변환 성공: {}", address);
+        return ResponseEntity.ok(response);
     }
 }

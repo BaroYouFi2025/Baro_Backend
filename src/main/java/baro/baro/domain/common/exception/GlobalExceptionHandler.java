@@ -2,6 +2,7 @@ package baro.baro.domain.common.exception;
 
 import baro.baro.domain.auth.exception.EmailException;
 import baro.baro.domain.auth.exception.PhoneVerificationException;
+import baro.baro.domain.missingperson.exception.MissingPersonException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +70,24 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(
                     e.getPhoneErrorCode().name(),
                     e.getPhoneErrorCode().getMessage()
+                ));
+    }
+
+    /**
+     * 실종자 관련 예외 처리
+     * @param e MissingPersonException
+     * @return 실종자 에러 코드와 메시지를 포함한 응답
+     */
+    @ExceptionHandler(MissingPersonException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingPerson(MissingPersonException e) {
+        log.warn("Missing person exception occurred: {} - {}",
+                e.getMissingPersonErrorCode().name(),
+                e.getMissingPersonErrorCode().getMessage());
+        return ResponseEntity
+                .status(e.getMissingPersonErrorCode().getStatus())
+                .body(ApiErrorResponse.of(
+                    e.getMissingPersonErrorCode().name(),
+                    e.getMissingPersonErrorCode().getMessage()
                 ));
     }
 
@@ -198,7 +217,7 @@ public class GlobalExceptionHandler {
         log.error("Database exception occurred: {}", e.getMessage());
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ApiErrorResponse.of("DATABASE_ERROR", "데이터베이스 오류가 발생했습니다."));
+                .body(ApiErrorResponse.of("DATABASE_ERROR", "데이터베이스 오류가 발생했습니다.", ErrorCode.INTERNAL_ERROR.getStatus()));
     }
 
     /**

@@ -19,6 +19,7 @@ import java.util.Arrays;
 
 @Configuration
 @RequiredArgsConstructor
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -60,10 +61,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/members/invitations/rejection").permitAll()
                         .requestMatchers(HttpMethod.POST, "/members/invitations").permitAll()
 
+                        // MissingPerson Controller - 공개 조회 엔드포인트
+                        .requestMatchers(HttpMethod.GET, "/missing-person/nearby").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/missing-persons/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/missing-persons/{id}").permitAll()
+
+                        // Police API Controller - 경찰청 공개 데이터 조회
+                        .requestMatchers(HttpMethod.GET, "/missing/police/missing-persons").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/missing/police/missing-persons/{id}").permitAll()
+
+                        // Location Controller - 좌표 변환 유틸리티
+                        .requestMatchers(HttpMethod.GET, "/location/address").permitAll()
+
                         // Swagger UI - 개발 환경에서만 허용 권장
                         // 프로덕션에서는 제거하거나 인증 적용 필요
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        
+
                         // 정적 리소스 - 업로드된 이미지 접근 허용
                         .requestMatchers("/images/**").permitAll()
 

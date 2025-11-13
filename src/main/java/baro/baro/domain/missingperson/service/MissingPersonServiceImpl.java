@@ -5,11 +5,16 @@ import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
+import baro.baro.domain.missingperson.dto.req.ReportSightingRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
+import baro.baro.domain.missingperson.entity.CaseStatusType;
+import baro.baro.domain.missingperson.dto.res.ReportSightingResponse;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.entity.MissingCase;
+import baro.baro.domain.missingperson.entity.Sighting;
+import baro.baro.domain.missingperson.entity.CaseStatusType;
 import baro.baro.domain.missingperson.entity.Sighting;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
 import baro.baro.domain.missingperson.exception.MissingPersonException;
@@ -20,6 +25,7 @@ import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.LocationUtil;
 import baro.baro.domain.common.util.SecurityUtil;
+import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.notification.service.PushNotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
@@ -44,6 +50,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     private final MissingCaseRepository missingCaseRepository;
     private final SightingRepository sightingRepository;
     private final UserRepository userRepository;
+    private final SightingRepository sightingRepository;
     private final LocationService locationService;
     private final PushNotificationService pushNotificationService;
 
@@ -51,6 +58,11 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Transactional
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
         User currentUser = getCurrentUser();
+
+        long registeredCount = missingCaseRepository.countByReportedById(currentUser.getId());
+        if (registeredCount >= 4) {
+            throw new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_LIMIT_EXCEEDED);
+        }
 
         // 도메인 서비스: 위치 정보 생성
         LocationService.LocationInfo locationInfo = locationService.createLocationInfo(
@@ -128,11 +140,24 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     @Transactional(readOnly = true)
     public Page<MissingPersonResponse> searchMissingPersons(SearchMissingPersonRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(pageable);
+        Page<MissingPerson> missingPersons = missingPersonRepository.findAllOpenCases(CaseStatusType.OPEN, pageable);
 
         log.debug("실종자 검색 완료: page={}, size={}, totalElements={}",
                 request.getPage(), request.getSize(), missingPersons.getTotalElements());
         return missingPersons.map(MissingPersonResponse::from);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MissingPersonResponse> getMyMissingPersons() {
+        User currentUser = getCurrentUser();
+        List<MissingPerson> missingPersons = missingPersonRepository.findAllByReporterId(currentUser.getId(), CaseStatusType.OPEN);
+
+        log.debug("내가 등록한 실종자 조회 완료: userId={}, count={}",
+                currentUser.getId(), missingPersons.size());
+        return missingPersons.stream()
+                .map(MissingPersonResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -168,6 +193,77 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
     @Override
     @Transactional
+    public ReportSightingResponse reportSighting(ReportSightingRequest request) {
+        User currentUser = getCurrentUser();
+
+        // 1. 실종자 조회
+        MissingPerson missingPerson = missingPersonRepository.findById(request.getMissingPersonId())
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
+
+        // 2. 실종 케이스 조회 (OPEN 상태인 케이스만)
+        MissingCase missingCase = missingCaseRepository.findByMissingPersonAndCaseStatus(
+                missingPerson,
+                CaseStatusType.OPEN
+        ).orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.NO_ACTIVE_CASE_FOUND));
+
+        // 3. 이미 종료된 케이스인지 확인
+        if (missingCase.getCaseStatus() == CaseStatusType.CLOSED) {
+            throw new MissingPersonException(MissingPersonErrorCode.CASE_ALREADY_CLOSED);
+        }
+
+        // 4. 중복 신고 체크 (최근 10분 이내 같은 실종자에 대한 신고 방지)
+        java.time.ZonedDateTime tenMinutesAgo = java.time.ZonedDateTime.now().minusMinutes(10);
+        boolean hasRecentReport = sightingRepository.existsRecentSightingByReporter(
+                missingCase,
+                currentUser,
+                tenMinutesAgo
+        );
+
+        if (hasRecentReport) {
+            log.warn("중복 신고 감지 - 사용자: {}, 실종자: {}, 케이스: {}",
+                    currentUser.getName(), missingPerson.getName(), missingCase.getId());
+            throw new MissingPersonException(MissingPersonErrorCode.DUPLICATE_SIGHTING_REPORT);
+        }
+
+        // 5. 위치 정보 변환
+        LocationUtil.validateCoordinates(request.getLatitude(), request.getLongitude());
+        LocationService.LocationInfo locationInfo = locationService.createLocationInfo(
+                request.getLatitude(),
+                request.getLongitude()
+        );
+
+        // 6. Sighting 엔티티 생성 및 저장
+        Sighting sighting = Sighting.create(
+                missingCase,
+                currentUser,
+                locationInfo.point()
+        );
+        sighting = sightingRepository.save(sighting);
+
+        // 7. 실종자 등록자에게 푸시 알림 발송
+        User missingPersonOwner = missingCase.getReportedBy();
+        try {
+            pushNotificationService.sendMissingPersonFoundNotification(
+                    currentUser,
+                    missingPersonOwner,
+                    missingPerson.getName(),
+                    currentUser.getName(),
+                    locationInfo.address()
+            );
+        } catch (Exception e) {
+            log.error("푸시 알림 발송 실패 - 실종자: {}, 신고자: {}, 등록자: {}, 오류: {}",
+                    missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), e.getMessage(), e);
+            // 푸시 알림 실패는 전체 트랜잭션을 롤백하지 않음
+        }
+
+        log.info("실종자 발견 신고 완료 - 실종자: {}, 신고자: {}, 등록자: {}, 위치: {}",
+                missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), locationInfo.address());
+
+        return ReportSightingResponse.success();
+    }
+
+    @Override
+    @Transactional
     public void reportFound(FoundReportRequest request) {
         // 1. 실종자 정보 조회
         MissingPerson missingPerson = missingPersonRepository.findById(request.getMissingPersonId())
@@ -198,8 +294,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
         // 6. 실종자 등록자에게 푸시 알림 발송
         User originalReporter = missingCase.getReportedBy();
-        String locationText = request.getLocation() != null 
-                ? request.getLocation() 
+        String locationText = request.getLocation() != null
+                ? request.getLocation()
                 : String.format("위도: %.6f, 경도: %.6f", request.getLatitude(), request.getLongitude());
         pushNotificationService.sendFoundNotification(
                 originalReporter,
@@ -207,7 +303,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 locationText
         );
 
-        log.info("실종자 발견 신고 완료: id={}, name={}, reportedBy={}", 
+        log.info("실종자 발견 신고 완료: id={}, name={}, reportedBy={}",
                 missingPerson.getId(), missingPerson.getName(), reporter.getName());
     }
 }

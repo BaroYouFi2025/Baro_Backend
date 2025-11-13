@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.service;
 
+import baro.baro.domain.common.exception.BusinessException;
 import baro.baro.domain.common.geocoding.service.GeocodingService;
 import baro.baro.domain.common.util.LocationUtil;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
@@ -30,8 +31,12 @@ public class LocationService {
     public String getAddressFromCoordinates(Double latitude, Double longitude) {
         try {
             return geocodingService.getAddressFromCoordinates(latitude, longitude);
+        } catch (BusinessException e) {
+            // common 패키지의 BusinessException을 missingperson 도메인의 MissingPersonException으로 변환 (도메인 격리)
+            log.error("주소 조회 실패: lat={}, lon={}, errorCode={}", latitude, longitude, e.getErrorCode(), e);
+            throw new MissingPersonException(MissingPersonErrorCode.GEOCODING_SERVICE_ERROR);
         } catch (Exception e) {
-            log.error("주소 조회 실패: lat={}, lon={}", latitude, longitude, e);
+            log.error("주소 조회 중 예상치 못한 오류: lat={}, lon={}", latitude, longitude, e);
             throw new MissingPersonException(MissingPersonErrorCode.GEOCODING_SERVICE_ERROR);
         }
     }

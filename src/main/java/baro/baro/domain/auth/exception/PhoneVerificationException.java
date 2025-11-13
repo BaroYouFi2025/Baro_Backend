@@ -16,8 +16,10 @@ public class PhoneVerificationException extends BusinessException {
 
     private static ErrorCode convertToErrorCode(PhoneVerificationErrorCode phoneErrorCode) {
         return switch (phoneErrorCode.getStatus()) {
+            case 400 -> ErrorCode.VALIDATION_ERROR;
+            case 401 -> ErrorCode.AUTH_ERROR;
             case 500 -> ErrorCode.INTERNAL_ERROR;
-            default -> ErrorCode.VALIDATION_ERROR;
+            default -> ErrorCode.INTERNAL_ERROR;
         };
     }
 }
