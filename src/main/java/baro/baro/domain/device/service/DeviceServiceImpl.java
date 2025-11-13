@@ -1,5 +1,7 @@
 package baro.baro.domain.device.service;
 
+import baro.baro.domain.common.enums.NotificationType;
+import baro.baro.domain.common.util.GpsUtils;
 import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
 import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
 import baro.baro.domain.device.dto.request.GpsUpdateRequest;
@@ -11,18 +13,29 @@ import baro.baro.domain.device.exception.DeviceErrorCode;
 import baro.baro.domain.device.exception.DeviceException;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
+import baro.baro.domain.missingperson.entity.CaseStatusType;
+import baro.baro.domain.missingperson.entity.MissingCase;
+import baro.baro.domain.missingperson.entity.MissingPerson;
+import baro.baro.domain.missingperson.repository.MissingCaseRepository;
+import baro.baro.domain.missingperson.repository.MissingPersonRepository;
+import baro.baro.domain.notification.repository.NotificationRepository;
+import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
 import baro.baro.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 기기 관리 및 GPS 위치 추적 서비스 구현 클래스
@@ -31,7 +44,9 @@ import java.time.LocalDateTime;
  * - 모바일 기기 등록 및 관리
  * - GPS 위치 정보 수집 및 저장
  * - 기기별 배터리 상태 모니터링
+ * - 주변 실종자 감지 및 NEARBY_ALERT 알림
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeviceServiceImpl implements DeviceService {
@@ -39,9 +54,25 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
     private final GpsTrackRepository gpsTrackRepository;
+    private final MissingPersonRepository missingPersonRepository;
+    private final MissingCaseRepository missingCaseRepository;
+    private final NotificationRepository notificationRepository;
+    private final PushNotificationService pushNotificationService;
 
     /** PostGIS 공간 데이터 생성을 위한 GeometryFactory */
     private final GeometryFactory geometryFactory = new GeometryFactory();
+
+    /** NEARBY_ALERT 검색 반경 (미터) */
+    @Value("${nearby.alert.radius.meters:500}")
+    private double nearbyAlertRadiusMeters;
+
+    /** NEARBY_ALERT 쿨타임 (시간) */
+    @Value("${nearby.alert.cooldown.hours:24}")
+    private int nearbyAlertCooldownHours;
+
+    /** NEARBY_ALERT 거리 임계값 (미터) */
+    @Value("${nearby.alert.distance.threshold.meters:500}")
+    private double nearbyAlertDistanceThresholdMeters;
 
     /**
      * 새로운 기기를 사용자 계정에 등록합니다.
@@ -138,7 +169,10 @@ public class DeviceServiceImpl implements DeviceService {
             device.updateBatteryLevel(request.getBatteryLevel());
         }
 
-        // 6. 응답 DTO 생성 및 반환
+        // 6. 비동기로 주변 실종자 체크 및 알림 발송
+        checkNearbyMissingPersons(user, location);
+
+        // 7. 응답 DTO 생성 및 반환
         return new GpsUpdateResponse(
                 request.getLatitude(),
                 request.getLongitude(),
@@ -171,6 +205,149 @@ public class DeviceServiceImpl implements DeviceService {
         // 3. FCM 토큰 업데이트
         device.updateFcmToken(request.getFcmToken());
         deviceRepository.save(device);
+    }
+
+    /**
+     * 주변 실종자를 체크하고 NEARBY_ALERT 알림을 발송합니다.
+     * GPS 업데이트 시 비동기로 실행됩니다.
+     *
+     * @param user GPS 업데이트한 사용자
+     * @param location 사용자의 현재 위치
+     */
+    @Async
+    @Transactional
+    public void checkNearbyMissingPersons(User user, Point location) {
+        try {
+            double latitude = location.getY();
+            double longitude = location.getX();
+
+            log.debug("주변 실종자 체크 시작 - 사용자: {}, 위치: ({}, {}), 반경: {}m",
+                    user.getName(), latitude, longitude, nearbyAlertRadiusMeters);
+
+            // 1. 주변 실종자 검색 (OPEN 케이스만)
+            List<MissingPerson> nearbyPersons = missingPersonRepository.findNearbyMissingPersons(
+                    latitude,
+                    longitude,
+                    nearbyAlertRadiusMeters
+            );
+
+            if (nearbyPersons.isEmpty()) {
+                log.debug("주변에 실종자가 없습니다 - 사용자: {}", user.getName());
+                return;
+            }
+
+            log.info("주변 실종자 발견 - 사용자: {}, 발견 수: {}", user.getName(), nearbyPersons.size());
+
+            // 2. 각 실종자에 대해 중복 체크 및 알림 발송
+            for (MissingPerson missingPerson : nearbyPersons) {
+                processMissingPersonAlert(user, missingPerson, location);
+            }
+
+        } catch (Exception e) {
+            log.error("주변 실종자 체크 중 오류 발생 - 사용자: {}, 오류: {}",
+                    user.getName(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 특정 실종자에 대한 알림 처리 (중복 체크 + 알림 발송)
+     *
+     * @param user GPS 업데이트한 사용자
+     * @param missingPerson 발견된 실종자
+     * @param userLocation 사용자 현재 위치
+     */
+    private void processMissingPersonAlert(User user, MissingPerson missingPerson, Point userLocation) {
+        try {
+            // 1. 중복 체크: 최근 24시간 이내 알림이 있는지 확인
+            if (!shouldSendNearbyAlert(user, missingPerson, userLocation)) {
+                log.debug("NEARBY_ALERT 중복 차단 - 사용자: {}, 실종자: {}",
+                        user.getName(), missingPerson.getName());
+                return;
+            }
+
+            // 2. 실종자 등록자 조회 (OPEN 케이스)
+            MissingCase missingCase = missingCaseRepository.findByMissingPersonAndCaseStatus(
+                    missingPerson,
+                    CaseStatusType.OPEN
+            ).orElse(null);
+
+            if (missingCase == null) {
+                log.warn("OPEN 상태의 케이스를 찾을 수 없음 - 실종자: {}", missingPerson.getName());
+                return;
+            }
+
+            User owner = missingCase.getReportedBy();
+
+            // 3. 거리 계산
+            double distance = GpsUtils.calculateDistance(userLocation, missingPerson.getLocation());
+
+            log.info("NEARBY_ALERT 발송 준비 - 사용자: {}, 실종자: {}, 거리: {}m",
+                    user.getName(), missingPerson.getName(), distance);
+
+            // 4. 알림 발송 (등록자 + GPS 업데이트 사용자)
+            pushNotificationService.sendNearbyAlertToOwner(
+                    owner,
+                    user,
+                    missingPerson.getName(),
+                    distance,
+                    userLocation,
+                    missingPerson.getId()
+            );
+
+            pushNotificationService.sendNearbyAlertToReporter(
+                    user,
+                    missingPerson.getName(),
+                    distance,
+                    userLocation,
+                    missingPerson.getId()
+            );
+
+        } catch (Exception e) {
+            log.error("실종자 알림 처리 중 오류 발생 - 사용자: {}, 실종자: {}, 오류: {}",
+                    user.getName(), missingPerson.getName(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * NEARBY_ALERT 알림을 발송해야 하는지 판단합니다.
+     * 중복 방지 로직: 24시간 + 500m 복합 조건
+     *
+     * @param user 사용자
+     * @param missingPerson 실종자
+     * @param currentLocation 현재 위치
+     * @return 알림 발송 여부
+     */
+    private boolean shouldSendNearbyAlert(User user, MissingPerson missingPerson, Point currentLocation) {
+        // 1. 최근 24시간 이내의 NEARBY_ALERT 조회
+        LocalDateTime threshold = LocalDateTime.now().minusHours(nearbyAlertCooldownHours);
+        List<baro.baro.domain.common.entity.Notification> recentAlerts =
+                notificationRepository.findRecentNearbyAlerts(
+                        user,
+                        missingPerson.getId(),
+                        NotificationType.NEARBY_ALERT,
+                        threshold
+                );
+
+        if (recentAlerts.isEmpty()) {
+            return true; // 최근 알림 없음 → 발송 ✅
+        }
+
+        // 2. 이전 알림 위치 중 현재 위치에서 500m 이내가 있는지 확인
+        for (baro.baro.domain.common.entity.Notification alert : recentAlerts) {
+            if (alert.getRelatedLocation() != null) {
+                double distance = GpsUtils.calculateDistance(
+                        alert.getRelatedLocation(),
+                        currentLocation
+                );
+                if (distance < nearbyAlertDistanceThresholdMeters) {
+                    log.debug("NEARBY_ALERT 중복 - 거리: {}m (임계값: {}m)",
+                            distance, nearbyAlertDistanceThresholdMeters);
+                    return false; // 500m 이내 이전 알림 있음 → 차단 ❌
+                }
+            }
+        }
+
+        return true; // 모든 이전 알림이 500m 이상 떨어짐 → 발송 ✅
     }
 
 }

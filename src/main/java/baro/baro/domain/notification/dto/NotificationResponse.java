@@ -1,7 +1,7 @@
 package baro.baro.domain.notification.dto;
 
 import baro.baro.domain.common.entity.Notification;
-import baro.baro.domain.common.enums.NotificationType;
+import baro.baro.domain.common.entity.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

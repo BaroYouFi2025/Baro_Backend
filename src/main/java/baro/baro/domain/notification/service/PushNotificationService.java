@@ -1,8 +1,8 @@
 package baro.baro.domain.notification.service;
 
 import baro.baro.domain.common.entity.Notification;
-import baro.baro.domain.common.enums.NotificationType;
-import baro.baro.domain.common.repository.NotificationRepository;
+import baro.baro.domain.common.entity.NotificationType;
+import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.user.entity.User;
@@ -329,6 +329,134 @@ public class PushNotificationService {
             log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
         } catch (Exception e) {
             log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 실종자 등록자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+     *
+     * @param owner 실종자 등록자
+     * @param reporter GPS 업데이트한 사용자
+     * @param missingPersonName 실종자 이름
+     * @param distance 거리 (미터)
+     * @param reporterLocation 발견자 위치 (알림 저장용)
+     * @param missingPersonId 실종자 ID
+     */
+    @Transactional
+    public void sendNearbyAlertToOwner(User owner, User reporter, String missingPersonName,
+                                        double distance, org.locationtech.jts.geom.Point reporterLocation,
+                                        Long missingPersonId) {
+        try {
+            // 1. 등록자의 활성 기기들 조회
+            List<Device> devices = deviceRepository.findByUser(owner).stream()
+                    .filter(Device::isActive)
+                    .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
+                    .toList();
+
+            if (devices.isEmpty()) {
+                log.warn("실종자 등록자 {}의 활성 기기 또는 FCM 토큰이 없습니다.", owner.getName());
+                return;
+            }
+
+            // 2. 알림 메시지 생성
+            String title = "실종자 근처에 사용자가 있습니다!";
+            String message = String.format("%s님이 실종자 %s 근처 %.0fm에 있습니다.",
+                    reporter.getName(), missingPersonName, distance);
+
+            // 3. 각 기기에 푸시 알림 발송
+            for (Device device : devices) {
+                sendPushNotification(device.getFcmToken(), title, message, "nearby_alert");
+            }
+
+            // 4. 알림 이력을 데이터베이스에 저장
+            saveNotificationWithLocation(owner, NotificationType.NEARBY_ALERT, title, message,
+                                          missingPersonId, reporterLocation);
+
+            log.info("NEARBY_ALERT 푸시 알림 발송 완료 (등록자) - 등록자: {}, 발견자: {}, 실종자: {}, 거리: {}m",
+                    owner.getName(), reporter.getName(), missingPersonName, distance);
+
+        } catch (Exception e) {
+            log.error("NEARBY_ALERT 푸시 알림 발송 중 오류 발생 (등록자): {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * GPS 업데이트한 사용자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+     *
+     * @param reporter GPS 업데이트한 사용자
+     * @param missingPersonName 실종자 이름
+     * @param distance 거리 (미터)
+     * @param reporterLocation 사용자 현재 위치 (알림 저장용)
+     * @param missingPersonId 실종자 ID
+     */
+    @Transactional
+    public void sendNearbyAlertToReporter(User reporter, String missingPersonName,
+                                           double distance, org.locationtech.jts.geom.Point reporterLocation,
+                                           Long missingPersonId) {
+        try {
+            // 1. 사용자의 활성 기기들 조회
+            List<Device> devices = deviceRepository.findByUser(reporter).stream()
+                    .filter(Device::isActive)
+                    .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
+                    .toList();
+
+            if (devices.isEmpty()) {
+                log.warn("GPS 업데이트 사용자 {}의 활성 기기 또는 FCM 토큰이 없습니다.", reporter.getName());
+                return;
+            }
+
+            // 2. 알림 메시지 생성
+            String title = "주변에 실종자가 있습니다!";
+            String message = String.format("실종자 %s가 주변 %.0fm 이내에 있습니다. 주의 깊게 살펴봐 주세요.",
+                    missingPersonName, distance);
+
+            // 3. 각 기기에 푸시 알림 발송
+            for (Device device : devices) {
+                sendPushNotification(device.getFcmToken(), title, message, "nearby_alert");
+            }
+
+            // 4. 알림 이력을 데이터베이스에 저장
+            saveNotificationWithLocation(reporter, NotificationType.NEARBY_ALERT, title, message,
+                                          missingPersonId, reporterLocation);
+
+            log.info("NEARBY_ALERT 푸시 알림 발송 완료 (발견자) - 발견자: {}, 실종자: {}, 거리: {}m",
+                    reporter.getName(), missingPersonName, distance);
+
+        } catch (Exception e) {
+            log.error("NEARBY_ALERT 푸시 알림 발송 중 오류 발생 (발견자): {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 위치 정보를 포함한 알림 이력을 데이터베이스에 저장합니다.
+     *
+     * @param user 사용자
+     * @param type 알림 타입
+     * @param title 제목
+     * @param message 내용
+     * @param relatedEntityId 관련 엔티티 ID (실종자 ID 등)
+     * @param location 관련 위치
+     */
+    private void saveNotificationWithLocation(User user, NotificationType type, String title, String message,
+                                               Long relatedEntityId, org.locationtech.jts.geom.Point location) {
+        try {
+            Notification notification = Notification.builder()
+                    .user(user)
+                    .type(type)
+                    .title(title)
+                    .message(message)
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .relatedEntityId(relatedEntityId)
+                    .relatedLocation(location)
+                    .build();
+
+            notificationRepository.save(notification);
+            log.info("알림 이력 저장 완료 (위치 포함) - 사용자: {}, 타입: {}, 관련 ID: {}",
+                     user.getName(), type, relatedEntityId);
+
+        } catch (Exception e) {
+            log.error("알림 이역 저장 중 오류 발생: {}", e.getMessage(), e);
         }
     }
 }
