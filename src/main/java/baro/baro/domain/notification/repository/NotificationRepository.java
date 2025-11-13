@@ -1,7 +1,8 @@
 package baro.baro.domain.notification.repository;
 
-import baro.baro.domain.common.entity.Notification;
-import baro.baro.domain.common.enums.NotificationType;
+
+import baro.baro.domain.notification.entity.Notification;
+import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

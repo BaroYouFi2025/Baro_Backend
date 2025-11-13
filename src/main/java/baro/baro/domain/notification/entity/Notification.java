@@ -1,4 +1,4 @@
-package baro.baro.domain.common.entity;
+package baro.baro.domain.notification.entity;
 
 import baro.baro.domain.user.entity.User;
 import jakarta.persistence.*;

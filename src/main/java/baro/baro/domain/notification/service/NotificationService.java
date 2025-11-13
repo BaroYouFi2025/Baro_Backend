@@ -1,6 +1,6 @@
 package baro.baro.domain.notification.service;
 
-import baro.baro.domain.common.entity.Notification;
+import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.common.util.SecurityUtil;
 import baro.baro.domain.notification.dto.NotificationResponse;
