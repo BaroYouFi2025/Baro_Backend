@@ -2,9 +2,9 @@ package baro.baro.domain.notification.controller;
 
 import baro.baro.domain.notification.dto.NotificationResponse;
 import baro.baro.domain.notification.service.NotificationService;
-import baro.baro.domain.notification.service.PushNotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,7 +18,6 @@ import java.util.List;
 
 /**
  * 알림 관리 REST API 컨트롤러
- *
  * 사용자의 알림을 조회하고 관리하는 기능을 제공합니다.
  * 모든 엔드포인트는 JWT 인증이 필요합니다.
  */
@@ -35,7 +34,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "알림 조회 성공",
-            content = @Content(schema = @Schema(implementation = NotificationResponse.class))
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
         ),
         @ApiResponse(responseCode = "401", description = "인증 실패")
     })
@@ -50,7 +49,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "읽지 않은 알림 조회 성공",
-            content = @Content(schema = @Schema(implementation = NotificationResponse.class))
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
         ),
         @ApiResponse(responseCode = "401", description = "인증 실패")
     })
@@ -65,7 +64,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "알림 조회 성공",
-            content = @Content(schema = @Schema(implementation = NotificationResponse.class))
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
         ),
         @ApiResponse(responseCode = "400", description = "권한 없음 (다른 사용자의 알림 조회 시도)"),
         @ApiResponse(responseCode = "401", description = "인증 실패")
