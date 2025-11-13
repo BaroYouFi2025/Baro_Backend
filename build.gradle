@@ -56,7 +56,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
     implementation 'com.sun.mail:jakarta.mail:2.0.1'
-    
+
     // Firebase Cloud Messaging
     implementation 'com.google.firebase:firebase-admin:9.2.0'
 

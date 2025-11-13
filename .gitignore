@@ -38,6 +38,8 @@ out/
 
 .env
 
+src/main/resources/firebase-adminsdk.json
+
 .serena
 .serena/cache
 .serena/memories

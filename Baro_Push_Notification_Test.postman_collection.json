@@ -1,0 +1,226 @@
+{
+  "info": {
+    "name": "Baro Push Notification Test",
+    "description": "구성원 초대 시 푸시 알림 기능 테스트 컬렉션",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. 사용자 로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"test-user-1\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. 기기 등록 (FCM 토큰 포함)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "description": "로그인 후 받은 JWT 토큰"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"deviceUuid\": \"test-device-uuid-123\",\n  \"osType\": \"WEB\",\n  \"osVersion\": \"Chrome 120.0\",\n  \"fcmToken\": \"{{fcm_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/devices/register",
+          "host": ["{{base_url}}"],
+          "path": ["devices", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. FCM 토큰 업데이트",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "description": "로그인 후 받은 JWT 토큰"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fcmToken\": \"{{new_fcm_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/devices/fcm-token",
+          "host": ["{{base_url}}"],
+          "path": ["devices", "fcm-token"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. 구성원 초대 요청 (푸시 알림 발송)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "description": "로그인 후 받은 JWT 토큰"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"inviteeUid\": \"test-user-2\",\n  \"relation\": \"가족\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/members/invitations",
+          "host": ["{{base_url}}"],
+          "path": ["members", "invitations"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. 초대 수락 (푸시 알림 발송)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{invitee_jwt_token}}",
+            "description": "초대받은 사용자의 JWT 토큰"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invitationId\": 1,\n  \"relation\": \"가족\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/members/invitations/accept",
+          "host": ["{{base_url}}"],
+          "path": ["members", "invitations", "accept"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. 초대 거절 (푸시 알림 발송)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{invitee_jwt_token}}",
+            "description": "초대받은 사용자의 JWT 토큰"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invitationId\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/members/invitations/reject",
+          "host": ["{{base_url}}"],
+          "path": ["members", "invitations", "reject"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. FCM 직접 테스트 (Firebase Server Key 필요)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "key={{firebase_server_key}}",
+            "description": "Firebase Console > Project Settings > Cloud Messaging > Server Key"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"{{fcm_token}}\",\n  \"notification\": {\n    \"title\": \"테스트 알림\",\n    \"body\": \"구성원 초대 요청이 있습니다!\"\n  },\n  \"data\": {\n    \"type\": \"invitation\",\n    \"inviter\": \"테스트 사용자\",\n    \"relation\": \"가족\"\n  }\n}"
+        },
+        "url": {
+          "raw": "https://fcm.googleapis.com/fcm/send",
+          "protocol": "https",
+          "host": ["fcm", "googleapis", "com"],
+          "path": ["fcm", "send"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "description": "Baro API 서버 URL"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "description": "로그인 후 받은 JWT 토큰"
+    },
+    {
+      "key": "invitee_jwt_token",
+      "value": "",
+      "description": "초대받은 사용자의 JWT 토큰"
+    },
+    {
+      "key": "fcm_token",
+      "value": "",
+      "description": "FCM 토큰 (웹에서 발급받은 토큰)"
+    },
+    {
+      "key": "new_fcm_token",
+      "value": "",
+      "description": "새로운 FCM 토큰"
+    },
+    {
+      "key": "firebase_server_key",
+      "value": "",
+      "description": "Firebase Server Key"
+    }
+  ]
+}

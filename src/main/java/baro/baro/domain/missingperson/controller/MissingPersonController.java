@@ -112,7 +112,7 @@ public class MissingPersonController {
         @ApiResponse(
             responseCode = "200",
             description = "내가 등록한 실종자 조회 성공",
-            content = @Content(schema = @Schema(implementation = MissingPersonResponse.class))),
+            content = @Content(schema = @Schema(implementation = MissingPersonResponse[].class))),
         @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
@@ -134,6 +134,8 @@ public class MissingPersonController {
             responseCode = "200", 
             description = "실종자 상세 조회 성공",
             content = @Content(schema = @Schema(implementation = MissingPersonDetailResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "404", description = "실종자를 찾을 수 없음",
