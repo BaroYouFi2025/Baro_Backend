@@ -10,7 +10,6 @@ import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.dto.res.ReportSightingResponse;
 import baro.baro.domain.missingperson.service.MissingPersonService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -98,7 +97,7 @@ public class MissingPersonController {
         @ApiResponse(
             responseCode = "200",
             description = "내가 등록한 실종자 조회 성공",
-            content = @Content(array = @ArraySchema(schema = @Schema(implementation = MissingPersonResponse.class)))),
+            content = @Content(schema = @Schema(implementation = MissingPersonResponse[].class))),
         @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
