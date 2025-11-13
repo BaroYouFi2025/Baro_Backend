@@ -56,4 +56,22 @@ public class PhoneVerificationController {
         boolean isVerified = phoneVerificationService.isPhoneNumberVerified(phoneNumber);
         return ResponseEntity.ok(new PhoneVerifyResponse(isVerified));
     }
+
+    @Operation(summary = "테스트용 전화번호 인증 (개발 환경 전용)", 
+               description = "테스트를 위해 전화번호 인증을 직접 완료합니다. 개발 환경에서만 사용하세요.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "인증 완료",
+            content = @Content(schema = @Schema(implementation = PhoneVerifyResponse.class))),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @PostMapping("/verifications/test")
+    public ResponseEntity<PhoneVerifyResponse> testVerifyPhone(
+            @Parameter(description = "인증할 토큰", required = true)
+            @RequestParam String token,
+            @Parameter(description = "인증할 전화번호 (11자리)", required = true)
+            @RequestParam String phoneNumber) {
+        phoneVerificationService.authenticateWithToken(token, phoneNumber);
+        return ResponseEntity.ok(new PhoneVerifyResponse(true));
+    }
 }

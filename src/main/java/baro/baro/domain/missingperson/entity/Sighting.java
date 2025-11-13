@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.locationtech.jts.geom.Point;
 import baro.baro.domain.user.entity.User;
 import org.locationtech.jts.geom.Point;
 
@@ -13,7 +14,7 @@ import java.time.ZonedDateTime;
 
 /**
  * 실종자 목격/발견 신고 엔티티
- * 
+ *
  * 시민이 실종자를 발견했을 때 신고한 정보를 저장합니다.
  */
 @Entity
@@ -42,11 +43,12 @@ public class Sighting {
      */
     @Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
-    
+
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
-    
+
     /**
      * 발견 신고 생성 (Factory Method)
      */
@@ -54,7 +56,7 @@ public class Sighting {
             MissingCase missingCase,
             User reporter,
             Point location) {
-        
+
         if (missingCase == null) {
             throw new IllegalArgumentException("실종 케이스는 필수입니다.");
         }
@@ -64,14 +66,14 @@ public class Sighting {
         if (location == null) {
             throw new IllegalArgumentException("발견 위치는 필수입니다.");
         }
-        
+
         return Sighting.builder()
                 .missingCase(missingCase)
                 .reporter(reporter)
                 .location(location)
                 .build();
     }
-    
+
     /**
      * 위도 가져오기
      */
@@ -81,7 +83,7 @@ public class Sighting {
         }
         return location.getY();
     }
-    
+
     /**
      * 경도 가져오기
      */

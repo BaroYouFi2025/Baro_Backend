@@ -1,12 +1,12 @@
-package baro.baro.domain.common.entity;
+package baro.baro.domain.notification.entity;
 
-import baro.baro.domain.common.enums.NotificationType;
 import baro.baro.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDateTime;
 
@@ -23,9 +23,9 @@ import java.time.LocalDateTime;
 @Table(name = "notifications", schema = "youfi")
 @AllArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class Notification {
-    
+
     /** 알림 고유 ID (Primary Key) */
-    @Id 
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -58,6 +58,14 @@ public class Notification {
     /** 읽은 시간 */
     @Column(name = "read_at")
     private LocalDateTime readAt;
+
+    /** 관련 엔티티 ID (실종자 ID, 초대 ID 등) */
+    @Column(name = "related_entity_id")
+    private Long relatedEntityId;
+
+    /** 알림 관련 위치 (NEARBY_ALERT의 경우 알림 발생 시 사용자 위치) */
+    @Column(name = "related_location", columnDefinition = "geography(Point,4326)")
+    private Point relatedLocation;
 
     /**
      * 알림을 읽음 처리합니다.
