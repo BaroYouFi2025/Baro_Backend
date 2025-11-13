@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface MissingCaseRepository extends JpaRepository<MissingCase, Long> {
+    Optional<MissingCase> findByMissingPerson(MissingPerson missingPerson);
 
     @Query("SELECT m FROM MissingCase m WHERE m.missingPerson.id = :missingPersonId and m.caseStatus = 'OPEN'")
     Optional<MissingCase> findByMissingPersonId(Long missingPersonId);
