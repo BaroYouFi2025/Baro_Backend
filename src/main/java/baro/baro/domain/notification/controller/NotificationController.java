@@ -4,7 +4,6 @@ import baro.baro.domain.notification.dto.NotificationResponse;
 import baro.baro.domain.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,7 +33,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "알림 조회 성공",
-            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
+            content = @Content(schema = @Schema(implementation = NotificationResponse[].class))
         ),
         @ApiResponse(responseCode = "401", description = "인증 실패")
     })
@@ -49,7 +48,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "읽지 않은 알림 조회 성공",
-            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
+            content = @Content(schema = @Schema(implementation = NotificationResponse[].class))
         ),
         @ApiResponse(responseCode = "401", description = "인증 실패")
     })
@@ -64,7 +63,7 @@ public class NotificationController {
         @ApiResponse(
             responseCode = "200",
             description = "알림 조회 성공",
-            content = @Content(array = @ArraySchema(schema = @Schema(implementation = NotificationResponse.class)))
+            content = @Content(schema = @Schema(implementation = NotificationResponse[].class))
         ),
         @ApiResponse(responseCode = "400", description = "권한 없음 (다른 사용자의 알림 조회 시도)"),
         @ApiResponse(responseCode = "401", description = "인증 실패")
