@@ -191,5 +191,13 @@ public class User {
     public boolean isActive() {
         return this.isActive != null && this.isActive;
     }
+
+    public void validateUserAccess(User currentUser) {
+        if (currentUser.getRole() == UserRole.ADMIN)
+            return; // 관리자 권한은 모든 접근 허용
+
+        if (!this.id.equals(currentUser.getId()))
+            throw new UserException(UserErrorCode.USER_ACCESS_DENIED);
+    }
 }
 
