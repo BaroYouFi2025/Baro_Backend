@@ -1,10 +1,6 @@
 package baro.baro.domain.missingperson.service;
 
-import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
-import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
-import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
-import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
-import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
+import baro.baro.domain.missingperson.dto.req.*;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
@@ -23,7 +19,6 @@ public interface MissingPersonService {
     List<MissingPersonResponse> getMyMissingPersons();
     Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request);
     MissingPersonDetailResponse getMissingPersonDetail(Long id);
-    void reportFound(FoundReportRequest request);
 
     /**
      * 실종자 발견을 신고합니다.

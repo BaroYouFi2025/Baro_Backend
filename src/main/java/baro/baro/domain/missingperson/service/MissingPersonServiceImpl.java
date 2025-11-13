@@ -4,7 +4,6 @@ import baro.baro.domain.missingperson.dto.req.RegisterMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
-import baro.baro.domain.missingperson.dto.req.FoundReportRequest;
 import baro.baro.domain.missingperson.dto.req.ReportSightingRequest;
 import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
@@ -48,8 +47,6 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
     private final MissingPersonRepository missingPersonRepository;
     private final MissingCaseRepository missingCaseRepository;
-    private final SightingRepository sightingRepository;
-    private final UserRepository userRepository;
     private final SightingRepository sightingRepository;
     private final LocationService locationService;
     private final PushNotificationService pushNotificationService;
@@ -238,7 +235,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 currentUser,
                 locationInfo.point()
         );
-        sighting = sightingRepository.save(sighting);
+        sightingRepository.save(sighting);
 
         // 7. 실종자 등록자에게 푸시 알림 발송
         User missingPersonOwner = missingCase.getReportedBy();
@@ -260,50 +257,5 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), locationInfo.address());
 
         return ReportSightingResponse.success();
-    }
-
-    @Override
-    @Transactional
-    public void reportFound(FoundReportRequest request) {
-        // 1. 실종자 정보 조회
-        MissingPerson missingPerson = missingPersonRepository.findById(request.getMissingPersonId())
-                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
-
-        // 2. 실종 케이스 조회
-        MissingCase missingCase = missingCaseRepository.findByMissingPerson(missingPerson)
-                .orElseThrow(() -> new IllegalArgumentException("실종 케이스를 찾을 수 없습니다."));
-
-        // 3. 현재 사용자 조회 (발견 신고자)
-        String currentUid = SecurityUtil.getCurrentUserUid();
-        User reporter = userRepository.findByUid(currentUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 4. 위치 Point 객체 생성
-        Point locationPoint = LocationUtil.createPoint(
-                request.getLatitude(),
-                request.getLongitude()
-        );
-
-        // 5. 목격 신고 저장
-        Sighting sighting = Sighting.builder()
-                .missingCase(missingCase)
-                .reporter(reporter)
-                .location(locationPoint)
-                .build();
-        sightingRepository.save(sighting);
-
-        // 6. 실종자 등록자에게 푸시 알림 발송
-        User originalReporter = missingCase.getReportedBy();
-        String locationText = request.getLocation() != null
-                ? request.getLocation()
-                : String.format("위도: %.6f, 경도: %.6f", request.getLatitude(), request.getLongitude());
-        pushNotificationService.sendFoundNotification(
-                originalReporter,
-                missingPerson.getName(),
-                locationText
-        );
-
-        log.info("실종자 발견 신고 완료: id={}, name={}, reportedBy={}",
-                missingPerson.getId(), missingPerson.getName(), reporter.getName());
     }
 }
