@@ -1,5 +1,6 @@
 package baro.baro.domain.notification.service;
 
+import baro.baro.domain.common.monitoring.MetricsService;
 import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
@@ -31,6 +32,7 @@ public class PushNotificationService {
 
     private final DeviceRepository deviceRepository;
     private final NotificationRepository notificationRepository;
+    private final MetricsService metricsService;
 
     /**
      * 초대 요청 푸시 알림을 발송합니다.
@@ -230,10 +232,13 @@ public class PushNotificationService {
      * @param type     알림 타입 (invitation, missing_person_found 등)
      */
     private void sendPushNotification(String fcmToken, String title, String message, String type) {
+        long startTime = System.currentTimeMillis();
+
         try {
             // Firebase 앱이 초기화되지 않은 경우 초기화
             if (FirebaseApp.getApps().isEmpty()) {
                 log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                metricsService.recordFcmMessageFailure(type, "FIREBASE_NOT_INITIALIZED");
                 return;
             }
 
@@ -258,10 +263,25 @@ public class PushNotificationService {
             String response = FirebaseMessaging.getInstance().send(fcmMessage);
             log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", type, fcmToken, response);
 
+            // 메트릭 기록: 성공
+            metricsService.recordFcmMessageSuccess(type);
+            long duration = System.currentTimeMillis() - startTime;
+            metricsService.recordFcmSendDuration(duration);
+
         } catch (FirebaseMessagingException e) {
             log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
+
+            // 메트릭 기록: 실패 (에러 타입 구분)
+            String errorType = e.getMessagingErrorCode() != null
+                ? e.getMessagingErrorCode().name()
+                : "UNKNOWN";
+            metricsService.recordFcmMessageFailure(type, errorType);
+
         } catch (Exception e) {
             log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
+
+            // 메트릭 기록: 예상치 못한 에러
+            metricsService.recordFcmMessageFailure(type, "UNEXPECTED_ERROR");
         }
     }
 
