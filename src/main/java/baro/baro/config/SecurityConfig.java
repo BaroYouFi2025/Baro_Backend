@@ -77,6 +77,9 @@ public class SecurityConfig {
                         // 프로덕션에서는 제거하거나 인증 적용 필요
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
+                        // Actuator - 별도 포트(10080)로 분리되어 이 설정 불필요
+                        // management.server.port=10080 설정으로 메인 앱과 격리됨
+
                         // 정적 리소스 - 업로드된 이미지 접근 허용
                         .requestMatchers("/images/**").permitAll()
 
