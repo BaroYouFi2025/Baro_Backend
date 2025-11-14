@@ -118,6 +118,14 @@ user_logins_total                              # 로그인 수
 user_registrations_total                       # 회원가입 수
 ```
 
+#### 6. 에러 메트릭 (GlobalExceptionHandler)
+```
+http_errors_total{error_type="AUTH_ERROR",status="401"}          # 전역 예외 처리기에서 발생한 HTTP 에러 건수
+```
+- error_type: BusinessException/도메인별 에러 코드 이름
+- status: HTTP 상태 코드 (문자열)
+- Grafana 대시보드 Row 2의 Global Error Rate 패널과 연동됨
+
 ## 🎯 Grafana 대시보드
 
 ### 기본 대시보드 (자동 생성됨)
@@ -131,6 +139,21 @@ user_registrations_total                       # 회원가입 수
 5. **HTTP 상태 코드** - 2xx, 4xx, 5xx 분포
 6. **데이터베이스 커넥션 풀** - Active/Idle/Max
 7. **GC 활동** - GC 횟수 및 소요 시간
+
+### 종합 대시보드 (baro-observability)
+
+- 파일 위치: `monitoring/grafana/provisioning/dashboards/baro-observability.json`
+- Grafana 시작 시 자동으로 Import 되며 `Baro Unified Monitoring` 이름으로 노출
+
+Row 구성:
+1. **Row 1 - 시스템 상태**: 애플리케이션 UP 상태, CPU, Heap 메모리, Live Threads
+2. **Row 2 - API 성능**: 초당 요청 수, p95 응답 시간, GlobalException 기반 에러율, HTTP Method별 처리량
+3. **Row 3 - 사용자 메트릭**: 15분 로그인/회원가입 통계와 1시간 Trend
+4. **Row 4 - 실종자 메트릭**: 신고/발견 건수 및 24시간 기준 발견율
+5. **Row 5 - GPS**: GPS 업데이트 빈도, 평균/Trend 소요 시간
+6. **Row 6 - AI**: 에셋 타입별 성공량, 에러 타입 분포, 평균 생성 소요 시간
+7. **Row 7 - FCM**: 알림 타입별 성공, 에러 타입별 실패, 평균 전송 소요 시간
+8. **Row 8 - 데이터베이스**: Hikari Active/Idle/Pending, 풀 사용률
 
 ### 커스텀 대시보드 추가 방법
 
@@ -198,6 +221,22 @@ Condition:
 Alert Name: JVM 메모리 부족
 Query:
   100 * (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 85
+
+## ♻️ Docker Compose 재시작 & 검증
+
+```bash
+# 변경된 구성 반영
+docker-compose down grafana prometheus app
+docker-compose up -d prometheus grafana app
+
+# 로그 확인
+docker-compose logs -f prometheus grafana app
+```
+
+검증 체크리스트:
+- `http://localhost:10080/actuator/prometheus` 에서 신규 메트릭(`ai_`, `fcm_`, `http_errors_total`) 확인
+- Grafana → `Baro Unified Monitoring` 대시보드에서 각 Row에 데이터가 채워지는지 확인
+- 주요 흐름(Auth/MissingPerson/GPS/AI/FCM)을 호출해서 패널 변화 검증
 
 Condition:
   WHEN avg() OF query(A) IS ABOVE 85 (percent)
