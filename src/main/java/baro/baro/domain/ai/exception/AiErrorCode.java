@@ -30,6 +30,7 @@ public enum AiErrorCode {
 
     // 500 서버 내부 오류
     IMAGE_GENERATION_FAILED(500, "이미지 생성에 실패했습니다."),
+    INSUFFICIENT_IMAGES_GENERATED(500, "요청한 이미지 개수를 생성하지 못했습니다. 최소 요구 개수를 충족하지 못했습니다."),
     IMAGE_SAVE_FAILED(500, "이미지 저장에 실패했습니다."),
     IMAGE_LOAD_FAILED(500, "이미지 로드에 실패했습니다."),
     API_CALL_FAILED(500, "외부 API 호출에 실패했습니다."),
