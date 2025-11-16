@@ -10,10 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
 
-/**
- * 경찰청 실종자 도메인 엔티티
- * DDD 원칙: 비즈니스 로직을 도메인 내부에 캡슐화
- */
+// 경찰청 실종자 도메인 엔티티
+// DDD 원칙: 비즈니스 로직을 도메인 내부에 캡슐화
 @Slf4j
 @Entity
 @Getter
@@ -75,9 +73,7 @@ public class MissingPersonPolice {
 
     // ============ 정적 팩토리 메서드 (생성) ============
 
-    /**
-     * 경찰청 API 응답으로부터 새로운 엔티티 생성
-     */
+    // 경찰청 API 응답으로부터 새로운 엔티티 생성
     public static MissingPersonPolice createFromPoliceApi(PoliceApiMissingPerson apiData) {
         MissingPersonPolice entity = new MissingPersonPolice();
         entity.id = apiData.getMsspsnIdntfccd();
@@ -98,9 +94,7 @@ public class MissingPersonPolice {
 
     // ============ 비즈니스 로직 (업데이트) ============
 
-    /**
-     * API 데이터로 엔티티 업데이트
-     */
+    // API 데이터로 엔티티 업데이트
     public void updateFromPoliceApi(PoliceApiMissingPerson apiData) {
         this.occurrenceDate = apiData.getOccrde();
         this.dress = apiData.getAlldressingDscd();
@@ -127,23 +121,17 @@ public class MissingPersonPolice {
 
     // ============ 도메인 메서드 (사진 처리) ============
 
-    /**
-     * 사진 URL 설정 (이벤트 리스너에서 호출)
-     */
+    // 사진 URL 설정 (이벤트 리스너에서 호출)
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
     }
 
-    /**
-     * Base64 임시 데이터 존재 여부 확인
-     */
+    // Base64 임시 데이터 존재 여부 확인
     public boolean hasPhotoBase64Temp() {
         return this.photoBase64Temp != null && !this.photoBase64Temp.isBlank();
     }
 
-    /**
-     * Base64 임시 데이터 초기화 (처리 완료 후 메모리 해제)
-     */
+    // Base64 임시 데이터 초기화 (처리 완료 후 메모리 해제)
     public void clearPhotoBase64Temp() {
         this.photoBase64Temp = null;
     }

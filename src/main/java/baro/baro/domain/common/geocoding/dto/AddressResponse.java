@@ -3,9 +3,7 @@ package baro.baro.domain.common.geocoding.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-/**
- * 주소 변환 응답 DTO
- */
+// 주소 변환 응답 DTO
 @Data
 @Schema(description = "주소 변환 응답")
 public class AddressResponse {

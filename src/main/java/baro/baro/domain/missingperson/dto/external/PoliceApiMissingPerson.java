@@ -3,10 +3,8 @@ package baro.baro.domain.missingperson.dto.external;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-/**
- * 경찰청 실종자 API 개별 데이터 DTO
- * API 응답 순서와 동일하게 필드 배치
- */
+// 경찰청 실종자 API 개별 데이터 DTO
+// API 응답 순서와 동일하게 필드 배치
 @Data
 public class PoliceApiMissingPerson {
 

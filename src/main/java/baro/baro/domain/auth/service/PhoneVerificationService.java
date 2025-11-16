@@ -23,9 +23,7 @@ public class PhoneVerificationService {
     // 토큰 유효시간 (10분)
     private static final long VALIDITY_SECONDS = 600;
 
-    /**
-     * 인증 토큰 생성 및 저장
-     */
+    // 인증 토큰 생성 및 저장
     @Transactional
     public String createVerificationToken() {
         String token;
@@ -52,9 +50,7 @@ public class PhoneVerificationService {
         return token;
     }
 
-    /**
-     * 토큰을 사용한 전화번호 인증 처리
-     */
+    // 토큰을 사용한 전화번호 인증 처리
     @Transactional
     public void authenticateWithToken(String token, String phoneNumber) {
         if (token == null || token.trim().isEmpty()) {
@@ -82,19 +78,15 @@ public class PhoneVerificationService {
         }
     }
 
-    /**
-     *  전화번호 인증 상태 확인
-     */
+    // 전화번호 인증 상태 확인
     @Transactional(readOnly = true)
     public boolean isPhoneNumberVerified(String phoneNumber) {
         PhoneVerification phoneVerification = repo.findByPhoneNumber(phoneNumber).orElse(null);
         return phoneVerification != null && phoneVerification.isVerified();
     }
 
-    /**
-     * 만료된 토큰들을 주기적으로 삭제
-     * 매일 새벽 2시에 실행
-     */
+    // 만료된 토큰들을 주기적으로 삭제
+    // 매일 새벽 2시에 실행
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void cleanupExpiredTokens() {
@@ -103,9 +95,7 @@ public class PhoneVerificationService {
         log.info("만료된 토큰 {}개 삭제 완료", deletedCount);
     }
 
-    /**
-     * 랜덤 숫자 코드 생성
-     */
+    // 랜덤 숫자 코드 생성
     private String generateRandomCode() {
         Random random = new Random();
         StringBuilder sb = new StringBuilder();

@@ -99,10 +99,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * CORS 설정
-     * 프론트엔드 애플리케이션에서 백엔드 API를 호출할 수 있도록 CORS 정책 설정
-     */
+    // CORS 설정
+    // 프론트엔드 애플리케이션에서 백엔드 API를 호출할 수 있도록 CORS 정책 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

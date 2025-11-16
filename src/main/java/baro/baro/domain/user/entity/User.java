@@ -71,9 +71,7 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
 
-    /**
-     * User 생성자 (도메인 로직)
-     */
+    // User 생성자 (도메인 로직)
     @Builder
     private User(String uid, String encodedPassword, String phoneE164, String name, LocalDate birthDate) {
         this.uid = uid;
@@ -91,17 +89,15 @@ public class User {
         this.isActive = true;
     }
 
-    /**
-     * 새로운 사용자를 생성합니다. (Factory Method)
-     * 
-     * @param uid 사용자 ID
-     * @param rawPassword 원문 비밀번호
-     * @param phoneE164 E.164 형식 전화번호
-     * @param name 이름
-     * @param birthDate 생년월일
-     * @param passwordEncoder 비밀번호 인코더
-     * @return User 엔티티
-     */
+    // 새로운 사용자를 생성합니다. (Factory Method)
+    //
+    // @param uid 사용자 ID
+    // @param rawPassword 원문 비밀번호
+    // @param phoneE164 E.164 형식 전화번호
+    // @param name 이름
+    // @param birthDate 생년월일
+    // @param passwordEncoder 비밀번호 인코더
+    // @return User 엔티티
     public static User createUser(
             String uid, 
             String rawPassword, 
@@ -114,26 +110,22 @@ public class User {
         return new User(uid, encodedPassword, phoneE164, name, birthDate);
     }
 
-    /**
-     * 비밀번호가 일치하는지 확인합니다.
-     * 
-     * @param rawPassword 확인할 원문 비밀번호
-     * @param passwordEncoder 비밀번호 인코더
-     * @return 일치하면 true
-     */
+    // 비밀번호가 일치하는지 확인합니다.
+    //
+    // @param rawPassword 확인할 원문 비밀번호
+    // @param passwordEncoder 비밀번호 인코더
+    // @return 일치하면 true
     public boolean verifyPassword(String rawPassword, PasswordEncoder passwordEncoder) {
         return passwordEncoder.matches(rawPassword, this.passwordHash);
     }
 
-    /**
-     * 프로필을 업데이트합니다.
-     * null 값은 무시하고 기존 값을 유지합니다.
-     * 
-     * @param name 이름
-     * @param profileUrl 프로필 URL
-     * @param profileBackgroundColor 배경색
-     * @param title 칭호
-     */
+    // 프로필을 업데이트합니다.
+    // null 값은 무시하고 기존 값을 유지합니다.
+    //
+    // @param name 이름
+    // @param profileUrl 프로필 URL
+    // @param profileBackgroundColor 배경색
+    // @param title 칭호
     public void updateProfile(String name, String profileUrl, String profileBackgroundColor, String title) {
         if (name != null && !name.trim().isEmpty()) {
             this.name = name;
@@ -149,11 +141,9 @@ public class User {
         }
     }
 
-    /**
-     * 경험치를 추가하고 레벨업을 처리합니다.
-     * 
-     * @param additionalExp 추가할 경험치
-     */
+    // 경험치를 추가하고 레벨업을 처리합니다.
+    //
+    // @param additionalExp 추가할 경험치
     public void addExperience(int additionalExp) {
         this.exp += additionalExp;
         
@@ -164,13 +154,11 @@ public class User {
         }
     }
 
-    /**
-     * 사용자 계정을 비활성화합니다.
-     * 
-     * @param password 비밀번호 확인
-     * @param passwordEncoder 비밀번호 인코더
-     * @throws UserException 비밀번호가 일치하지 않거나 이미 비활성화된 경우
-     */
+    // 사용자 계정을 비활성화합니다.
+    //
+    // @param password 비밀번호 확인
+    // @param passwordEncoder 비밀번호 인코더
+    // @throws UserException 비밀번호가 일치하지 않거나 이미 비활성화된 경우
     public void deactivate(String password, PasswordEncoder passwordEncoder) {
         if (!verifyPassword(password, passwordEncoder)) {
             throw new UserException(UserErrorCode.INVALID_PASSWORD);
@@ -183,11 +171,9 @@ public class User {
         this.isActive = false;
     }
 
-    /**
-     * 사용자가 활성 상태인지 확인합니다.
-     * 
-     * @return 활성 상태이면 true
-     */
+    // 사용자가 활성 상태인지 확인합니다.
+    //
+    // @return 활성 상태이면 true
     public boolean isActive() {
         return this.isActive != null && this.isActive;
     }

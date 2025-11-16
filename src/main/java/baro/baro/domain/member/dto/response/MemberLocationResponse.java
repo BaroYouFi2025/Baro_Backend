@@ -3,11 +3,9 @@ package baro.baro.domain.member.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-/**
- * 구성원 위치 정보 응답 DTO
- *
- * 사용자와 관계가 있는 구성원의 위치, 배터리, 거리 정보를 제공합니다.
- */
+// 구성원 위치 정보 응답 DTO
+//
+// 사용자와 관계가 있는 구성원의 위치, 배터리, 거리 정보를 제공합니다.
 @Data
 @Schema(description = "구성원 위치 정보 응답")
 public class MemberLocationResponse {
@@ -42,9 +40,7 @@ public class MemberLocationResponse {
         return response;
     }
 
-    /**
-     * 위치 정보 내부 클래스
-     */
+    // 위치 정보 내부 클래스
     @Data
     @Schema(description = "위치 정보")
     public static class LocationInfo {

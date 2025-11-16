@@ -42,21 +42,17 @@ public class JwtTokenProvider {
         return accessTokenValidityMs / 1000;
     }
 
-    /**
-     * Refresh Token의 유효 시간(밀리초)을 반환합니다.
-     * 
-     * @return Refresh Token 유효 시간 (밀리초)
-     */
+    // Refresh Token의 유효 시간(밀리초)을 반환합니다.
+    //
+    // @return Refresh Token 유효 시간 (밀리초)
     public long getRefreshTokenValidityMs() {
         return refreshTokenValidityMs;
     }
 
-    /**
-     * JWT 토큰의 유효성을 검증합니다.
-     * 
-     * @param token 검증할 JWT 토큰
-     * @return 유효한 토큰이면 true, 그렇지 않으면 false
-     */
+    // JWT 토큰의 유효성을 검증합니다.
+    //
+    // @param token 검증할 JWT 토큰
+    // @return 유효한 토큰이면 true, 그렇지 않으면 false
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()

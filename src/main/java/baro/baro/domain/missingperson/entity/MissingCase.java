@@ -42,10 +42,8 @@ public class MissingCase {
     @Column(name = "reported_at", nullable = false)
     private ZonedDateTime reportedAt;
     
-    /**
-     * 실종 케이스 생성 (Factory Method)
-     * 빌더 패턴으로 불변성 보장
-     */
+    // 실종 케이스 생성 (Factory Method)
+    // 빌더 패턴으로 불변성 보장
     public static MissingCase reportBy(MissingPerson missingPerson, User reportedBy) {
         if (missingPerson == null) {
             throw new IllegalArgumentException("실종자 정보는 필수입니다.");
@@ -61,10 +59,8 @@ public class MissingCase {
                 .build();
     }
     
-    /**
-     * 케이스 상태 변경
-     * JPA Dirty Checking 활용
-     */
+    // 케이스 상태 변경
+    // JPA Dirty Checking 활용
     public void changeStatus(CaseStatusType newStatus) {
         if (newStatus == null) {
             throw new IllegalArgumentException("케이스 상태는 필수입니다.");
@@ -72,10 +68,8 @@ public class MissingCase {
         this.caseStatus = newStatus;
     }
 
-    /**
-     * 케이스 종료
-     * JPA Dirty Checking 활용
-     */
+    // 케이스 종료
+    // JPA Dirty Checking 활용
     public void close() {
         changeStatus(CaseStatusType.CLOSED);
     }

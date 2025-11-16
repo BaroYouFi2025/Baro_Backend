@@ -23,13 +23,11 @@ public class WebClientConfig {
     @Value("${police.api.url}")
     private String policeApiUrl;
 
-    /**
-     * 경찰청 실종자 API 전용 WebClient
-     * - 타임아웃: 30초
-     * - 연결 타임아웃: 10초
-     * - 읽기/쓰기 타임아웃: 30초
-     * - 비표준 Content-Type 'application/x-json' 지원
-     */
+    // 경찰청 실종자 API 전용 WebClient
+    // - 타임아웃: 30초
+    // - 연결 타임아웃: 10초
+    // - 읽기/쓰기 타임아웃: 30초
+    // - 비표준 Content-Type 'application/x-json' 지원
     @Bean("policeApiWebClient")
     public WebClient policeApiWebClient() {
         HttpClient httpClient = HttpClient.create()

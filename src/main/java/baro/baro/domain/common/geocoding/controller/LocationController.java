@@ -14,9 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 위치 정보 관련 API 컨트롤러
- */
+// 위치 정보 관련 API 컨트롤러
 @Slf4j
 @RestController
 @RequestMapping("/location")
@@ -26,13 +24,11 @@ public class LocationController {
 
     private final GeocodingService geocodingService;
 
-    /**
-     * 위도/경도를 주소로 변환 (Reverse Geocoding)
-     * 
-     * @param latitude 위도
-     * @param longitude 경도
-     * @return 변환된 주소 정보
-     */
+    // 위도/경도를 주소로 변환 (Reverse Geocoding)
+    //
+    // @param latitude 위도
+    // @param longitude 경도
+    // @return 변환된 주소 정보
     @GetMapping("/address")
     @Operation(
         summary = "좌표를 주소로 변환",

@@ -19,12 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 푸시 알림 서비스
- * 
- * Firebase Cloud Messaging을 사용하여 푸시 알림을 발송하고
- * 알림 이력을 데이터베이스에 저장합니다.
- */
+// 푸시 알림 서비스
+//
+// Firebase Cloud Messaging을 사용하여 푸시 알림을 발송하고
+// 알림 이력을 데이터베이스에 저장합니다.
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,13 +32,11 @@ public class PushNotificationService {
     private final NotificationRepository notificationRepository;
     private final MetricsService metricsService;
 
-    /**
-     * 초대 요청 푸시 알림을 발송합니다.
-     *
-     * @param invitee  초대받은 사용자
-     * @param inviter  초대한 사용자
-     * @param relation 관계 (예: 아들, 딸, 아버지, 어머니)
-     */
+    // 초대 요청 푸시 알림을 발송합니다.
+    //
+    // @param invitee  초대받은 사용자
+    // @param inviter  초대한 사용자
+    // @param relation 관계 (예: 아들, 딸, 아버지, 어머니)
     @Transactional
     public void sendInvitationNotification(User invitee, User inviter, String relation) {
         try {
@@ -75,14 +71,12 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * 초대 응답 푸시 알림을 발송합니다.
-     *
-     * @param inviter    초대한 사용자
-     * @param invitee    초대받은 사용자
-     * @param isAccepted 수락 여부
-     * @param relation   관계
-     */
+    // 초대 응답 푸시 알림을 발송합니다.
+    //
+    // @param inviter    초대한 사용자
+    // @param invitee    초대받은 사용자
+    // @param isAccepted 수락 여부
+    // @param relation   관계
     @Transactional
     public void sendInvitationResponseNotification(User inviter, User invitee, boolean isAccepted, String relation) {
         try {
@@ -118,13 +112,11 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * 실종자 발견 푸시 알림을 발송합니다.
-     *
-     * @param recipient         실종자 등록자
-     * @param missingPersonName 실종자 이름
-     * @param location          발견 위치
-     */
+    // 실종자 발견 푸시 알림을 발송합니다.
+    //
+    // @param recipient         실종자 등록자
+    // @param missingPersonName 실종자 이름
+    // @param location          발견 위치
     @Transactional
     public void sendFoundNotification(User recipient, String missingPersonName, String location) {
         try {
@@ -158,15 +150,13 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * 실종자 발견 신고 푸시 알림을 발송합니다.
-     *
-     * @param reporter           신고자 (실종자를 발견한 사용자)
-     * @param missingPersonOwner 실종자 등록자 (알림을 받을 사용자)
-     * @param missingPersonName  실종자 이름
-     * @param reporterName       신고자 이름
-     * @param address            발견 위치 주소
-     */
+    // 실종자 발견 신고 푸시 알림을 발송합니다.
+    //
+    // @param reporter           신고자 (실종자를 발견한 사용자)
+    // @param missingPersonOwner 실종자 등록자 (알림을 받을 사용자)
+    // @param missingPersonName  실종자 이름
+    // @param reporterName       신고자 이름
+    // @param address            발견 위치 주소
     @Transactional
     public void sendMissingPersonFoundNotification(
             User reporter,
@@ -212,87 +202,47 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * FCM을 통해 푸시 알림을 발송합니다.
-     *
-     * @param fcmToken FCM 토큰
-     * @param title    알림 제목
-     * @param message  알림 내용
-     */
+    // FCM을 통해 푸시 알림을 발송합니다.
+    //
+    // @param fcmToken FCM 토큰
+    // @param title    알림 제목
+    // @param message  알림 내용
     private void sendPushNotification(String fcmToken, String title, String message) {
         sendPushNotification(fcmToken, title, message, "invitation");
     }
 
-    /**
-     * FCM을 통해 푸시 알림을 발송합니다. (타입 지정 가능)
-     *
-     * @param fcmToken FCM 토큰
-     * @param title    알림 제목
-     * @param message  알림 내용
-     * @param type     알림 타입 (invitation, missing_person_found 등)
-     */
+    // FCM을 통해 푸시 알림을 발송합니다. (타입 지정 가능)
+    //
+    // @param fcmToken FCM 토큰
+    // @param title    알림 제목
+    // @param message  알림 내용
+    // @param type     알림 타입 (invitation, missing_person_found 등)
     private void sendPushNotification(String fcmToken, String title, String message, String type) {
-        long startTime = System.currentTimeMillis();
+        // FCM 메시지 생성 (액션 버튼 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", type)
+                .putData("invitationId", "1") // 실제 초대 ID
+                .putData("inviterName", "홍길동") // 실제 초대자 이름
+                .putData("relation", "가족") // 실제 관계
+                .putData("actions", "[\"accept\", \"reject\"]") // 액션 버튼
+                .putData("acceptUrl", "https://your-app.com/api/members/invitations/accept")
+                .putData("rejectUrl", "https://your-app.com/api/members/invitations/reject")
+                .build();
 
-        try {
-            // Firebase 앱이 초기화되지 않은 경우 초기화
-            if (FirebaseApp.getApps().isEmpty()) {
-                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
-                metricsService.recordFcmMessageFailure(type, "FIREBASE_NOT_INITIALIZED");
-                return;
-            }
-
-            // FCM 메시지 생성 (액션 버튼 포함)
-            Message fcmMessage = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(message)
-                            .build())
-                    .putData("type", "invitation")
-                    .putData("invitationId", "1") // 실제 초대 ID
-                    .putData("inviterName", "홍길동") // 실제 초대자 이름
-                    .putData("relation", "가족") // 실제 관계
-                    .putData("actions", "[\"accept\", \"reject\"]") // 액션 버튼
-                    .putData("acceptUrl", "https://your-app.com/api/members/invitations/accept")
-                    .putData("rejectUrl", "https://your-app.com/api/members/invitations/reject")
-                    .putData("type", type)
-                    .build();
-
-            // 푸시 알림 발송
-            String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", type, fcmToken, response);
-
-            // 메트릭 기록: 성공
-            metricsService.recordFcmMessageSuccess(type);
-            long duration = System.currentTimeMillis() - startTime;
-            metricsService.recordFcmSendDuration(duration);
-
-        } catch (FirebaseMessagingException e) {
-            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
-
-            // 메트릭 기록: 실패 (에러 타입 구분)
-            String errorType = e.getMessagingErrorCode() != null
-                ? e.getMessagingErrorCode().name()
-                : "UNKNOWN";
-            metricsService.recordFcmMessageFailure(type, errorType);
-
-        } catch (Exception e) {
-            log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
-
-            // 메트릭 기록: 예상치 못한 에러
-            metricsService.recordFcmMessageFailure(type, "UNEXPECTED_ERROR");
-        }
+        dispatchFcmMessage(fcmMessage, type, fcmToken);
     }
 
-    /**
-     * 알림 이력을 데이터베이스에 저장합니다.
-     *
-     * @param user    사용자
-     * @param type    알림 타입
-     * @param title   제목
-     * @param message 내용
-     */
+    // 알림 이력을 데이터베이스에 저장합니다.
+    //
+    // @param user    사용자
+    // @param type    알림 타입
+    // @param title   제목
+    // @param message 내용
     private void saveNotification(User user, NotificationType type, String title, String message) {
         try {
             Notification notification = Notification.builder()
@@ -312,56 +262,68 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * FCM을 통해 데이터를 포함한 푸시 알림을 발송합니다.
-     *
-     * @param fcmToken          FCM 토큰
-     * @param title             알림 제목
-     * @param message           알림 내용
-     * @param type              알림 타입
-     * @param missingPersonName 실종자 이름
-     */
+    // FCM을 통해 데이터를 포함한 푸시 알림을 발송합니다.
+    //
+    // @param fcmToken          FCM 토큰
+    // @param title             알림 제목
+    // @param message           알림 내용
+    // @param type              알림 타입
+    // @param missingPersonName 실종자 이름
     private void sendPushNotificationWithData(String fcmToken, String title, String message, String type, String missingPersonName) {
+        // FCM 메시지 생성 (Deep Link 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", type)
+                .putData("missingPersonName", missingPersonName)
+                .putData("deepLink", "youfi://found?name=" + missingPersonName)
+                .build();
+
+        dispatchFcmMessage(fcmMessage, type, fcmToken);
+    }
+
+    // 공통 FCM 메시지 전송 + 메트릭 기록 로직
+    //
+    // @param message          전송할 메시지
+    // @param notificationType 알림 타입
+    private void dispatchFcmMessage(Message message, String notificationType, String fcmToken) {
+        long startTime = System.currentTimeMillis();
+
         try {
-            // Firebase 앱이 초기화되지 않은 경우 초기화
             if (FirebaseApp.getApps().isEmpty()) {
                 log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                metricsService.recordFcmMessageFailure(notificationType, "FIREBASE_NOT_INITIALIZED");
                 return;
             }
 
-            // FCM 메시지 생성 (Deep Link 포함)
-            Message fcmMessage = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(message)
-                            .build())
-                    .putData("type", type)
-                    .putData("missingPersonName", missingPersonName)
-                    .putData("deepLink", "youfi://found?name=" + missingPersonName)
-                    .build();
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", notificationType, fcmToken, response);
 
-            // 푸시 알림 발송
-            String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 푸시 알림 발송 성공 - 토큰: {}, 응답: {}", fcmToken, response);
-
+            metricsService.recordFcmMessageSuccess(notificationType);
+            metricsService.recordFcmSendDuration(System.currentTimeMillis() - startTime);
         } catch (FirebaseMessagingException e) {
             log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
+            String errorType = e.getMessagingErrorCode() != null
+                    ? e.getMessagingErrorCode().name()
+                    : "UNKNOWN";
+            metricsService.recordFcmMessageFailure(notificationType, errorType);
         } catch (Exception e) {
             log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
+            metricsService.recordFcmMessageFailure(notificationType, "UNEXPECTED_ERROR");
         }
     }
 
-    /**
-     * 실종자 등록자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
-     *
-     * @param owner 실종자 등록자
-     * @param reporter GPS 업데이트한 사용자
-     * @param missingPersonName 실종자 이름
-     * @param distance 거리 (미터)
-     * @param reporterLocation 발견자 위치 (알림 저장용)
-     * @param missingPersonId 실종자 ID
-     */
+    // 실종자 등록자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+    //
+    // @param owner 실종자 등록자
+    // @param reporter GPS 업데이트한 사용자
+    // @param missingPersonName 실종자 이름
+    // @param distance 거리 (미터)
+    // @param reporterLocation 발견자 위치 (알림 저장용)
+    // @param missingPersonId 실종자 ID
     @Transactional
     public void sendNearbyAlertToOwner(User owner, User reporter, String missingPersonName,
                                         double distance, org.locationtech.jts.geom.Point reporterLocation,
@@ -400,15 +362,13 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * GPS 업데이트한 사용자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
-     *
-     * @param reporter GPS 업데이트한 사용자
-     * @param missingPersonName 실종자 이름
-     * @param distance 거리 (미터)
-     * @param reporterLocation 사용자 현재 위치 (알림 저장용)
-     * @param missingPersonId 실종자 ID
-     */
+    // GPS 업데이트한 사용자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+    //
+    // @param reporter GPS 업데이트한 사용자
+    // @param missingPersonName 실종자 이름
+    // @param distance 거리 (미터)
+    // @param reporterLocation 사용자 현재 위치 (알림 저장용)
+    // @param missingPersonId 실종자 ID
     @Transactional
     public void sendNearbyAlertToReporter(User reporter, String missingPersonName,
                                            double distance, org.locationtech.jts.geom.Point reporterLocation,
@@ -447,16 +407,14 @@ public class PushNotificationService {
         }
     }
 
-    /**
-     * 위치 정보를 포함한 알림 이력을 데이터베이스에 저장합니다.
-     *
-     * @param user 사용자
-     * @param type 알림 타입
-     * @param title 제목
-     * @param message 내용
-     * @param relatedEntityId 관련 엔티티 ID (실종자 ID 등)
-     * @param location 관련 위치
-     */
+    // 위치 정보를 포함한 알림 이력을 데이터베이스에 저장합니다.
+    //
+    // @param user 사용자
+    // @param type 알림 타입
+    // @param title 제목
+    // @param message 내용
+    // @param relatedEntityId 관련 엔티티 ID (실종자 ID 등)
+    // @param location 관련 위치
     private void saveNotificationWithLocation(User user, NotificationType type, String title, String message,
                                                Long relatedEntityId, org.locationtech.jts.geom.Point location) {
         try {
