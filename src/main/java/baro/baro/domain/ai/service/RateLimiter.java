@@ -5,8 +5,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 // API Rate Limiter
 // Google Gemini API의 RPM (분당 요청 수) 및 RPD (일일 요청 수) 제한 관리
@@ -14,8 +14,8 @@ import java.util.Queue;
 @Slf4j
 public class RateLimiter {
 
-    private final Queue<Instant> requestTimestamps = new LinkedList<>();
-    private final Queue<Instant> dailyRequestTimestamps = new LinkedList<>();
+    private final ConcurrentLinkedQueue<Instant> requestTimestamps = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<Instant> dailyRequestTimestamps = new ConcurrentLinkedQueue<>();
 
     private static final int DEFAULT_RPM = 10;  // 분당 10회
     private static final int DEFAULT_RPD = 100; // 일일 100회
@@ -76,8 +76,9 @@ public class RateLimiter {
         }
     }
 
-    // 다음 요청 가능 시간까지 대기 시간(초) 계산
-    public synchronized long getWaitTimeSeconds(int rpm) {
+    // 다음 요청 가능 시간까지 대기 시간(초) 계산 (근사값)
+    // 정확한 계산은 tryAcquire()에서 수행되므로 여기서는 빠른 응답 우선
+    public long getWaitTimeSeconds(int rpm) {
         if (rpm <= 0 || requestTimestamps.size() < rpm) {
             return 0;
         }
@@ -98,15 +99,15 @@ public class RateLimiter {
         return Math.max(0, waitTime);
     }
 
-    // 현재 분당 요청 수 조회
-    public synchronized int getCurrentRpm() {
-        cleanupOldRequests(requestTimestamps, Duration.ofMinutes(1), Instant.now());
+    // 현재 분당 요청 수 조회 (근사값, lock-free for performance)
+    // cleanup 없이 빠른 응답 제공 - 모니터링 목적으로 충분
+    public int getCurrentRpm() {
         return requestTimestamps.size();
     }
 
-    // 현재 일일 요청 수 조회
-    public synchronized int getCurrentRpd() {
-        cleanupOldRequests(dailyRequestTimestamps, Duration.ofDays(1), Instant.now());
+    // 현재 일일 요청 수 조회 (근사값, lock-free for performance)
+    // cleanup 없이 빠른 응답 제공 - 모니터링 목적으로 충분
+    public int getCurrentRpd() {
         return dailyRequestTimestamps.size();
     }
 
