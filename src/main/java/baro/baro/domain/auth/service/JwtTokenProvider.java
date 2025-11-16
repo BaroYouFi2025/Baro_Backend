@@ -74,13 +74,30 @@ public class JwtTokenProvider {
         return false;
     }
 
+    /**
+     * JWT 토큰에서 subject를 추출합니다.
+     * 만료된 토큰도 subject 추출이 가능합니다 (블랙리스트 등록 등을 위해).
+     *
+     * @param token JWT 토큰
+     * @return subject (사용자 UID)
+     * @throws JwtException 토큰이 유효하지 않은 경우
+     */
     public String getSubjectFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getSubject();
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getSubject();
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰도 subject 추출 가능 (블랙리스트 등록, 로그아웃 등을 위해)
+            log.debug("만료된 토큰에서 subject 추출: {}", e.getClaims().getSubject());
+            return e.getClaims().getSubject();
+        } catch (Exception e) {
+            log.error("토큰에서 subject 추출 실패: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private String buildToken(String subject, long validityMs) {
