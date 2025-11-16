@@ -16,7 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final MetricsService metricsService;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
     
     @Value("${cookie.secure}")
     private boolean cookieSecure;
