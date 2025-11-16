@@ -16,10 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 
-/**
- * 경찰청 실종자 사진 처리 이벤트 리스너
- * 별도 트랜잭션에서 사진 파일 저장 및 URL 업데이트 수행
- */
+// 경찰청 실종자 사진 처리 이벤트 리스너
+// 별도 트랜잭션에서 사진 파일 저장 및 URL 업데이트 수행
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,11 +26,9 @@ public class PhotoProcessingEventListener {
     private final MissingPersonPoliceRepository policeRepository;
     private final ImageService imageService;
 
-    /**
-     * 사진 처리 이벤트 핸들러
-     * - 비동기 실행으로 메인 트랜잭션 블로킹 방지
-     * - 새로운 트랜잭션으로 파일 시스템 작업과 DB 업데이트 분리
-     */
+    // 사진 처리 이벤트 핸들러
+    // - 비동기 실행으로 메인 트랜잭션 블로킹 방지
+    // - 새로운 트랜잭션으로 파일 시스템 작업과 DB 업데이트 분리
     @Async
     @EventListener
     @Transactional(propagation = Propagation.REQUIRES_NEW)

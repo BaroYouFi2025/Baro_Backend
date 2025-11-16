@@ -12,11 +12,9 @@ import org.locationtech.jts.geom.Point;
 
 import java.time.ZonedDateTime;
 
-/**
- * 실종자 목격/발견 신고 엔티티
- *
- * 시민이 실종자를 발견했을 때 신고한 정보를 저장합니다.
- */
+// 실종자 목격/발견 신고 엔티티
+//
+// 시민이 실종자를 발견했을 때 신고한 정보를 저장합니다.
 @Entity
 @Table(name = "sightings", schema = "youfi")
 @Getter
@@ -37,10 +35,8 @@ public class Sighting {
     @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
     
-    /**
-     * 발견 위치 (PostGIS Point 타입)
-     * WGS84 좌표계(SRID: 4326) 사용
-     */
+    // 발견 위치 (PostGIS Point 타입)
+    // WGS84 좌표계(SRID: 4326) 사용
     @Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
 
@@ -49,9 +45,7 @@ public class Sighting {
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 
-    /**
-     * 발견 신고 생성 (Factory Method)
-     */
+    // 발견 신고 생성 (Factory Method)
     public static Sighting create(
             MissingCase missingCase,
             User reporter,
@@ -74,9 +68,7 @@ public class Sighting {
                 .build();
     }
 
-    /**
-     * 위도 가져오기
-     */
+    // 위도 가져오기
     public Double getLatitude() {
         if (location == null) {
             throw new IllegalStateException("Location is not set");
@@ -84,9 +76,7 @@ public class Sighting {
         return location.getY();
     }
 
-    /**
-     * 경도 가져오기
-     */
+    // 경도 가져오기
     public Double getLongitude() {
         if (location == null) {
             throw new IllegalStateException("Location is not set");

@@ -28,9 +28,7 @@ public class UserProfileResponse {
     @Schema(description = "프로필 배경 색상", example = "#FFFFFF")
     private String profileBackgroundColor;
     
-    /**
-     * UserProfileResponse 생성 정적 팩토리 메서드
-     */
+    // UserProfileResponse 생성 정적 팩토리 메서드
     public static UserProfileResponse create(Long userId, String name, Integer level, Integer exp, 
                                              String title, String profileUrl, String profileBackgroundColor) {
         UserProfileResponse response = new UserProfileResponse();
@@ -44,9 +42,7 @@ public class UserProfileResponse {
         return response;
     }
     
-    /**
-     * User 엔티티로부터 생성
-     */
+    // User 엔티티로부터 생성
     public static UserProfileResponse from(baro.baro.domain.user.entity.User user) {
         return create(
             user.getId(),

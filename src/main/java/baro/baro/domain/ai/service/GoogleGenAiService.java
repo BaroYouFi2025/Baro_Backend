@@ -6,6 +6,7 @@ import baro.baro.domain.ai.dto.external.GeminiImageResponse;
 import baro.baro.domain.ai.exception.AiErrorCode;
 import baro.baro.domain.ai.exception.AiException;
 import baro.baro.domain.ai.exception.AiQuotaExceededException;
+import baro.baro.domain.common.monitoring.MetricsService;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 // Google GenAI 이미지 생성 서비스
 // Google Generative AI (Gemini) API를 활용하여 실종자 정보 기반의 AI 이미지를 생성하는 서비스
@@ -41,9 +43,13 @@ import java.util.*;
 @Slf4j
 public class GoogleGenAiService {
 
+    private static final String ASSET_TYPE_AGE_PROGRESSION = "AGE_PROGRESSION";
+    private static final String ASSET_TYPE_DESCRIPTION = "DESCRIPTION_IMAGE";
+
     private final WebClient webClient;
     private final baro.baro.domain.image.service.ImageService imageService;
     private final RateLimiter rateLimiter;
+    private final MetricsService metricsService;
 
     @Value("${google.gemini.api.url:}")
     private String geminiImageUrl;
@@ -93,15 +99,15 @@ public class GoogleGenAiService {
         String basePrompt = buildAgeProgressionPrompt(missingPerson, "Front-facing portrait, looking directly at camera");
 
         // 4개의 API 요청을 병렬로 처리하기 위한 CompletableFuture 리스트
-        List<java.util.concurrent.CompletableFuture<String>> futures = new ArrayList<>();
+        List<CompletableFuture<String>> futures = new ArrayList<>();
 
         for (int i = 0; i < 4; i++) {
             final int sequenceOrder = i;
-            java.util.concurrent.CompletableFuture<String> future =
-                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<String> future =
+                CompletableFuture.supplyAsync(() -> {
                     try {
                         log.info("이미지 생성 시작 (Sequence: {})", sequenceOrder);
-                        return generateImageWithPhoto(base64Image, mimeType, basePrompt, sequenceOrder);
+                        return generateImageWithPhoto(base64Image, mimeType, basePrompt, sequenceOrder, ASSET_TYPE_AGE_PROGRESSION);
                     } catch (Exception e) {
                         log.error("이미지 생성 실패 (Sequence: {})", sequenceOrder, e);
                         return null;
@@ -158,7 +164,7 @@ public class GoogleGenAiService {
 
         // 인상착의 프롬프트 생성
         String prompt = buildDescriptionPrompt(missingPerson);
-        String imageUrl = generateImageWithPhoto(base64Image, mimeType, prompt, 0);
+        String imageUrl = generateImageWithPhoto(base64Image, mimeType, prompt, 0, ASSET_TYPE_DESCRIPTION);
 
         log.info("인상착의 이미지 생성 완료 - URL: {}", imageUrl);
         return imageUrl;
@@ -267,9 +273,10 @@ public class GoogleGenAiService {
     // 4. 저장된 이미지의 접근 가능한 URL 반환
     //
     //          prompt - 편집 지시 프롬프트, sequenceOrder - 순서 (0, 1, 2, 3)
-    private String generateImageWithPhoto(String base64Image, String mimeType, String prompt, int sequenceOrder) {
-        log.info("이미지 편집 요청 - Sequence: {}, MIME: {}, Prompt: {}",
-                sequenceOrder, mimeType, prompt.substring(0, Math.min(100, prompt.length())));
+    private String generateImageWithPhoto(String base64Image, String mimeType, String prompt, int sequenceOrder, String assetType) {
+        long startTime = System.currentTimeMillis();
+        log.info("이미지 편집 요청 - Sequence: {}, AssetType: {}, MIME: {}, Prompt: {}",
+                sequenceOrder, assetType, mimeType, prompt.substring(0, Math.min(100, prompt.length())));
 
         try {
             // 1. Gemini Image Edit API로 이미지 편집/생성
@@ -279,12 +286,16 @@ public class GoogleGenAiService {
             String filename = String.format("ai-generated-%s.png", UUID.randomUUID());
             String imageUrl = imageService.saveImageFromBytes(imageData, filename, "image/png");
 
+            metricsService.recordAiImageGenerationSuccess(assetType);
+            metricsService.recordAiGenerationDuration(System.currentTimeMillis() - startTime, assetType);
             log.info("이미지 편집 완료 - URL: {}", imageUrl);
             return imageUrl;
 
         } catch (AiException e) {
+            metricsService.recordAiImageGenerationFailure(assetType, e.getAiErrorCode().name());
             throw e; // AiException은 그대로 전파
         } catch (Exception e) {
+            metricsService.recordAiImageGenerationFailure(assetType, e.getClass().getSimpleName());
             log.error("이미지 편집 실패 - ", e);
 
             // 실패 시 Fallback 이미지 생성

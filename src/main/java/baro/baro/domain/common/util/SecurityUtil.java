@@ -15,13 +15,11 @@ public class SecurityUtil {
         throw new IllegalStateException("Utility class");
     }
 
-    /**
-     * SecurityContext에서 현재 인증된 사용자를 반환합니다.
-     *
-     * @return 현재 사용자 엔티티
-     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
-     * @throws UserException 사용자를 찾을 수 없는 경우
-     */
+    // SecurityContext에서 현재 인증된 사용자를 반환합니다.
+    //
+    // @return 현재 사용자 엔티티
+    // @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
+    // @throws UserException 사용자를 찾을 수 없는 경우
     public static User getCurrentUser() {
         String uid = getCurrentUserUid();
         UserRepository userRepository = ApplicationContextProvider.getBean(UserRepository.class);
@@ -30,12 +28,10 @@ public class SecurityUtil {
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
     }
     
-    /**
-     * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
-     *
-     * @return 현재 사용자의 UID (String)
-     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
-     */
+    // SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
+    //
+    // @return 현재 사용자의 UID (String)
+    // @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
     public static String getCurrentUserUid() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -56,11 +52,9 @@ public class SecurityUtil {
         throw new BusinessException(ErrorCode.AUTH_ERROR);
     }
 
-    /**
-     * 현재 사용자가 인증되었는지 확인합니다.
-     *
-     * @return 인증된 경우 true, 그렇지 않으면 false
-     */
+    // 현재 사용자가 인증되었는지 확인합니다.
+    //
+    // @return 인증된 경우 true, 그렇지 않으면 false
     public static boolean isAuthenticated() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

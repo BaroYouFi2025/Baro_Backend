@@ -5,11 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 위치 정보 DTO
- *
- * GPS 좌표(위도, 경도)를 표현합니다.
- */
+// 위치 정보 DTO
+//
+// GPS 좌표(위도, 경도)를 표현합니다.
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

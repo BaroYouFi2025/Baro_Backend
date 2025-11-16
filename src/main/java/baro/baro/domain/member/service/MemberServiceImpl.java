@@ -131,10 +131,8 @@ public class MemberServiceImpl implements MemberService {
     }
 
 
-    /**
-     * 사용자와 관계가 있는 구성원들의 위치 정보를 조회합니다.
-     * 각 구성원의 이름, 관계, 최신 GPS 위치, 배터리 레벨, 사용자와의 거리를 반환합니다.
-     */
+    // 사용자와 관계가 있는 구성원들의 위치 정보를 조회합니다.
+    // 각 구성원의 이름, 관계, 최신 GPS 위치, 배터리 레벨, 사용자와의 거리를 반환합니다.
     @Override
     @Transactional(readOnly = true)
     public List<MemberLocationResponse> getMemberLocations() {

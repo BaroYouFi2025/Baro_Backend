@@ -18,12 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 기기 관리 및 GPS 추적 REST API 컨트롤러
- *
- * 모바일 기기 등록 및 GPS 위치 업데이트 기능을 제공합니다.
- * 모든 엔드포인트는 JWT 인증이 필요합니다.
- */
+// 기기 관리 및 GPS 추적 REST API 컨트롤러
+//
+// 모바일 기기 등록 및 GPS 위치 업데이트 기능을 제공합니다.
+// 모든 엔드포인트는 JWT 인증이 필요합니다.
 @Tag(name = "Device", description = "기기 관리 API")
 @RestController
 @RequestMapping("/devices")
