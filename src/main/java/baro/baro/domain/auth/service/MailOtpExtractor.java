@@ -19,7 +19,7 @@ public final class MailOtpExtractor {
 
     public record Result(String phoneNumber, String code) {}
 
-    /** 메시지에서 전화번호(From)와 6자리 코드만 반환 */
+    // 메시지에서 전화번호(From)와 6자리 코드만 반환
     public static Result extract(Message msg) throws EmailException {
         try {
             // 1) 전화번호: From의 로컬파트(예: 01084461297@mmsmail.uplus.co.kr → 01084461297)

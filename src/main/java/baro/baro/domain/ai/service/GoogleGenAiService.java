@@ -6,6 +6,7 @@ import baro.baro.domain.ai.dto.external.GeminiImageResponse;
 import baro.baro.domain.ai.exception.AiErrorCode;
 import baro.baro.domain.ai.exception.AiException;
 import baro.baro.domain.ai.exception.AiQuotaExceededException;
+import baro.baro.domain.common.monitoring.MetricsService;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +24,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 // Google GenAI 이미지 생성 서비스
 // Google Generative AI (Gemini) API를 활용하여 실종자 정보 기반의 AI 이미지를 생성하는 서비스
@@ -41,9 +45,13 @@ import java.util.*;
 @Slf4j
 public class GoogleGenAiService {
 
+    private static final String ASSET_TYPE_AGE_PROGRESSION = "AGE_PROGRESSION";
+    private static final String ASSET_TYPE_DESCRIPTION = "DESCRIPTION_IMAGE";
+
     private final WebClient webClient;
     private final baro.baro.domain.image.service.ImageService imageService;
     private final RateLimiter rateLimiter;
+    private final MetricsService metricsService;
 
     @Value("${google.gemini.api.url:}")
     private String geminiImageUrl;
@@ -93,37 +101,46 @@ public class GoogleGenAiService {
         String basePrompt = buildAgeProgressionPrompt(missingPerson, "Front-facing portrait, looking directly at camera");
 
         // 4개의 API 요청을 병렬로 처리하기 위한 CompletableFuture 리스트
-        List<java.util.concurrent.CompletableFuture<String>> futures = new ArrayList<>();
+        List<CompletableFuture<String>> futures = new ArrayList<>();
 
         for (int i = 0; i < 4; i++) {
             final int sequenceOrder = i;
-            java.util.concurrent.CompletableFuture<String> future =
-                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-                    try {
-                        log.info("이미지 생성 시작 (Sequence: {})", sequenceOrder);
-                        return generateImageWithPhoto(base64Image, mimeType, basePrompt, sequenceOrder);
-                    } catch (Exception e) {
-                        log.error("이미지 생성 실패 (Sequence: {})", sequenceOrder, e);
-                        return null;
-                    }
+            CompletableFuture<String> future =
+                CompletableFuture.supplyAsync(() -> {
+                    log.info("이미지 생성 시작 (Sequence: {})", sequenceOrder);
+                    return generateImageWithPhoto(base64Image, mimeType, basePrompt, sequenceOrder, ASSET_TYPE_AGE_PROGRESSION);
                 });
             futures.add(future);
         }
 
         // 모든 비동기 작업 완료 대기 및 결과 수집
-        List<String> imageUrls = futures.stream()
-                .map(future -> {
-                    try {
-                        return future.join();
-                    } catch (Exception e) {
-                        log.error("이미지 생성 결과 수집 실패", e);
-                        return null;
-                    }
-                })
-                .filter(url -> url != null)
-                .toList();
+        // exceptionally()를 사용하여 실패한 future를 명시적으로 처리
+        List<String> imageUrls = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
 
-        log.info("성장/노화 이미지 생성 완료 - 총 {}장", imageUrls.size());
+        for (int i = 0; i < futures.size(); i++) {
+            final int sequenceOrder = i;
+            try {
+                String url = futures.get(i).join();
+                imageUrls.add(url);
+                log.info("이미지 생성 성공 (Sequence: {})", sequenceOrder);
+            } catch (Exception e) {
+                String errorMsg = String.format("Sequence %d 실패: %s", sequenceOrder, e.getMessage());
+                errors.add(errorMsg);
+                log.error("이미지 생성 실패 (Sequence: {})", sequenceOrder, e);
+            }
+        }
+
+        // 최소 성공 개수 검증 (4개 중 최소 3개 이상 성공 필요)
+        final int MINIMUM_REQUIRED_IMAGES = 3;
+        if (imageUrls.size() < MINIMUM_REQUIRED_IMAGES) {
+            log.error("AI 이미지 생성 실패: 최소 {}장 필요하나 {}장만 성공. 실패 이유: {}",
+                    MINIMUM_REQUIRED_IMAGES, imageUrls.size(), String.join(", ", errors));
+            throw new AiException(AiErrorCode.INSUFFICIENT_IMAGES_GENERATED);
+        }
+
+        log.info("성장/노화 이미지 생성 완료 - 총 {}장 (요청: 4장, 최소 요구: {}장)",
+                imageUrls.size(), MINIMUM_REQUIRED_IMAGES);
         return imageUrls;
     }
     
@@ -158,7 +175,7 @@ public class GoogleGenAiService {
 
         // 인상착의 프롬프트 생성
         String prompt = buildDescriptionPrompt(missingPerson);
-        String imageUrl = generateImageWithPhoto(base64Image, mimeType, prompt, 0);
+        String imageUrl = generateImageWithPhoto(base64Image, mimeType, prompt, 0, ASSET_TYPE_DESCRIPTION);
 
         log.info("인상착의 이미지 생성 완료 - URL: {}", imageUrl);
         return imageUrl;
@@ -267,9 +284,10 @@ public class GoogleGenAiService {
     // 4. 저장된 이미지의 접근 가능한 URL 반환
     //
     //          prompt - 편집 지시 프롬프트, sequenceOrder - 순서 (0, 1, 2, 3)
-    private String generateImageWithPhoto(String base64Image, String mimeType, String prompt, int sequenceOrder) {
-        log.info("이미지 편집 요청 - Sequence: {}, MIME: {}, Prompt: {}",
-                sequenceOrder, mimeType, prompt.substring(0, Math.min(100, prompt.length())));
+    private String generateImageWithPhoto(String base64Image, String mimeType, String prompt, int sequenceOrder, String assetType) {
+        long startTime = System.currentTimeMillis();
+        log.info("이미지 편집 요청 - Sequence: {}, AssetType: {}, MIME: {}, Prompt: {}",
+                sequenceOrder, assetType, mimeType, prompt.substring(0, Math.min(100, prompt.length())));
 
         try {
             // 1. Gemini Image Edit API로 이미지 편집/생성
@@ -279,12 +297,16 @@ public class GoogleGenAiService {
             String filename = String.format("ai-generated-%s.png", UUID.randomUUID());
             String imageUrl = imageService.saveImageFromBytes(imageData, filename, "image/png");
 
+            metricsService.recordAiImageGenerationSuccess(assetType);
+            metricsService.recordAiGenerationDuration(System.currentTimeMillis() - startTime, assetType);
             log.info("이미지 편집 완료 - URL: {}", imageUrl);
             return imageUrl;
 
         } catch (AiException e) {
+            metricsService.recordAiImageGenerationFailure(assetType, e.getAiErrorCode().name());
             throw e; // AiException은 그대로 전파
         } catch (Exception e) {
+            metricsService.recordAiImageGenerationFailure(assetType, e.getClass().getSimpleName());
             log.error("이미지 편집 실패 - ", e);
 
             // 실패 시 Fallback 이미지 생성
@@ -340,134 +362,120 @@ public class GoogleGenAiService {
                     rateLimiter.getCurrentRpd(), quotaRpd);
         }
 
-        int maxRetries = maxRetryAttempts;
+        // Reactive retry with non-blocking delay (Thread.sleep 제거)
+        // Mono.fromCallable()로 감싸서 retryWhen() 적용
+        byte[] imageData = Mono.fromCallable(() -> {
+            // Gemini Image Edit 요청 DTO 생성 (이미지 + 텍스트)
+            GeminiImageRequest request = GeminiImageRequest.createImageEdit(base64Image, mimeType, prompt);
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            log.info("Gemini API 요청 준비 완료 - URL: {}, Base64 이미지 길이: {}, MIME: {}, 프롬프트 길이: {}",
+                    geminiImageUrl, base64Image != null ? base64Image.length() : 0, mimeType, prompt.length());
+
+            // WebClient로 Gemini API 호출
+            // 먼저 String으로 응답을 받아서 로깅한 후 파싱
+            String rawResponse = webClient.post()
+                    .uri(geminiImageUrl)
+                    .header("x-goog-api-key", geminiApiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
+                    .retrieve()
+                    .onStatus(
+                            status -> status.is4xxClientError() || status.is5xxServerError(),
+                            clientResponse -> clientResponse.bodyToMono(String.class)
+                                    .flatMap(errorBody -> {
+                                        log.error("Gemini API 에러 응답 (HTTP 에러): {}", errorBody);
+
+                                        // Quota 초과 에러인지 확인
+                                        if (errorBody.contains("RATE_LIMIT_EXCEEDED") ||
+                                                errorBody.contains("RESOURCE_EXHAUSTED") ||
+                                                errorBody.toLowerCase().contains("quota")) {
+
+                                            Integer retryDelay = parseRetryDelay(errorBody);
+                                            return Mono.error(new AiQuotaExceededException(
+                                                    "API Quota 초과: " + errorBody,
+                                                    "RATE_LIMIT",
+                                                    retryDelay
+                                            ));
+                                        }
+
+                                        // 일반 에러
+                                        return Mono.error(new RuntimeException("Gemini API 호출 실패: " + errorBody));
+                                    })
+                    )
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Gemini API 원본 응답 (처음 500자): {}",
+                    rawResponse != null ? rawResponse.substring(0, Math.min(500, rawResponse.length())) : "null");
+
+            // JSON을 객체로 파싱
+            GeminiImageResponse response;
             try {
-                // Gemini Image Edit 요청 DTO 생성 (이미지 + 텍스트)
-                GeminiImageRequest request = GeminiImageRequest.createImageEdit(base64Image, mimeType, prompt);
-
-                log.info("Gemini API 요청 준비 완료 - URL: {}, Base64 이미지 길이: {}, MIME: {}, 프롬프트 길이: {}",
-                        geminiImageUrl, base64Image != null ? base64Image.length() : 0, mimeType, prompt.length());
-
-                // WebClient로 Gemini API 호출
-                // 먼저 String으로 응답을 받아서 로깅한 후 파싱
-                String rawResponse = webClient.post()
-                        .uri(geminiImageUrl)
-                        .header("x-goog-api-key", geminiApiKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(request)
-                        .retrieve()
-                        .onStatus(
-                                status -> status.is4xxClientError() || status.is5xxServerError(),
-                                clientResponse -> clientResponse.bodyToMono(String.class)
-                                        .flatMap(errorBody -> {
-                                            log.error("Gemini API 에러 응답 (HTTP 에러): {}", errorBody);
-
-                                            // Quota 초과 에러인지 확인
-                                            if (errorBody.contains("RATE_LIMIT_EXCEEDED") ||
-                                                    errorBody.contains("RESOURCE_EXHAUSTED") ||
-                                                    errorBody.toLowerCase().contains("quota")) {
-
-                                                Integer retryDelay = parseRetryDelay(errorBody);
-                                                return Mono.error(new AiQuotaExceededException(
-                                                        "API Quota 초과: " + errorBody,
-                                                        "RATE_LIMIT",
-                                                        retryDelay
-                                                ));
-                                            }
-
-                                            // 일반 에러
-                                            return Mono.error(new RuntimeException("Gemini API 호출 실패: " + errorBody));
-                                        })
-                        )
-                        .bodyToMono(String.class)
-                        .block();
-
-                log.info("Gemini API 원본 응답 (처음 500자): {}",
-                        rawResponse != null ? rawResponse.substring(0, Math.min(500, rawResponse.length())) : "null");
-
-                // JSON을 객체로 파싱
-                GeminiImageResponse response;
-                try {
-                    com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    response = objectMapper.readValue(rawResponse, GeminiImageResponse.class);
-                } catch (Exception e) {
-                    log.error("Gemini API 응답 파싱 실패", e);
-                    throw new AiException(AiErrorCode.INVALID_RESPONSE_FORMAT);
-                }
-
-                // 응답 검증 및 이미지 데이터 추출
-                if (response == null) {
-                    log.error("Gemini API 응답이 null입니다");
-                    throw new AiException(AiErrorCode.EMPTY_RESPONSE);
-                }
-
-                log.info("Gemini API 응답 수신 - Candidates 수: {}",
-                        response.getCandidates() != null ? response.getCandidates().size() : 0);
-
-                // 텍스트 메시지만 온 경우 (에러/정책 안내)
-                String textMessage = response.getTextMessage();
-                if (textMessage != null && !textMessage.isEmpty()) {
-                    log.warn("Gemini API 응답 텍스트: {}", textMessage);
-                }
-
-                if (!response.hasImage()) {
-                    log.error("Gemini API에서 이미지가 반환되지 않음. 텍스트 메시지: {}", textMessage);
-                    throw new AiException(AiErrorCode.EMPTY_RESPONSE);
-                }
-
-                // Base64 이미지 데이터를 byte[]로 디코딩
-                String base64ImageResult = response.getFirstImageBase64();
-                if (base64ImageResult == null || base64ImageResult.isEmpty()) {
-                    log.error("Gemini API 응답에서 Base64 이미지 데이터를 찾을 수 없음");
-                    throw new AiException(AiErrorCode.EMPTY_RESPONSE);
-                }
-
-                log.info("Base64 이미지 데이터 추출 완료 - 길이: {}", base64ImageResult.length());
-
-                byte[] imageData = Base64.getDecoder().decode(base64ImageResult);
-                log.info("Gemini Image Edit API 호출 성공 - 이미지 크기: {} bytes", imageData.length);
-
-                return imageData;
-
-            } catch (AiQuotaExceededException e) {
-                log.warn("Gemini API Quota 초과 - Attempt {}/{}", attempt, maxRetries);
-
-                // 마지막 시도가 아니면 재시도 대기
-                if (attempt < maxRetries) {
-                    // API 응답에서 제안한 재시도 시간 사용 또는 Exponential backoff
-                    int waitTime = e.getRetryAfterSeconds() != null
-                            ? e.getRetryAfterSeconds()
-                            : retryDelaySeconds * attempt;
-                    log.info("{}초 후 재시도...", waitTime);
-
-                    try {
-                        Thread.sleep(waitTime * 1000L);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("재시도 대기 중 인터럽트 발생", ie);
-                    }
-                } else {
-                    log.error("최대 재시도 횟수 초과 - Placeholder 이미지 반환");
-                    return generatePlaceholderImage();
-                }
-
-            } catch (AiException e) {
-                throw e; // AiException은 그대로 전파 (재시도 안 함)
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                response = objectMapper.readValue(rawResponse, GeminiImageResponse.class);
             } catch (Exception e) {
-                log.error("Gemini API 호출 중 오류 발생 - Attempt {}/{}", attempt, maxRetries, e);
-
-                // 일반 예외는 재시도하지 않음
-                if (attempt >= maxRetries) {
-                    throw new AiException(AiErrorCode.GEMINI_API_ERROR);
-                }
+                log.error("Gemini API 응답 파싱 실패", e);
+                throw new AiException(AiErrorCode.INVALID_RESPONSE_FORMAT);
             }
-        }
 
-        // 모든 재시도 실패 시 Placeholder 반환
-        log.warn("모든 재시도 실패 - Placeholder 이미지 반환");
-        return generatePlaceholderImage();
+            // 응답 검증 및 이미지 데이터 추출
+            if (response == null) {
+                log.error("Gemini API 응답이 null입니다");
+                throw new AiException(AiErrorCode.EMPTY_RESPONSE);
+            }
+
+            log.info("Gemini API 응답 수신 - Candidates 수: {}",
+                    response.getCandidates() != null ? response.getCandidates().size() : 0);
+
+            // 텍스트 메시지만 온 경우 (에러/정책 안내)
+            String textMessage = response.getTextMessage();
+            if (textMessage != null && !textMessage.isEmpty()) {
+                log.warn("Gemini API 응답 텍스트: {}", textMessage);
+            }
+
+            if (!response.hasImage()) {
+                log.error("Gemini API에서 이미지가 반환되지 않음. 텍스트 메시지: {}", textMessage);
+                throw new AiException(AiErrorCode.EMPTY_RESPONSE);
+            }
+
+            // Base64 이미지 데이터를 byte[]로 디코딩
+            String base64ImageResult = response.getFirstImageBase64();
+            if (base64ImageResult == null || base64ImageResult.isEmpty()) {
+                log.error("Gemini API 응답에서 Base64 이미지 데이터를 찾을 수 없음");
+                throw new AiException(AiErrorCode.EMPTY_RESPONSE);
+            }
+
+            log.info("Base64 이미지 데이터 추출 완료 - 길이: {}", base64ImageResult.length());
+
+            byte[] result = Base64.getDecoder().decode(base64ImageResult);
+            log.info("Gemini Image Edit API 호출 성공 - 이미지 크기: {} bytes", result.length);
+
+            return result;
+        })
+        .retryWhen(Retry.backoff(maxRetryAttempts, Duration.ofSeconds(retryDelaySeconds))
+                .filter(throwable -> throwable instanceof AiQuotaExceededException)
+                .doBeforeRetry(retrySignal -> {
+                    AiQuotaExceededException ex = (AiQuotaExceededException) retrySignal.failure();
+                    Integer suggestedDelay = ex.getRetryAfterSeconds();
+                    log.warn("Gemini API Quota 초과 - Retry {}/{}, {}초 후 재시도 (API 제안: {}초)",
+                            retrySignal.totalRetries() + 1,
+                            maxRetryAttempts,
+                            retryDelaySeconds * (retrySignal.totalRetries() + 1),
+                            suggestedDelay);
+                })
+        )
+        .onErrorResume(throwable -> {
+            // AiException은 그대로 전파 (재시도 안 함)
+            if (throwable instanceof AiException) {
+                return Mono.error(throwable);
+            }
+            // 최대 재시도 횟수 초과 또는 일반 예외 발생 시 Placeholder 반환
+            log.error("API 호출 실패 - Placeholder 이미지 반환", throwable);
+            return Mono.just(generatePlaceholderImage());
+        })
+        .block();
+
+        return imageData;
     }
 
     // API 응답에서 재시도 대기 시간 파싱

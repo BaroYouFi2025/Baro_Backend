@@ -30,20 +30,16 @@ public enum ErrorCode {
         this.message = message;
     }
 
-    /**
-     * HTTP 상태 코드를 반환합니다.
-     *
-     * @return HTTP 상태 코드
-     */
+    // HTTP 상태 코드를 반환합니다.
+    //
+    // @return HTTP 상태 코드
     public int getStatus() {
         return this.status;
     }
 
-    /**
-     * 오류 메시지를 반환합니다.
-     *
-     * @return 오류 메시지
-     */
+    // 오류 메시지를 반환합니다.
+    //
+    // @return 오류 메시지
     public String getMessage() {
         return this.message;
     }

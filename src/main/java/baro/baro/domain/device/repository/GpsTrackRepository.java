@@ -13,21 +13,17 @@ import java.util.Optional;
 @Repository
 public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
-    /**
-     * 특정 기기의 가장 최근 GPS 위치를 조회합니다.
-     *
-     * @param device 조회할 기기
-     * @return 가장 최근 GPS 트랙 정보
-     */
+    // 특정 기기의 가장 최근 GPS 위치를 조회합니다.
+    //
+    // @param device 조회할 기기
+    // @return 가장 최근 GPS 트랙 정보
     @Query("SELECT g FROM GpsTrack g WHERE g.device = :device ORDER BY g.recordedAt DESC LIMIT 1")
     Optional<GpsTrack> findLatestByDevice(@Param("device") Device device);
 
-    /**
-     * 특정 사용자의 모든 기기 중 가장 최근 GPS 위치를 조회합니다.
-     *
-     * @param user 조회할 사용자
-     * @return 가장 최근 GPS 트랙 정보
-     */
+    // 특정 사용자의 모든 기기 중 가장 최근 GPS 위치를 조회합니다.
+    //
+    // @param user 조회할 사용자
+    // @return 가장 최근 GPS 트랙 정보
     @Query("SELECT g FROM GpsTrack g WHERE g.device.user = :user ORDER BY g.recordedAt DESC LIMIT 1")
     Optional<GpsTrack> findLatestByUser(@Param("user") User user);
 }

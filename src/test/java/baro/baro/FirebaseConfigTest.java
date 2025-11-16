@@ -5,9 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-/**
- * Firebase 설정 테스트
- */
+// Firebase 설정 테스트
 @SpringBootTest(classes = { FirebaseConfig.class })
 @TestPropertySource(properties = {
         "firebase.project-id=baroyofi",

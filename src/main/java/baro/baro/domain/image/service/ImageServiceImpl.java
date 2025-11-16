@@ -56,9 +56,7 @@ public class ImageServiceImpl implements ImageService {
         return baseUrl + savedPath;
     }
     
-    /**
-     * 파일 유효성 검증
-     */
+    // 파일 유효성 검증
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");
@@ -96,9 +94,7 @@ public class ImageServiceImpl implements ImageService {
         return baseUrl + savedPath;
     }
 
-    /**
-     * 파일을 로컬에 저장하고 저장 경로 반환
-     */
+    // 파일을 로컬에 저장하고 저장 경로 반환
     private String saveFile(MultipartFile file) {
         try {
             // 현재 날짜 기반 디렉토리 생성 (예: /uploads/images/2025/01/26/)
@@ -134,9 +130,7 @@ public class ImageServiceImpl implements ImageService {
         }
     }
 
-    /**
-     * byte[] 데이터를 로컬에 저장하고 저장 경로 반환 (AI 생성 이미지용)
-     */
+    // byte[] 데이터를 로컬에 저장하고 저장 경로 반환 (AI 생성 이미지용)
     private String saveFileFromBytes(byte[] imageData, String filename) {
         try {
             // 현재 날짜 기반 디렉토리 생성 + ai 폴더
