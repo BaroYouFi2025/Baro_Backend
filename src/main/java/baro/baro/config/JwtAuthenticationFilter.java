@@ -52,10 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                // 인증 객체 생성 (권한 없이, 단순 인증만)
+                // 인증 객체 생성 (User 객체를 principal로 저장하여 이후 DB 재조회 방지)
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userId,
+                                user,  // User 객체를 principal로 저장
                                 null,
                                 Collections.emptyList()
                         );
