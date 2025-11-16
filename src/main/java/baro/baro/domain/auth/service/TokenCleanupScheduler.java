@@ -9,9 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/**
- * 만료된 블랙리스트 토큰을 정기적으로 정리하는 스케줄러
- */
+// 만료된 블랙리스트 토큰을 정기적으로 정리하는 스케줄러
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -19,10 +17,8 @@ public class TokenCleanupScheduler {
 
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    /**
-     * 매일 새벽 3시에 만료된 블랙리스트 토큰을 삭제합니다.
-     * DB 공간 확보 및 성능 유지를 위해 필요합니다.
-     */
+    // 매일 새벽 3시에 만료된 블랙리스트 토큰을 삭제합니다.
+    // DB 공간 확보 및 성능 유지를 위해 필요합니다.
     @Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시
     @Transactional
     public void cleanupExpiredTokens() {

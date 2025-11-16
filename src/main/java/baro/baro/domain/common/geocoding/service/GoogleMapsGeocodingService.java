@@ -10,9 +10,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-/**
- * Google Maps Geocoding API를 사용한 지오코딩 서비스 구현
- */
+// Google Maps Geocoding API를 사용한 지오코딩 서비스 구현
 @Slf4j
 @Service
 public class GoogleMapsGeocodingService implements GeocodingService {

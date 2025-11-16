@@ -2,13 +2,16 @@ package baro.baro.domain.common.util;
 
 import baro.baro.domain.common.exception.BusinessException;
 import baro.baro.domain.user.entity.User;
-import baro.baro.domain.user.exception.UserErrorCode;
-import baro.baro.domain.user.exception.UserException;
-import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.exception.ErrorCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+/**
+ * Security 관련 유틸리티 클래스
+ *
+ * JwtAuthenticationFilter에서 User 객체를 SecurityContext에 저장하므로
+ * DB 재조회 없이 현재 사용자 정보를 가져올 수 있습니다.
+ */
 public class SecurityUtil {
 
     private SecurityUtil() {
@@ -17,26 +20,12 @@ public class SecurityUtil {
 
     /**
      * SecurityContext에서 현재 인증된 사용자를 반환합니다.
+     * JwtAuthenticationFilter에서 User 객체를 principal로 저장하므로 DB 조회 없이 반환 가능
      *
      * @return 현재 사용자 엔티티
      * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
-     * @throws UserException 사용자를 찾을 수 없는 경우
      */
     public static User getCurrentUser() {
-        String uid = getCurrentUserUid();
-        UserRepository userRepository = ApplicationContextProvider.getBean(UserRepository.class);
-
-        return userRepository.findByUid(uid)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-    }
-    
-    /**
-     * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
-     *
-     * @return 현재 사용자의 UID (String)
-     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
-     */
-    public static String getCurrentUserUid() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -49,11 +38,22 @@ public class SecurityUtil {
             throw new BusinessException(ErrorCode.AUTH_ERROR);
         }
 
-        if (principal instanceof String) {
-            return (String) principal;
+        if (principal instanceof User) {
+            return (User) principal;
         }
 
         throw new BusinessException(ErrorCode.AUTH_ERROR);
+    }
+
+    /**
+     * SecurityContext에서 현재 인증된 사용자의 UID를 반환합니다.
+     *
+     * @return 현재 사용자의 UID (String)
+     * @throws BusinessException 인증 정보가 없거나 유효하지 않은 경우
+     */
+    public static String getCurrentUserUid() {
+        User user = getCurrentUser();
+        return user.getUid();
     }
 
     /**
@@ -73,6 +73,6 @@ public class SecurityUtil {
             return false;
         }
 
-        return authentication.isAuthenticated();
+        return authentication.isAuthenticated() && principal instanceof User;
     }
 }

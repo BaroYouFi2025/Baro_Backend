@@ -57,10 +57,8 @@ public class PoliceApiService {
     // 메모리 최적화: 청크 단위 처리 사이즈
     private static final int CHUNK_SIZE = 500;
 
-    /**
-     * 경찰청 API로부터 실종자 데이터를 가져와 저장 (메모리 최적화 버전)
-     * 청크 단위로 처리하여 대용량 데이터도 안정적으로 처리
-     */
+    // 경찰청 API로부터 실종자 데이터를 가져와 저장 (메모리 최적화 버전)
+    // 청크 단위로 처리하여 대용량 데이터도 안정적으로 처리
     @Transactional
     public void syncMissingPersonsFromPoliceApi() {
         log.info("경찰청 실종자 데이터 동기화 시작 (메모리 최적화 모드)");
@@ -146,9 +144,7 @@ public class PoliceApiService {
         }
     }
 
-    /**
-     * 청크 단위 데이터 처리 (메모리 최적화)
-     */
+    // 청크 단위 데이터 처리 (메모리 최적화)
     private SyncResult processChunk(List<PoliceApiMissingPerson> chunk) {
         // 엔티티 변환
         List<MissingPersonPolice> entities = convertToEntities(chunk);
@@ -157,9 +153,7 @@ public class PoliceApiService {
         return performBatchUpsert(entities, chunk);
     }
 
-    /**
-     * 경찰청 API 호출
-     */
+    // 경찰청 API 호출
     private PoliceApiResponse fetchFromPoliceApi(int page) {
         return policeApiWebClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -175,20 +169,16 @@ public class PoliceApiService {
                 .block();
     }
 
-    /**
-     * API 응답 DTO를 엔티티로 변환 (도메인 정적 팩토리 메서드 사용)
-     */
+    // API 응답 DTO를 엔티티로 변환 (도메인 정적 팩토리 메서드 사용)
     private List<MissingPersonPolice> convertToEntities(List<PoliceApiMissingPerson> apiList) {
         return apiList.stream()
                 .map(MissingPersonPolice::createFromPoliceApi)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Batch Upsert 실행 (JDBC Batch + 이벤트 발행)
-     * 1. JDBC Batch UPSERT (100개씩 묶어서 실행)
-     * 2. 사진 처리 이벤트 발행 (비동기 처리)
-     */
+    // Batch Upsert 실행 (JDBC Batch + 이벤트 발행)
+    // 1. JDBC Batch UPSERT (100개씩 묶어서 실행)
+    // 2. 사진 처리 이벤트 발행 (비동기 처리)
     private SyncResult performBatchUpsert(List<MissingPersonPolice> entities,
                                            List<PoliceApiMissingPerson> apiResults) {
         SyncResult result = new SyncResult();
@@ -266,27 +256,21 @@ public class PoliceApiService {
         return result;
     }
 
-    /**
-     * 전체 실종자 목록 조회 (페이징)
-     */
+    // 전체 실종자 목록 조회 (페이징)
     @Transactional(readOnly = true)
     public Page<MissingPersonPoliceResponse> getAllMissingPersons(Pageable pageable) {
         return policeRepository.findAll(pageable)
                 .map(MissingPersonPolice::toDto);
     }
 
-    /**
-     * 실종자 개별 조회
-     */
+    // 실종자 개별 조회
     @Transactional(readOnly = true)
     public MissingPersonPolice getMissingPersonById(Long id) {
         return policeRepository.findById(id)
                 .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
     }
 
-    /**
-     * 동기화 결과를 담는 내부 클래스
-     */
+    // 동기화 결과를 담는 내부 클래스
     private static class SyncResult {
         int insertCount = 0;
         int updateCount = 0;
