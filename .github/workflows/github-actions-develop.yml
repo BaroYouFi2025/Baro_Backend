@@ -122,24 +122,46 @@ jobs:
           ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
             cd ${{ secrets.TEST_DEPLOY_DIR }}
 
+            echo "📋 배포 전 환경 확인..."
+            echo "  - 작업 디렉토리: $(pwd)"
+            echo "  - JAR 파일: $(ls -lh baro-app.jar 2>/dev/null || echo 'Not found yet')"
+            echo "  - .env 파일: $(test -f .env && echo 'Exists' || echo 'Missing')"
+
+            echo ""
             echo "📌 기존 앱 컨테이너 중지 및 제거..."
             docker compose stop app || echo "App container not running"
             docker compose rm -f app || echo "App container not found"
 
+            echo ""
             echo "📌 Docker 이미지 정리..."
             docker image prune -f || echo "No images to remove"
 
+            echo ""
             echo "📌 PostgreSQL 상태 확인..."
             docker compose ps postgres
 
-            echo "📌 새로운 애플리케이션 빌드 및 시작... (deps 건드리지 않음)"
-            docker compose up -d --no-deps --build app
+            # PostgreSQL이 healthy 상태인지 확인
+            if docker inspect --format='{{.State.Health.Status}}' youfi-postgres 2>/dev/null | grep -q "healthy"; then
+              echo "  ✅ PostgreSQL is healthy"
+            else
+              echo "  ⚠️ PostgreSQL is not healthy, waiting..."
+              docker compose up -d postgres
+              sleep 10
+            fi
 
+            echo ""
+            echo "📌 새로운 애플리케이션 빌드 및 시작... (deps 건드리지 않음)"
+            docker compose up -d --no-deps --build app prometheus grafana
+
+            echo ""
             echo "📊 테스트 서버 배포 상태 확인..."
             docker compose ps
-            echo "📦 볼륨 현황 확인 (PostgreSQL 데이터 유지 확인)"
-            docker volume ls || true
 
+            echo ""
+            echo "📦 볼륨 현황 확인 (PostgreSQL 데이터 유지 확인)"
+            docker volume ls | grep baro || true
+
+            echo ""
             echo "🚀 테스트 서버 배포 완료!"
           EOF
 
@@ -147,17 +169,65 @@ jobs:
       - name: Test Server Health Check
         run: |
           echo "🔍 테스트 서버 애플리케이션 상태 확인 중..."
-          sleep 30  # 애플리케이션 시작 대기
 
-          # Health check 수행
+          # Health check 수행 (재시도 로직 포함)
           ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
             cd ${{ secrets.TEST_DEPLOY_DIR }}
 
-            if docker compose ps app | grep -q "Up"; then
-              echo "✅ 테스트 서버 애플리케이션이 정상적으로 실행 중입니다."
-            else
-              echo "❌ 테스트 서버 애플리케이션 실행에 문제가 있습니다."
-              docker compose logs --tail=50 app
-              exit 1
-            fi
+            echo "📊 현재 컨테이너 상태:"
+            docker compose ps
+
+            echo ""
+            echo "⏳ 애플리케이션 healthcheck 대기 중 (최대 2분)..."
+
+            # 최대 120초 동안 10초 간격으로 health check 확인
+            MAX_ATTEMPTS=12
+            ATTEMPT=1
+
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "  시도 $ATTEMPT/$MAX_ATTEMPTS..."
+
+              # Docker healthcheck 상태 확인
+              HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' baro-app 2>/dev/null || echo "no-healthcheck")
+
+              if [ "$HEALTH_STATUS" = "healthy" ]; then
+                echo "✅ 애플리케이션이 healthy 상태입니다!"
+
+                # 추가 검증: actuator endpoint 직접 확인
+                echo "🔍 Actuator health endpoint 확인 중..."
+                if docker exec baro-app wget -qO- http://localhost:10080/actuator/health | grep -q '"status":"UP"'; then
+                  echo "✅ Actuator health check 성공!"
+                  echo ""
+                  echo "📊 최종 상태:"
+                  docker compose ps app
+                  exit 0
+                else
+                  echo "⚠️ Actuator health check 실패, 재시도 중..."
+                fi
+              elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+                echo "❌ 애플리케이션이 unhealthy 상태입니다."
+                echo ""
+                echo "📋 애플리케이션 로그 (마지막 100줄):"
+                docker compose logs --tail=100 app
+                echo ""
+                echo "🔍 Health check 실패 원인:"
+                docker inspect --format='{{range .State.Health.Log}}{{.Output}}{{end}}' baro-app || echo "Health log not available"
+                exit 1
+              else
+                echo "  상태: $HEALTH_STATUS (대기 중...)"
+                sleep 10
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            # 타임아웃
+            echo "❌ Health check 타임아웃 (2분 초과)"
+            echo ""
+            echo "📊 현재 컨테이너 상태:"
+            docker compose ps
+            echo ""
+            echo "📋 애플리케이션 로그 (마지막 100줄):"
+            docker compose logs --tail=100 app
+            exit 1
           EOF
