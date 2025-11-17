@@ -77,6 +77,9 @@ public class SecurityConfig {
                         // 프로덕션에서는 제거하거나 인증 적용 필요
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
+                        // Actoruator 엔드포인트
+                        .requestMatchers("/actuator/**").permitAll()
+
                         // 정적 리소스 - 업로드된 이미지 접근 허용
                         .requestMatchers("/images/**").permitAll()
 
@@ -96,10 +99,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * CORS 설정
-     * 프론트엔드 애플리케이션에서 백엔드 API를 호출할 수 있도록 CORS 정책 설정
-     */
+    // CORS 설정
+    // 프론트엔드 애플리케이션에서 백엔드 API를 호출할 수 있도록 CORS 정책 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

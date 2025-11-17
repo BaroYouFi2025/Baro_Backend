@@ -5,9 +5,7 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * 경찰청 실종자 API 응답 DTO
- */
+// 경찰청 실종자 API 응답 DTO
 @Data
 public class PoliceApiResponse {
 

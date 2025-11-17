@@ -25,7 +25,7 @@ import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.LocationUtil;
 import baro.baro.domain.common.util.SecurityUtil;
 import baro.baro.domain.notification.service.PushNotificationService;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.common.monitoring.MetricsService;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +50,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     private final SightingRepository sightingRepository;
     private final LocationService locationService;
     private final PushNotificationService pushNotificationService;
+    private final MetricsService metricsService;
 
     @Override
     @Transactional
@@ -91,6 +92,10 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         missingCaseRepository.save(missingCase);
 
         log.info("실종자 등록 완료: id={}, name={}", missingPerson.getId(), missingPerson.getName());
+        
+        // 메트릭 기록: 실종자 신고
+        metricsService.recordMissingPersonReport();
+        
         return RegisterMissingPersonResponse.create(missingPerson.getId());
     }
 
@@ -250,11 +255,14 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         } catch (Exception e) {
             log.error("푸시 알림 발송 실패 - 실종자: {}, 신고자: {}, 등록자: {}, 오류: {}",
                     missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), e.getMessage(), e);
-            // 푸시 알림 실패는 전체 트랜잭션을 롤백하지 않음
+        // 푸시 알림 실패는 전체 트랜잭션을 롤백하지 않음
         }
 
         log.info("실종자 발견 신고 완료 - 실종자: {}, 신고자: {}, 등록자: {}, 위치: {}",
                 missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), locationInfo.address());
+
+        // 메트릭 기록: 실종자 발견
+        metricsService.recordMissingPersonFound();
 
         return ReportSightingResponse.success();
     }

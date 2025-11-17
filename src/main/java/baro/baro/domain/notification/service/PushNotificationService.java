@@ -1,5 +1,6 @@
 package baro.baro.domain.notification.service;
 
+import baro.baro.domain.common.monitoring.MetricsService;
 import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
@@ -18,12 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 푸시 알림 서비스
- * 
- * Firebase Cloud Messaging을 사용하여 푸시 알림을 발송하고
- * 알림 이력을 데이터베이스에 저장합니다.
- */
+// 푸시 알림 서비스
+//
+// Firebase Cloud Messaging을 사용하여 푸시 알림을 발송하고
+// 알림 이력을 데이터베이스에 저장합니다.
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,6 +30,7 @@ public class PushNotificationService {
 
     private final DeviceRepository deviceRepository;
     private final NotificationRepository notificationRepository;
+    private final MetricsService metricsService;
 
     /**
      * 초대 요청 푸시 알림을 발송합니다.
@@ -101,10 +101,13 @@ public class PushNotificationService {
             String message = String.format("%s님이 %s 초대 요청을 %s했습니다.",
                     invitee.getName(), relation, isAccepted ? "수락" : "거절");
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (실제 데이터 포함)
             String notificationType = isAccepted ? "invitation_accepted" : "invitation_rejected";
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message, notificationType);
+                sendInvitationResponsePushNotification(
+                        device.getFcmToken(), title, message, notificationType,
+                        invitee.getName(), relation, isAccepted
+                );
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
@@ -143,9 +146,9 @@ public class PushNotificationService {
             String title = "실종자를 찾았습니다";
             String message = String.format("%s님을 찾았습니다. 위치: %s", missingPersonName, location);
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (실제 데이터 포함)
             for (Device device : devices) {
-                sendPushNotificationWithData(device.getFcmToken(), title, message, "found", missingPersonName);
+                sendFoundPushNotification(device.getFcmToken(), title, message, missingPersonName, location);
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
@@ -196,9 +199,12 @@ public class PushNotificationService {
                     reporterName,
                     address != null ? address : "위치 정보 없음");
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (실제 데이터 포함)
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message, "missing_person_found");
+                sendMissingPersonFoundPushNotification(
+                        device.getFcmToken(), title, message,
+                        missingPersonName, reporterName, address
+                );
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
@@ -213,93 +219,127 @@ public class PushNotificationService {
     }
 
     /**
-     * 초대 요청 FCM 푸시 알림을 발송합니다.
+     * 초대 요청 FCM 푸시 알림을 발송합니다. (실제 데이터 포함)
      *
      * @param fcmToken     FCM 토큰
      * @param title        알림 제목
      * @param message      알림 내용
      * @param invitationId 초대 ID
-     * @param inviterName  초대한 사용자 이름
+     * @param inviterName  초대자 이름
      * @param relation     관계
      */
     private void sendInvitationPushNotification(String fcmToken, String title, String message,
                                                  Long invitationId, String inviterName, String relation) {
-        try {
-            // Firebase 앱이 초기화되지 않은 경우 초기화
-            if (FirebaseApp.getApps().isEmpty()) {
-                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
-                return;
-            }
+        // FCM 메시지 생성 (실제 초대 데이터 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", "invitation")
+                .putData("invitationId", String.valueOf(invitationId))
+                .putData("inviterName", inviterName)
+                .putData("relation", relation)
+                .putData("actions", "[\"accept\", \"reject\"]")
+                .build();
 
-            // FCM 메시지 생성 (실제 초대 데이터 포함)
-            Message fcmMessage = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(message)
-                            .build())
-                    .putData("type", "invitation")
-                    .putData("invitationId", String.valueOf(invitationId))
-                    .putData("inviterName", inviterName)
-                    .putData("relation", relation)
-                    .build();
-
-            // 푸시 알림 발송
-            String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 초대 푸시 알림 발송 성공 - 초대 ID: {}, 토큰: {}, 응답: {}", invitationId, fcmToken, response);
-
-        } catch (FirebaseMessagingException e) {
-            log.error("FCM 초대 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
-        } catch (Exception e) {
-            log.error("초대 푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
-        }
+        dispatchFcmMessage(fcmMessage, "invitation", fcmToken);
     }
 
     /**
-     * FCM을 통해 푸시 알림을 발송합니다. (타입 지정 가능)
+     * 초대 응답 FCM 푸시 알림을 발송합니다. (실제 데이터 포함)
+     *
+     * @param fcmToken     FCM 토큰
+     * @param title        알림 제목
+     * @param message      알림 내용
+     * @param type         알림 타입 (invitation_accepted/invitation_rejected)
+     * @param inviteeName  초대받은 사용자 이름
+     * @param relation     관계
+     * @param isAccepted   수락 여부
+     */
+    private void sendInvitationResponsePushNotification(String fcmToken, String title, String message,
+                                                         String type, String inviteeName, String relation,
+                                                         boolean isAccepted) {
+        // FCM 메시지 생성 (실제 응답 데이터 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", type)
+                .putData("inviteeName", inviteeName)
+                .putData("relation", relation)
+                .putData("isAccepted", String.valueOf(isAccepted))
+                .build();
+
+        dispatchFcmMessage(fcmMessage, type, fcmToken);
+    }
+
+    /**
+     * 근처 알림(NEARBY_ALERT) FCM 푸시 알림을 발송합니다. (실제 데이터 포함)
+     *
+     * @param fcmToken          FCM 토큰
+     * @param title             알림 제목
+     * @param message           알림 내용
+     * @param missingPersonName 실종자 이름
+     * @param reporterName      발견자 이름
+     * @param distance          거리 (미터)
+     * @param missingPersonId   실종자 ID
+     * @param recipientType     수신자 타입 (owner/reporter)
+     */
+    private void sendNearbyAlertPushNotification(String fcmToken, String title, String message,
+                                                   String missingPersonName, String reporterName,
+                                                   double distance, Long missingPersonId,
+                                                   String recipientType) {
+        // FCM 메시지 생성 (실제 근처 알림 데이터 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", "nearby_alert")
+                .putData("missingPersonName", missingPersonName)
+                .putData("reporterName", reporterName)
+                .putData("distance", String.valueOf(distance))
+                .putData("missingPersonId", String.valueOf(missingPersonId))
+                .putData("recipientType", recipientType)
+                .putData("deepLink", "youfi://nearby-alert?id=" + missingPersonId)
+                .build();
+
+        dispatchFcmMessage(fcmMessage, "nearby_alert", fcmToken);
+    }
+
+    /**
+     * FCM을 통해 푸시 알림을 발송합니다. (타입만 지정)
      *
      * @param fcmToken FCM 토큰
      * @param title    알림 제목
      * @param message  알림 내용
-     * @param type     알림 타입 (missing_person_found, nearby_alert 등)
+     * @param type     알림 타입
      */
     private void sendPushNotification(String fcmToken, String title, String message, String type) {
-        try {
-            // Firebase 앱이 초기화되지 않은 경우 초기화
-            if (FirebaseApp.getApps().isEmpty()) {
-                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
-                return;
-            }
+        // FCM 메시지 생성 (기본)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", type)
+                .build();
 
-            // FCM 메시지 생성
-            Message fcmMessage = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(message)
-                            .build())
-                    .putData("type", type)
-                    .build();
-
-            // 푸시 알림 발송
-            String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", type, fcmToken, response);
-
-        } catch (FirebaseMessagingException e) {
-            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
-        } catch (Exception e) {
-            log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
-        }
+        dispatchFcmMessage(fcmMessage, type, fcmToken);
     }
 
-    /**
-     * 알림 이력을 데이터베이스에 저장합니다.
-     *
-     * @param user    사용자
-     * @param type    알림 타입
-     * @param title   제목
-     * @param message 내용
-     */
+    // 알림 이력을 데이터베이스에 저장합니다.
+    //
+    // @param user    사용자
+    // @param type    알림 타입
+    // @param title   제목
+    // @param message 내용
     private void saveNotification(User user, NotificationType type, String title, String message) {
         try {
             Notification notification = Notification.builder()
@@ -320,55 +360,101 @@ public class PushNotificationService {
     }
 
     /**
-     * FCM을 통해 데이터를 포함한 푸시 알림을 발송합니다.
+     * 실종자 발견 FCM 푸시 알림을 발송합니다. (실제 데이터 포함)
      *
      * @param fcmToken          FCM 토큰
      * @param title             알림 제목
      * @param message           알림 내용
-     * @param type              알림 타입
      * @param missingPersonName 실종자 이름
+     * @param location          발견 위치
      */
-    private void sendPushNotificationWithData(String fcmToken, String title, String message, String type, String missingPersonName) {
-        try {
-            // Firebase 앱이 초기화되지 않은 경우 초기화
-            if (FirebaseApp.getApps().isEmpty()) {
-                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
-                return;
-            }
+    private void sendFoundPushNotification(String fcmToken, String title, String message,
+                                            String missingPersonName, String location) {
+        // FCM 메시지 생성 (실제 발견 데이터 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", "found")
+                .putData("missingPersonName", missingPersonName)
+                .putData("location", location)
+                .putData("deepLink", "youfi://found?name=" + missingPersonName)
+                .build();
 
-            // FCM 메시지 생성 (Deep Link 포함)
-            Message fcmMessage = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(message)
-                            .build())
-                    .putData("type", type)
-                    .putData("missingPersonName", missingPersonName)
-                    .putData("deepLink", "youfi://found?name=" + missingPersonName)
-                    .build();
-
-            // 푸시 알림 발송
-            String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("FCM 푸시 알림 발송 성공 - 토큰: {}, 응답: {}", fcmToken, response);
-
-        } catch (FirebaseMessagingException e) {
-            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
-        } catch (Exception e) {
-            log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
-        }
+        dispatchFcmMessage(fcmMessage, "found", fcmToken);
     }
 
     /**
-     * 실종자 등록자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+     * 실종자 발견 신고 FCM 푸시 알림을 발송합니다. (실제 데이터 포함)
      *
-     * @param owner 실종자 등록자
-     * @param reporter GPS 업데이트한 사용자
+     * @param fcmToken          FCM 토큰
+     * @param title             알림 제목
+     * @param message           알림 내용
      * @param missingPersonName 실종자 이름
-     * @param distance 거리 (미터)
-     * @param reporterLocation 발견자 위치 (알림 저장용)
-     * @param missingPersonId 실종자 ID
+     * @param reporterName      신고자 이름
+     * @param address           발견 위치 주소
      */
+    private void sendMissingPersonFoundPushNotification(String fcmToken, String title, String message,
+                                                         String missingPersonName, String reporterName,
+                                                         String address) {
+        // FCM 메시지 생성 (실제 신고 데이터 포함)
+        Message fcmMessage = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(com.google.firebase.messaging.Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .putData("type", "missing_person_found")
+                .putData("missingPersonName", missingPersonName)
+                .putData("reporterName", reporterName)
+                .putData("address", address != null ? address : "위치 정보 없음")
+                .putData("deepLink", "youfi://missing-person-found?name=" + missingPersonName)
+                .build();
+
+        dispatchFcmMessage(fcmMessage, "missing_person_found", fcmToken);
+    }
+
+    // 공통 FCM 메시지 전송 + 메트릭 기록 로직
+    //
+    // @param message          전송할 메시지
+    // @param notificationType 알림 타입
+    private void dispatchFcmMessage(Message message, String notificationType, String fcmToken) {
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (FirebaseApp.getApps().isEmpty()) {
+                log.warn("Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.");
+                metricsService.recordFcmMessageFailure(notificationType, "FIREBASE_NOT_INITIALIZED");
+                return;
+            }
+
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("FCM 푸시 알림 발송 성공 - 타입: {}, 토큰: {}, 응답: {}", notificationType, fcmToken, response);
+
+            metricsService.recordFcmMessageSuccess(notificationType);
+            metricsService.recordFcmSendDuration(System.currentTimeMillis() - startTime);
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM 푸시 알림 발송 실패 - 토큰: {}, 오류: {}", fcmToken, e.getMessage());
+            String errorType = e.getMessagingErrorCode() != null
+                    ? e.getMessagingErrorCode().name()
+                    : "UNKNOWN";
+            metricsService.recordFcmMessageFailure(notificationType, errorType);
+        } catch (Exception e) {
+            log.error("푸시 알림 발송 중 예상치 못한 오류 - 토큰: {}, 오류: {}", fcmToken, e.getMessage(), e);
+            metricsService.recordFcmMessageFailure(notificationType, "UNEXPECTED_ERROR");
+        }
+    }
+
+    // 실종자 등록자에게 NEARBY_ALERT 푸시 알림을 발송합니다.
+    //
+    // @param owner 실종자 등록자
+    // @param reporter GPS 업데이트한 사용자
+    // @param missingPersonName 실종자 이름
+    // @param distance 거리 (미터)
+    // @param reporterLocation 발견자 위치 (알림 저장용)
+    // @param missingPersonId 실종자 ID
     @Transactional
     public void sendNearbyAlertToOwner(User owner, User reporter, String missingPersonName,
                                         double distance, org.locationtech.jts.geom.Point reporterLocation,
@@ -390,9 +476,12 @@ public class PushNotificationService {
             String message = String.format("%s님이 실종자 %s 근처 %.0fm에 있습니다.",
                     reporter.getName(), missingPersonName, distance);
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (실제 데이터 포함)
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message, "nearby_alert");
+                sendNearbyAlertPushNotification(
+                        device.getFcmToken(), title, message,
+                        missingPersonName, reporter.getName(), distance, missingPersonId, "owner"
+                );
             }
 
             // 4. 알림 이력을 데이터베이스에 저장
@@ -437,9 +526,12 @@ public class PushNotificationService {
             String message = String.format("실종자 %s가 주변 %.0fm 이내에 있습니다. 주의 깊게 살펴봐 주세요.",
                     missingPersonName, distance);
 
-            // 3. 각 기기에 푸시 알림 발송
+            // 3. 각 기기에 푸시 알림 발송 (실제 데이터 포함)
             for (Device device : devices) {
-                sendPushNotification(device.getFcmToken(), title, message, "nearby_alert");
+                sendNearbyAlertPushNotification(
+                        device.getFcmToken(), title, message,
+                        missingPersonName, reporter.getName(), distance, missingPersonId, "reporter"
+                );
             }
 
             // 4. 알림 이력을 데이터베이스에 저장

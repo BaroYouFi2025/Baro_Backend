@@ -14,12 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/**
- * 이메일 수신을 통한 전화번호 인증 처리 서비스
- * SMS 인증 토큰이 이메일로 전달되는 경우를 처리하기 위해
- * IMAP 프로토콜을 사용하여 주기적으로 메일박스를 확인하고
- * 인증 토큰과 전화번호를 추출하여 인증을 수행합니다.
- */
+// 이메일 수신을 통한 전화번호 인증 처리 서비스
+// SMS 인증 토큰이 이메일로 전달되는 경우를 처리하기 위해
+// IMAP 프로토콜을 사용하여 주기적으로 메일박스를 확인하고
+// 인증 토큰과 전화번호를 추출하여 인증을 수행합니다.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -38,29 +36,23 @@ public class EmailListener {
     @Value("${mail.imap.password}")
     private String password;
 
-    /**
-     * 이메일 리스너 시작
-     */
+    // 이메일 리스너 시작
     public void startListening() {
         this.isListening = true;
         this.listeningStartTime = System.currentTimeMillis();
         log.info("이메일 리스너 시작됨");
     }
 
-    /**
-     * 이메일 리스너 중지
-     */
+    // 이메일 리스너 중지
     public void stopListening() {
         this.isListening = false;
         log.info("이메일 리스너 중지됨");
     }
 
-    /**
-     * 메일박스를 주기적으로 확인하여 SMS 인증 토큰을 처리합니다.
-     * <p>
-     * 15초마다 실행되며, 리스너가 활성화된 경우에만 읽지 않은 메일에서
-     * 인증 토큰과 전화번호를 추출하여 전화번호 인증을 수행합니다.
-     */
+    // 메일박스를 주기적으로 확인하여 SMS 인증 토큰을 처리합니다.
+    // <p>
+    // 15초마다 실행되며, 리스너가 활성화된 경우에만 읽지 않은 메일에서
+    // 인증 토큰과 전화번호를 추출하여 전화번호 인증을 수행합니다.
     @Scheduled(fixedDelay = 15000, initialDelay = 3000)
     public void checkMailbox() {
         if (!isListening) {

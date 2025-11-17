@@ -15,11 +15,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 알림 관리 REST API 컨트롤러
- * 사용자의 알림을 조회하고 관리하는 기능을 제공합니다.
- * 모든 엔드포인트는 JWT 인증이 필요합니다.
- */
+// 알림 관리 REST API 컨트롤러
+// 사용자의 알림을 조회하고 관리하는 기능을 제공합니다.
+// 모든 엔드포인트는 JWT 인증이 필요합니다.
 @Tag(name = "Notification", description = "알림 관리 API")
 @RestController
 @RequestMapping("/notifications")

@@ -9,9 +9,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-/**
- * 실종자 관리 서비스 인터페이스
- */
+// 실종자 관리 서비스 인터페이스
 public interface MissingPersonService {
     RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request);
     RegisterMissingPersonResponse updateMissingPerson(Long id, UpdateMissingPersonRequest request);
@@ -20,11 +18,9 @@ public interface MissingPersonService {
     Page<MissingPersonResponse> findNearbyMissingPersons(NearbyMissingPersonRequest request);
     MissingPersonDetailResponse getMissingPersonDetail(Long id);
 
-    /**
-     * 실종자 발견을 신고합니다.
-     *
-     * @param request 발견 신고 요청 정보
-     * @return 발견 신고 응답 정보
-     */
+    // 실종자 발견을 신고합니다.
+    //
+    // @param request 발견 신고 요청 정보
+    // @return 발견 신고 응답 정보
     ReportSightingResponse reportSighting(ReportSightingRequest request);
 }

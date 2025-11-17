@@ -67,11 +67,9 @@ public class MissingPerson {
     @Column(name = "photo_url")
     private String photoUrl;
 
-    /**
-     * GPS 위치 정보 (PostGIS Point 타입)
-     * WGS84 좌표계(SRID: 4326) 사용
-     * 형식: Point(경도, 위도)
-     */
+    // GPS 위치 정보 (PostGIS Point 타입)
+    // WGS84 좌표계(SRID: 4326) 사용
+    // 형식: Point(경도, 위도)
     @Schema(hidden = true) // Swagger 문서에서 제외 (JTS Point 타입은 직렬화 불가)
     @Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
@@ -84,20 +82,16 @@ public class MissingPerson {
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
 
-    /**
-     * 선택된 대표 이미지 URL (AI 생성 이미지 등)
-     */
+    // 선택된 대표 이미지 URL (AI 생성 이미지 등)
     @Column(name = "predicted_face_url")
     private String predictedFaceUrl;
 
     @Column(name = "appearance_image_url")
     private String appearanceImageUrl;
 
-    /**
-     * 실종자의 현재 나이를 계산하여 반환합니다.
-     *
-     * @return 실종자의 현재 나이 (Integer)
-     */
+    // 실종자의 현재 나이를 계산하여 반환합니다.
+    //
+    // @return 실종자의 현재 나이 (Integer)
     public Integer getAge() {
         if (birthDate == null) {
             return null;
@@ -113,22 +107,18 @@ public class MissingPerson {
     }
 
 
-    /**
-     * 실종자의 신체 설명을 반환합니다.
-     * body 필드의 별칭(alias) 메서드입니다.
-     *
-     * <p>AI 이미지 생성 시 프롬프트에 사용됩니다.</p>
-     *
-     * @return 실종자의 신체 설명 (얼굴 특징, 체형 등)
-     */
+    // 실종자의 신체 설명을 반환합니다.
+    // body 필드의 별칭(alias) 메서드입니다.
+    //
+    // <p>AI 이미지 생성 시 프롬프트에 사용됩니다.</p>
+    //
+    // @return 실종자의 신체 설명 (얼굴 특징, 체형 등)
     public String getDescription() {
         return this.body;
     }
 
-    /**
-     * 실종자 정보 생성 (Factory Method)
-     * DTO에서 직접 생성하여 서비스 레이어 의존성 제거
-     */
+    // 실종자 정보 생성 (Factory Method)
+    // DTO에서 직접 생성하여 서비스 레이어 의존성 제거
     public static MissingPerson from(
             String name,
             String birthDate,
@@ -166,10 +156,8 @@ public class MissingPerson {
         }
     }
 
-    /**
-     * 실종자 정보 업데이트
-     * JPA Dirty Checking을 활용하여 변경 감지
-     */
+    // 실종자 정보 업데이트
+    // JPA Dirty Checking을 활용하여 변경 감지
     public void updateFrom(
             String name,
             String birthDate,
@@ -226,26 +214,20 @@ public class MissingPerson {
         }
     }
 
-    /**
-     * 위치 정보만 업데이트
-     * JPA Dirty Checking 활용
-     */
+    // 위치 정보만 업데이트
+    // JPA Dirty Checking 활용
     public void updateLocation(Point location, String address) {
         this.location = location;
         this.address = address;
     }
 
-    /**
-     * 위도 가져오기
-     */
+    // 위도 가져오기
     public Double getLatitude() {
         if (location == null)  throw new IllegalStateException("Location is not set");
         return location.getY();
     }
 
-    /**
-     * 경도 가져오기
-     */
+    // 경도 가져오기
     public Double getLongitude() {
         if (location == null)  throw new IllegalStateException("Location is not set");
         return location.getX();

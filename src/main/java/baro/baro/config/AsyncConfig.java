@@ -9,22 +9,18 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
-/**
- * 비동기 처리 설정
- * - 이벤트 리스너의 @Async 메서드를 위한 설정
- * - 사진 처리 등 시간이 오래 걸리는 작업을 별도 스레드풀에서 처리
- */
+// 비동기 처리 설정
+// - 이벤트 리스너의 @Async 메서드를 위한 설정
+// - 사진 처리 등 시간이 오래 걸리는 작업을 별도 스레드풀에서 처리
 @Slf4j
 @Configuration
 @EnableAsync
 public class AsyncConfig implements AsyncConfigurer {
 
-    /**
-     * 비동기 작업용 스레드풀 설정
-     * - 코어 스레드: CPU 코어 수
-     * - 최대 스레드: CPU 코어 수 * 2
-     * - 큐 용량: 500 (대기 작업 최대 500개)
-     */
+    // 비동기 작업용 스레드풀 설정
+    // - 코어 스레드: CPU 코어 수
+    // - 최대 스레드: CPU 코어 수 * 2
+    // - 큐 용량: 500 (대기 작업 최대 500개)
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -51,9 +47,7 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
-    /**
-     * 비동기 작업 중 발생한 예외 처리
-     */
+    // 비동기 작업 중 발생한 예외 처리
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (ex, method, params) -> {
