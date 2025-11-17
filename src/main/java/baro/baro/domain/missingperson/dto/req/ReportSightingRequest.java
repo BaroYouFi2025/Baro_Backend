@@ -7,9 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 실종자 발견 신고 요청 DTO
- */
+// 실종자 발견 신고 요청 DTO
 @Getter
 @Builder
 @NoArgsConstructor

@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+!build/libs/baro-app.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Test
+src/test/
+
+# Temporary files
+tmp/
+temp/
+uploads/

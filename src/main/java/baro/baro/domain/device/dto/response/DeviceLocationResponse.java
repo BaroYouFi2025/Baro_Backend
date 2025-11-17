@@ -25,9 +25,7 @@ public class DeviceLocationResponse {
         return response;
     }
 
-    /**
-     * 위치 정보 내부 클래스
-     */
+    // 위치 정보 내부 클래스
     @Data
     @AllArgsConstructor
     @Schema(description = "위치 정보")

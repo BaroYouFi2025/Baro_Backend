@@ -11,17 +11,13 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * Swagger/OpenAPI 설정
- * API 문서 자동 생성을 위한 SpringDoc 설정
- */
+// Swagger/OpenAPI 설정
+// API 문서 자동 생성을 위한 SpringDoc 설정
 @Configuration
 public class SwaggerConfig {
 
-    /**
-     * OpenAPI 기본 정보 설정
-     * API 문서의 제목, 설명, 버전 및 서버 정보 정의
-     */
+    // OpenAPI 기본 정보 설정
+    // API 문서의 제목, 설명, 버전 및 서버 정보 정의
     @Bean
     public OpenAPI openAPI() {
         // Security Scheme 정의 (Bearer Token)

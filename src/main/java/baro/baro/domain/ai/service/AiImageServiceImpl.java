@@ -34,12 +34,10 @@ public class AiImageServiceImpl implements AiImageService {
     private final AiAssetRepository aiAssetRepository;
     private final GoogleGenAiService googleGenAiService;
     
-    /**
-     * AI 이미지 생성
-     * @param request 이미지 생성 요청 (실종자 ID, 에셋 타입)
-     * @return 생성된 이미지 URL 목록
-     * @throws MissingPersonException 실종자를 찾을 수 없는 경우
-     */
+    // AI 이미지 생성
+    // @param request 이미지 생성 요청 (실종자 ID, 에셋 타입)
+    // @return 생성된 이미지 URL 목록
+    // @throws MissingPersonException 실종자를 찾을 수 없는 경우
     @Override
     @Transactional
     public GenerateAiImageResponse generateImage(GenerateAiImageRequest request) {
@@ -110,10 +108,8 @@ public class AiImageServiceImpl implements AiImageService {
         return GenerateAiImageResponse.create(request.getAssetType(), imageUrls);
     }
 
-    /**
-     * 선택한 성장/노화 이미지를 MissingPerson 대표 이미지로 적용
-     * (인상착의 이미지는 생성 시 자동 저장되므로 이 메서드에서는 처리하지 않음)
-     */
+    // 선택한 성장/노화 이미지를 MissingPerson 대표 이미지로 적용
+    // (인상착의 이미지는 생성 시 자동 저장되므로 이 메서드에서는 처리하지 않음)
     @Override
     @Transactional
     public ApplyAiImageResponse applySelectedImage(ApplyAiImageRequest request) {

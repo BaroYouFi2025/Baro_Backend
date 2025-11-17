@@ -19,6 +19,7 @@ import baro.baro.domain.auth.repository.PhoneVerificationRepository;
 import baro.baro.domain.common.util.PhoneNumberUtil;
 import baro.baro.domain.device.entity.GpsTrack;
 import baro.baro.domain.device.repository.GpsTrackRepository;
+import baro.baro.domain.common.monitoring.MetricsService;
 
 import java.time.LocalDate;
 import baro.baro.domain.common.util.SecurityUtil;
@@ -46,7 +47,8 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final GpsTrackRepository gpsTrackRepository;
-    
+    private final MetricsService metricsService;
+
     @Value("${cookie.secure}")
     private boolean cookieSecure;
 
@@ -108,6 +110,9 @@ public class UserServiceImpl implements UserService {
         refreshTokenCookie.setAttribute("SameSite", "Strict");
         refreshTokenCookie.setMaxAge(14 * 24 * 60 * 60); // 14일
         response.addCookie(refreshTokenCookie);
+
+        // 메트릭 기록: 회원가입 성공
+        metricsService.recordUserRegistration();
 
         return new AuthTokensResponse(access, refresh, expiresIn);
     }
@@ -181,9 +186,7 @@ public class UserServiceImpl implements UserService {
                 .build());
     }
     
-    /**
-     * 현재 로그인한 사용자의 GPS 위치 기준으로 가까운 사용자를 조회합니다.
-     */
+    // 현재 로그인한 사용자의 GPS 위치 기준으로 가까운 사용자를 조회합니다.
     private Slice<User> searchNearbyUsers(Pageable pageable) {
         // 1. 현재 로그인한 사용자의 최근 GPS 위치 조회
         String currentUid = SecurityUtil.getCurrentUserUid();

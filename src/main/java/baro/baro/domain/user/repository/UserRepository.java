@@ -19,14 +19,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // UID로 검색 (부분 일치, 활성 사용자만)
     Slice<User> findByUidContainingAndIsActiveTrue(String uid, Pageable pageable);
     
-    /**
-     * 특정 위치 기준으로 가까운 순서로 활성 사용자 조회
-     * 
-     * @param-latitude 기준 위도
-     * @param-longitude 기준 경도
-     * @param-pageable 페이징 정보
-     * @return 거리순으로 정렬된 사용자 목록
-     */
+    // 특정 위치 기준으로 가까운 순서로 활성 사용자 조회
+    //
+    // @param-latitude 기준 위도
+    // @param-longitude 기준 경도
+    // @param-pageable 페이징 정보
+    // @return 거리순으로 정렬된 사용자 목록
     @Query(value = "SELECT DISTINCT u.* FROM youfi.users u " +
                    "INNER JOIN youfi.devices d ON u.id = d.user_id " +
                    "INNER JOIN youfi.gps_tracks g ON d.id = g.device_id " +

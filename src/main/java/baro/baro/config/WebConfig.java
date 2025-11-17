@@ -13,10 +13,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload.dir}")
     private String uploadDir;
     
-    /**
-     * 업로드된 이미지를 정적 리소스로 제공
-     * /images/** 요청을 로컬 uploads/images/ 디렉토리와 매핑
-     */
+    // 업로드된 이미지를 정적 리소스로 제공
+    // /images/** 요청을 로컬 uploads/images/ 디렉토리와 매핑
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String absolutePath = Paths.get(uploadDir).toAbsolutePath().toUri().toString();

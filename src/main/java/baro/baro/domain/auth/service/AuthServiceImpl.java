@@ -10,10 +10,13 @@ import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
+import baro.baro.domain.common.monitoring.MetricsService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +27,11 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final MetricsService metricsService;
+    private final PasswordEncoder passwordEncoder;
+    
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
 
     @Override
     public AuthTokensResponse login(LoginRequest request) {
@@ -43,6 +50,9 @@ public class AuthServiceImpl implements AuthService {
         String access = jwtTokenProvider.createAccessToken(user.getUid());
         String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
+
+        // 메트릭 기록: 로그인 성공
+        metricsService.recordUserLogin();
 
         // 모바일 앱: Access Token과 Refresh Token 모두 응답 본문에 포함
         return new AuthTokensResponse(access, refresh, expiresIn);
