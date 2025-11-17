@@ -10,15 +10,12 @@ import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +25,9 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    
-    @Value("${cookie.secure}")
-    private boolean cookieSecure;
 
     @Override
-    public AuthTokensResponse login(LoginRequest request, HttpServletResponse response) {
+    public AuthTokensResponse login(LoginRequest request) {
         User user = userRepository.findByUid(request.getUid())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
 
@@ -50,21 +44,12 @@ public class AuthServiceImpl implements AuthService {
         String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
 
-        // Refresh Token을 Cookie에 설정
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refresh);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(cookieSecure);
-        refreshTokenCookie.setPath("/auth");
-        refreshTokenCookie.setAttribute("SameSite", "Strict");
-        refreshTokenCookie.setMaxAge(14 * 24 * 60 * 60); // 14일
-        response.addCookie(refreshTokenCookie);
-
-        // Response에서 refreshToken 제거 (Cookie에만 저장)
-        return AuthTokensResponse.forLogin(access, expiresIn);
+        // 모바일 앱: Access Token과 Refresh Token 모두 응답 본문에 포함
+        return new AuthTokensResponse(access, refresh, expiresIn);
     }
 
     @Override
-    public LogoutResponse logout(String refreshToken, HttpServletResponse response) {
+    public LogoutResponse logout(String refreshToken) {
         // Refresh token 검증
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
@@ -89,20 +74,11 @@ public class AuthServiceImpl implements AuthService {
         );
         blacklistedTokenRepository.save(blacklistedToken);
 
-        // Refresh Token Cookie 삭제
-        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(cookieSecure);
-        refreshTokenCookie.setPath("/auth");
-        refreshTokenCookie.setAttribute("SameSite", "Strict");
-        refreshTokenCookie.setMaxAge(0); // 즉시 삭제
-        response.addCookie(refreshTokenCookie);
-
         return new LogoutResponse("로그아웃 되었습니다.");
     }
 
     @Override
-    public RefreshResponse refresh(String refreshToken, HttpServletResponse response) {
+    public RefreshResponse refresh(String refreshToken) {
         // Refresh token 검증
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
@@ -141,15 +117,7 @@ public class AuthServiceImpl implements AuthService {
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
 
-        // 새로운 Refresh Token을 Cookie에 설정
-        Cookie newRefreshTokenCookie = new Cookie("refreshToken", newRefreshToken);
-        newRefreshTokenCookie.setHttpOnly(true);
-        newRefreshTokenCookie.setSecure(cookieSecure);
-        newRefreshTokenCookie.setPath("/auth");
-        newRefreshTokenCookie.setAttribute("SameSite", "Strict");
-        newRefreshTokenCookie.setMaxAge(14 * 24 * 60 * 60); // 14일
-        response.addCookie(newRefreshTokenCookie);
-
-        return new RefreshResponse(newAccessToken, expiresIn);
+        // 모바일 앱: Access Token과 Refresh Token 모두 응답 본문에 포함
+        return new RefreshResponse(newAccessToken, newRefreshToken, expiresIn);
     }
 }
