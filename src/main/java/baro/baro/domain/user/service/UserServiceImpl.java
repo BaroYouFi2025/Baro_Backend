@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final GpsTrackRepository gpsTrackRepository;
     private final MetricsService metricsService;
-    
+
     @Value("${cookie.secure}")
     private boolean cookieSecure;
 
@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
         // 메트릭 기록: 회원가입 성공
         metricsService.recordUserRegistration();
 
-        return new AuthTokensResponse(access, expiresIn);
+        return new AuthTokensResponse(access, refresh, expiresIn);
     }
 
     @Override

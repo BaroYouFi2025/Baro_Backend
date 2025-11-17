@@ -14,11 +14,11 @@ import lombok.AllArgsConstructor;
 @Schema(description = "실종자 등록 요청")
 public class RegisterMissingPersonRequest {
 
-    @Schema(description = "실종자 이름", example = "홍길동")
+    @Schema(description = "실종자명", example = "김실종")
     @NotBlank(message = "이름은 필수입니다.")
     private String name;
 
-    @Schema(description = "생년월일 (ISO 8601 형식)", example = "2010-05-15")
+    @Schema(description = "생년월일", example = "2015-09-12")
     @NotBlank(message = "생년월일은 필수입니다.")
     private String birthDate;
 
@@ -28,7 +28,7 @@ public class RegisterMissingPersonRequest {
     @Schema(description = "실종자 사진 URL", example = "https://example.com/photo.jpg")
     private String photoUrl;
 
-    @Schema(description = "실종 일시 (ISO 8601 형식)", example = "2024-01-15T14:30:00")
+    @Schema(description = "실종 일시", example = "2025-10-01T14:30:00")
     @NotBlank(message = "실종일은 필수입니다.")
     private String missingDate;
 
@@ -40,26 +40,26 @@ public class RegisterMissingPersonRequest {
     @Min(value = 0, message = "몸무게는 0 이상이어야 합니다.")
     private Integer weight;
 
-    @Schema(description = "체형 설명", example = "마른 편")
+    @Schema(description = "체형", example = "보통")
     private String body;
 
-    @Schema(description = "체형 기타 특징", example = "왼쪽 팔에 점이 있음")
+    @Schema(description = "기타 신체", example = "왼쪽 귀에 점이 2개 있음")
     private String bodyEtc;
 
-    @Schema(description = "상의 설명", example = "파란색 후드티")
+    @Schema(description = "상의", example = "티니핑 티")
     private String clothesTop;
 
-    @Schema(description = "하의 설명", example = "검은색 청바지")
+    @Schema(description = "하의", example = "노란 바지")
     private String clothesBottom;
 
-    @Schema(description = "의류 기타 특징", example = "빨간색 운동화")
+    @Schema(description = "기타 의류", example = "회색 바람막이")
     private String clothesEtc;
 
-    @Schema(description = "실종 위치 위도", example = "37.5665")
+    @Schema(description = "위도", example = "35.188884")
     @NotNull(message = "위도는 필수입니다.")
     private Double latitude;
 
-    @Schema(description = "실종 위치 경도", example = "126.9780")
+    @Schema(description = "경도", example = "128.903480")
     @NotNull(message = "경도는 필수입니다.")
     private Double longitude;
     

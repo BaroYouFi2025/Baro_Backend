@@ -5,12 +5,11 @@ import baro.baro.domain.auth.dto.req.LoginRequest;
 import baro.baro.domain.auth.dto.res.AuthTokensResponse;
 import baro.baro.domain.auth.dto.res.LogoutResponse;
 import baro.baro.domain.auth.dto.res.RefreshResponse;
-import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
-    AuthTokensResponse login(LoginRequest request, HttpServletResponse response);
-    LogoutResponse logout(String refreshToken, HttpServletResponse response);
-    RefreshResponse refresh(String refreshToken, HttpServletResponse response);
+    AuthTokensResponse login(LoginRequest request);
+    LogoutResponse logout(String refreshToken);
+    RefreshResponse refresh(String refreshToken);
 }
 
 
