@@ -7,16 +7,16 @@ import lombok.Data;
 @Data
 public class UserProfileResponse {
     
-    @Schema(description = "사용자 ID", example = "1")
+    @Schema(description = "사용자 ID (user ID, uid랑 다름, 모르면 db 확인)", example = "2")
     private Long userId;
     
-    @Schema(description = "사용자 이름", example = "홍길동")
+    @Schema(description = "사용자 이름", example = "배성민")
     private String name;
     
-    @Schema(description = "레벨", example = "1")
+    @Schema(description = "레벨", example = "3")
     private Integer level;
     
-    @Schema(description = "경험치", example = "100")
+    @Schema(description = "경험치", example = "40")
     private Integer exp;
     
     @Schema(description = "칭호", example = "수색 초보자")
@@ -25,7 +25,7 @@ public class UserProfileResponse {
     @Schema(description = "프로필 사진 URL", example = "https://example.com/profile.jpg")
     private String profileUrl;
     
-    @Schema(description = "프로필 배경 색상", example = "#FFFFFF")
+    @Schema(description = "프로필 배경 색상 (색)", example = "#FFFFFF")
     private String profileBackgroundColor;
     
     // UserProfileResponse 생성 정적 팩토리 메서드

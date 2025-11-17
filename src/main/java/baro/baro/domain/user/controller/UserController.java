@@ -9,10 +9,12 @@ import baro.baro.domain.user.dto.res.UserProfileResponse;
 import baro.baro.domain.user.dto.res.UserPublicProfileResponse;
 import baro.baro.domain.user.dto.res.DeleteUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.headers.Header;
 import baro.baro.domain.user.service.UserService;
@@ -27,7 +29,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Tag(name = "User", description = "사용자 관리 API")
@@ -46,15 +47,33 @@ public class UserController {
             description = "회원가입 성공",
             headers = @Header(
                 name = "Set-Cookie",
-                description = "refreshToken=<token>; HttpOnly; Secure; Path=/auth/refresh; SameSite=Strict; Max-Age=1209600",
+                description = "refreshToken=<Token>",
                 schema = @Schema(type = "string")
             ),
             content = @Content(schema = @Schema(implementation = AuthTokensResponse.class))),
-        @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)",
+        @ApiResponse(
+            responseCode = "400", 
+            description = "요청 데이터가 올바르지 않습니다.",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "409", description = "이미 존재하는 사용자",
+        @ApiResponse(
+            responseCode = "400", 
+            description = "UID already exists",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+        @ApiResponse(
+            responseCode = "400", 
+            description = "Phone already exists",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "401", 
+            description = "전화번호 인증이 필요합니다.",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "User not found",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "500", 
+            description = "서버 에러 Internal Server Error",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
     @PostMapping("/register")
@@ -62,8 +81,11 @@ public class UserController {
         AuthTokensResponse tokens = userService.signup(request, response);
         return ResponseEntity.ok(tokens);
     }
-    @Operation(summary = "사용자 프로필 조회", 
-               description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.")
+    @Operation(
+        summary = "사용자 프로필 조회", 
+        description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
@@ -80,8 +102,11 @@ public class UserController {
         return ResponseEntity.ok(profile);
     }
 
-    @Operation(summary = "사용자 프로필 수정", 
-               description = "현재 로그인한 사용자의 프로필 정보를 수정합니다.")
+    @Operation(
+        summary = "사용자 프로필 수정", 
+        description = "현재 로그인한 사용자의 프로필 정보를 수정합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
@@ -100,8 +125,11 @@ public class UserController {
         return ResponseEntity.ok(profile);
     }
 
-    @Operation(summary = "사용자 회원 탈퇴", 
-               description = "현재 로그인한 사용자의 계정을 비활성화합니다. 비밀번호 확인이 필요합니다.")
+    @Operation(
+        summary = "사용자 회원 탈퇴", 
+        description = "현재 로그인한 사용자의 계정을 비활성화합니다. 비밀번호 확인이 필요합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
@@ -120,27 +148,34 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "사용자 검색", 
-               description = "UID로 사용자를 검색합니다. UID가 비어있으면 모든 사용자를 조회합니다.")
+    @Operation(
+        summary = "사용자 검색", 
+        description = "UID로 사용자를 검색합니다. UID가 입력되면 해당 사용자를, 입력되지 않으면 사용자 주위 우선으로 조회합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
             description = "사용자 검색 성공",
             content = @Content(schema = @Schema(implementation = Slice.class))),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
-    @GetMapping("/search")
+    @PostMapping("/search")
     public ResponseEntity<Slice<UserPublicProfileResponse>> searchUsers(
-            @RequestParam(required = false) String uid,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size) {
+            @Parameter(description = "사용자 검색 요청", required = false)
+            @RequestBody(required = false) UserSearchRequest request) {
         
-        UserSearchRequest request = UserSearchRequest.builder()
-                .uid(uid)
-                .page(page)
-                .size(size)
-                .build();
+        // Request Body가 없으면 기본값으로 생성
+        if (request == null) {
+            request = UserSearchRequest.builder()
+                    .uid(null)
+                    .page(0)
+                    .size(20)
+                    .build();
+        }
         
         Slice<UserPublicProfileResponse> users = userService.searchUsers(request);
         return ResponseEntity.ok(users);
