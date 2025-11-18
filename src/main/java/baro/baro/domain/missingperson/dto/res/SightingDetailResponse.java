@@ -31,6 +31,9 @@ public class SightingDetailResponse {
     @Schema(description = "발견 위치 경도", example = "126.9780")
     private Double longitude;
 
+    @Schema(description = "발견 위치 주소", example = "서울특별시 중구 세종대로 110")
+    private String address;
+
     @Schema(description = "신고 시간", example = "2025-01-15T10:30:00+09:00")
     private ZonedDateTime reportedAt;
 
@@ -46,6 +49,7 @@ public class SightingDetailResponse {
         response.reporterName = sighting.getReporter().getName();
         response.latitude = sighting.getLatitude();
         response.longitude = sighting.getLongitude();
+        response.address = sighting.getAddress();
         response.reportedAt = sighting.getCreatedAt();
         return response;
     }
