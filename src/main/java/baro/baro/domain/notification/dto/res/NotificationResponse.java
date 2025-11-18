@@ -1,4 +1,4 @@
-package baro.baro.domain.notification.dto;
+package baro.baro.domain.notification.dto.res;
 
 import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
@@ -35,6 +35,9 @@ public class NotificationResponse {
     @Schema(description = "읽은 시간", example = "2025-01-15T11:00:00")
     private LocalDateTime readAt;
 
+    @Schema(description = "관련 엔티티 ID (실종자 ID, 초대 ID, 발견신고 ID 등)", example = "1")
+    private Long relatedEntityId;
+
     // Notification 엔티티로부터 NotificationResponse를 생성합니다.
     //
     // @param notification 알림 엔티티
@@ -48,6 +51,7 @@ public class NotificationResponse {
         response.isRead = notification.isRead();
         response.createdAt = notification.getCreatedAt();
         response.readAt = notification.getReadAt();
+        response.relatedEntityId = notification.getRelatedEntityId();
         return response;
     }
 }
