@@ -216,6 +216,21 @@ CREATE SCHEMA youfi;
 -- 테이블은 JPA가 자동 생성하거나 마이그레이션 스크립트 실행
 ```
 
+#### 경찰관서 참고 데이터 로딩
+
+`init-db/police_office.csv`에는 전국 지구대/파출소 기본 정보가 포함되어 있으며,
+`init-db/002_police_offices.sql` 스크립트가 해당 CSV를 `youfi.police_offices` 테이블로 가져옵니다.
+
+- `docker-compose up` 시 Postgres 컨테이너가 자동으로 스크립트를 실행합니다.
+- 독립 실행 시에는 다음 명령으로 수동 실행할 수 있습니다.
+
+```bash
+psql -d baro_db -f init-db/002_police_offices.sql
+```
+
+테이블에는 Google Maps Geocoding API로 채울 `geography(Point,4326)` 타입의 `location` 컬럼이 포함되어 있어
+사용자 GPS를 기준으로 가까운 관서를 조회할 수 있습니다.
+
 ### 4. 빌드 및 실행
 
 #### Gradle을 통한 빌드
@@ -289,6 +304,12 @@ java -jar build/libs/baro-app.jar
 | DELETE | `/missing-persons/{id}` | 실종자 신고 삭제 | ✅        |
 
 상세 API 명세는 [DEVICE_API.md](./DEVICE_API.md) 참조
+
+### 경찰관서 API
+
+| Method | Endpoint                 | 설명                              | 인증 필요 |
+| ------ | ------------------------ | --------------------------------- | --------- |
+| GET    | `/police-offices/nearby` | GPS 기준 가까운 지구대/파출소 조회 | ❌        |
 
 ---
 

@@ -73,6 +73,9 @@ public class SecurityConfig {
                         // Location Controller - 좌표 변환 유틸리티
                         .requestMatchers(HttpMethod.GET, "/location/address").permitAll()
 
+                        // Police office 데이터 - 누구나 조회 가능
+                        .requestMatchers(HttpMethod.GET, "/police-offices/nearby").permitAll()
+
                         // Swagger UI - 개발 환경에서만 허용 권장
                         // 프로덕션에서는 제거하거나 인증 적용 필요
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
