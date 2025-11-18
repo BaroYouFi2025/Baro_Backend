@@ -1,17 +1,20 @@
 package baro.baro.domain.auth.controller;
 
+import baro.baro.domain.auth.dto.req.PhoneVerificationStatusRequest;
+import baro.baro.domain.auth.dto.req.TestPhoneVerificationRequest;
 import baro.baro.domain.auth.dto.res.PhoneVerificationResponse;
 import baro.baro.domain.auth.dto.res.PhoneVerifyResponse;
 import baro.baro.domain.auth.service.EmailListener;
 import baro.baro.domain.auth.service.PhoneVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,9 +54,8 @@ public class PhoneVerificationController {
     })
     @GetMapping("/verifications")
     public ResponseEntity<PhoneVerifyResponse> getVerificationStatus(
-            @Parameter(description = "인증 상태를 조회할 전화번호 (11자리)", example = "01012345678", required = true)
-            @RequestParam String phoneNumber) {
-        boolean isVerified = phoneVerificationService.isPhoneNumberVerified(phoneNumber);
+            @Valid @ParameterObject PhoneVerificationStatusRequest request) {
+        boolean isVerified = phoneVerificationService.isPhoneNumberVerified(request.getPhoneNumber());
         return ResponseEntity.ok(new PhoneVerifyResponse(isVerified));
     }
 
@@ -67,11 +69,8 @@ public class PhoneVerificationController {
     })
     @PostMapping("/verifications/test")
     public ResponseEntity<PhoneVerifyResponse> testVerifyPhone(
-            @Parameter(description = "인증할 토큰", required = true)
-            @RequestParam String token,
-            @Parameter(description = "인증할 전화번호 (11자리)", required = true)
-            @RequestParam String phoneNumber) {
-        phoneVerificationService.authenticateWithToken(token, phoneNumber);
+            @Valid @RequestBody TestPhoneVerificationRequest request) {
+        phoneVerificationService.authenticateWithToken(request.getToken(), request.getPhoneNumber());
         return ResponseEntity.ok(new PhoneVerifyResponse(true));
     }
 }
