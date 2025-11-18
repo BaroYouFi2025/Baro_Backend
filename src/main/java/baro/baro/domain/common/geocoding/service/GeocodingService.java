@@ -1,5 +1,7 @@
 package baro.baro.domain.common.geocoding.service;
 
+import org.locationtech.jts.geom.Point;
+
 // 지오코딩 서비스 인터페이스
 // 위도/경도 좌표를 주소로 변환하거나 주소를 좌표로 변환하는 기능 제공
 public interface GeocodingService {
@@ -10,4 +12,5 @@ public interface GeocodingService {
     // @param longitude 경도
     // @return 주소 문자열
     String getAddressFromCoordinates(Double latitude, Double longitude);
+    Point getPointFromAddress(String address);
 }
