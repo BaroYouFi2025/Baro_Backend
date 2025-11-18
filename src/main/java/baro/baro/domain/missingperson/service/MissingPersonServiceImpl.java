@@ -238,7 +238,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         Sighting sighting = Sighting.create(
                 missingCase,
                 currentUser,
-                locationInfo.point()
+                locationInfo.point(),
+                locationInfo.address()
         );
         sightingRepository.save(sighting);
 
