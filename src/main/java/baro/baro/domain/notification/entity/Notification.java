@@ -1,5 +1,7 @@
 package baro.baro.domain.notification.entity;
 
+import baro.baro.domain.notification.exception.NotificationErrorCode;
+import baro.baro.domain.notification.exception.NotificationException;
 import baro.baro.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -69,5 +71,54 @@ public class Notification {
     public void markAsRead() {
         this.isRead = true;
         this.readAt = LocalDateTime.now();
+    }
+
+    // 알림 소유자인지 확인합니다.
+    public boolean isOwnedBy(Long userId) {
+        return this.user != null && this.user.getId().equals(userId);
+    }
+
+    // 소유권 검증 후 예외를 발생시킵니다.
+    public void validateOwnership(Long userId) {
+        if (!isOwnedBy(userId)) {
+            throw new NotificationException(NotificationErrorCode.NOTIFICATION_NOT_OWNED_BY_USER);
+        }
+    }
+
+    // 특정 알림 타입인지 확인합니다.
+    public boolean isType(NotificationType expectedType) {
+        return this.type == expectedType;
+    }
+
+    // 알림 타입 검증 후 예외를 발생시킵니다.
+    public void validateType(NotificationType expectedType) {
+        if (!isType(expectedType)) {
+            throw new NotificationException(NotificationErrorCode.INVALID_NOTIFICATION_TYPE);
+        }
+    }
+
+    // 실종자 관련 알림인지 확인합니다 (FOUND_REPORT, NEARBY_ALERT).
+    public boolean isMissingPersonRelated() {
+        return this.type == NotificationType.FOUND_REPORT ||
+               this.type == NotificationType.NEARBY_ALERT;
+    }
+
+    // 실종자 관련 알림인지 검증 후 예외를 발생시킵니다.
+    public void validateMissingPersonRelated() {
+        if (!isMissingPersonRelated()) {
+            throw new NotificationException(NotificationErrorCode.INVALID_NOTIFICATION_TYPE);
+        }
+    }
+
+    // 관련 엔티티 ID가 존재하는지 확인합니다.
+    public boolean hasRelatedEntity() {
+        return this.relatedEntityId != null;
+    }
+
+    // 관련 엔티티 존재 여부를 검증 후 예외를 발생시킵니다.
+    public void validateHasRelatedEntity() {
+        if (!hasRelatedEntity()) {
+            throw new NotificationException(NotificationErrorCode.RELATED_ENTITY_NOT_FOUND);
+        }
     }
 }
