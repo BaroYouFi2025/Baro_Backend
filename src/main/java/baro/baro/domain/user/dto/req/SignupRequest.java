@@ -21,7 +21,7 @@ public class SignupRequest {
     @Size(min = 8, max = 20)
     private String password;
 
-    @Schema(description = "전화번호 (11자리, 하이픈 없음)", example = "010-1234-5678")
+    @Schema(description = "전화번호 (11자리, 하이픈 없음)", example = "01012345678")
     @NotBlank
     @Size(min = 11, max = 11)
     private String phone;
