@@ -40,6 +40,10 @@ public class Sighting {
     @Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
 
+    // 발견 위치 주소
+    @Column(name = "address")
+    private String address;
+
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -49,7 +53,8 @@ public class Sighting {
     public static Sighting create(
             MissingCase missingCase,
             User reporter,
-            Point location) {
+            Point location,
+            String address) {
 
         if (missingCase == null) {
             throw new IllegalArgumentException("실종 케이스는 필수입니다.");
@@ -65,6 +70,7 @@ public class Sighting {
                 .missingCase(missingCase)
                 .reporter(reporter)
                 .location(location)
+                .address(address)
                 .build();
     }
 
