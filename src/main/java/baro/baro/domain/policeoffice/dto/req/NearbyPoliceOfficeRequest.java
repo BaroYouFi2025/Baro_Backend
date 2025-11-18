@@ -3,9 +3,12 @@ package baro.baro.domain.policeoffice.dto.req;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@NoArgsConstructor
 @Schema(description = "주변 경찰관서 검색 요청")
 public class NearbyPoliceOfficeRequest {
 
@@ -29,21 +32,25 @@ public class NearbyPoliceOfficeRequest {
     @Min(value = 1, message = "최소 1개 이상 조회해야 합니다.")
     private Integer limit = DEFAULT_LIMIT;
 
-    public static NearbyPoliceOfficeRequest of(Double latitude,
-                                               Double longitude,
-                                               Integer radiusMeters,
-                                               Integer limit) {
-        NearbyPoliceOfficeRequest request = new NearbyPoliceOfficeRequest();
-        request.latitude = latitude;
-        request.longitude = longitude;
-        request.radiusMeters = (radiusMeters == null || radiusMeters < 1)
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public void setRadiusMeters(Integer radiusMeters) {
+        this.radiusMeters = (radiusMeters == null || radiusMeters < 1)
                 ? DEFAULT_RADIUS_METERS
                 : radiusMeters;
+    }
+
+    public void setLimit(Integer limit) {
         if (limit == null || limit < 1) {
-            request.limit = DEFAULT_LIMIT;
+            this.limit = DEFAULT_LIMIT;
         } else {
-            request.limit = Math.min(limit, MAX_LIMIT);
+            this.limit = Math.min(limit, MAX_LIMIT);
         }
-        return request;
     }
 }

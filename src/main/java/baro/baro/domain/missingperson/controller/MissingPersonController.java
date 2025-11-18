@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -97,11 +98,7 @@ public class MissingPersonController {
     })
     @GetMapping("/search")
     public ResponseEntity<Page<MissingPersonResponse>> searchMissingPersons(
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
-            @RequestParam(defaultValue = "0") Integer page,
-            @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") Integer size) {
-        SearchMissingPersonRequest request = SearchMissingPersonRequest.create(page, size);
+            @Valid @ParameterObject SearchMissingPersonRequest request) {
         Page<MissingPersonResponse> response = missingPersonService.searchMissingPersons(request);
         return ResponseEntity.ok(response);
     }

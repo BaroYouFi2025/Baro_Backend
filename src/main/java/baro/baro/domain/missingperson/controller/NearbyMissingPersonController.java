@@ -4,7 +4,6 @@ import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.service.MissingPersonService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,13 +44,7 @@ public class NearbyMissingPersonController {
     })
     @GetMapping("/nearby")
     public ResponseEntity<Page<MissingPersonResponse>> findNearbyMissingPersons(
-            @Parameter(description = "위도", example = "35.1763", required = true)
-            @RequestParam Double latitude,
-            @Parameter(description = "경도", example = "128.9664", required = true)
-            @RequestParam Double longitude,
-            @Parameter(description = "반경 (미터)", example = "1000", required = true)
-            @RequestParam Integer radius) {
-        NearbyMissingPersonRequest request = NearbyMissingPersonRequest.create(latitude, longitude, radius);
+            @Valid @ParameterObject NearbyMissingPersonRequest request) {
         Page<MissingPersonResponse> response = missingPersonService.findNearbyMissingPersons(request);
         return ResponseEntity.ok(response);
     }

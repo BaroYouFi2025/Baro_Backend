@@ -4,27 +4,24 @@ import baro.baro.domain.policeoffice.dto.req.NearbyPoliceOfficeRequest;
 import baro.baro.domain.policeoffice.dto.res.PoliceOfficeResponse;
 import baro.baro.domain.policeoffice.service.PoliceOfficeService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @Slf4j
-@Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/police-offices")
@@ -44,21 +41,7 @@ public class PoliceOfficeController {
                     content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
     public ResponseEntity<List<PoliceOfficeResponse>> findNearby(
-            @Parameter(description = "위도", example = "37.5665")
-            @NotNull(message = "위도는 필수입니다.")
-            @RequestParam Double latitude,
-
-            @Parameter(description = "경도", example = "126.9780")
-            @NotNull(message = "경도는 필수입니다.")
-            @RequestParam Double longitude,
-
-            @Parameter(description = "검색 반경 (미터)", example = "5000")
-            @RequestParam(required = false) Integer radiusMeters,
-
-            @Parameter(description = "최대 결과 수", example = "5")
-            @RequestParam(required = false) Integer limit) {
-
-        NearbyPoliceOfficeRequest request = NearbyPoliceOfficeRequest.of(latitude, longitude, radiusMeters, limit);
+            @Valid @ParameterObject NearbyPoliceOfficeRequest request) {
         List<PoliceOfficeResponse> responses = policeOfficeService.findNearbyOffices(request);
 
         return ResponseEntity.ok(responses);

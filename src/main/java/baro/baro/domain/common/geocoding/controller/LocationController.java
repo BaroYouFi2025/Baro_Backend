@@ -1,16 +1,18 @@
 package baro.baro.domain.common.geocoding.controller;
 
 import baro.baro.domain.common.geocoding.dto.AddressResponse;
+import baro.baro.domain.common.geocoding.dto.CoordinateToAddressRequest;
 import baro.baro.domain.common.geocoding.service.GeocodingService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,16 +51,12 @@ public class LocationController {
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
     public ResponseEntity<AddressResponse> getAddressFromCoordinates(
-            @Parameter(description = "위도", example = "37.5665", required = true)
-            @RequestParam Double latitude,
+            @Valid @ParameterObject CoordinateToAddressRequest request) {
 
-            @Parameter(description = "경도", example = "126.9780", required = true)
-            @RequestParam Double longitude) {
+        log.info("주소 변환 요청: latitude={}, longitude={}", request.getLatitude(), request.getLongitude());
 
-        log.info("주소 변환 요청: latitude={}, longitude={}", latitude, longitude);
-
-        String address = geocodingService.getAddressFromCoordinates(latitude, longitude);
-        AddressResponse response = AddressResponse.create(latitude, longitude, address, true);
+        String address = geocodingService.getAddressFromCoordinates(request.getLatitude(), request.getLongitude());
+        AddressResponse response = AddressResponse.create(request.getLatitude(), request.getLongitude(), address, true);
 
         log.info("주소 변환 성공: {}", address);
         return ResponseEntity.ok(response);
