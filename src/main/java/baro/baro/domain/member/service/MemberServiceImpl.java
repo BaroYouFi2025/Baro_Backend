@@ -2,16 +2,18 @@ package baro.baro.domain.member.service;
 
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.entity.GpsTrack;
+import baro.baro.domain.device.exception.DeviceErrorCode;
+import baro.baro.domain.device.exception.DeviceException;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
 import baro.baro.domain.common.util.GpsUtils;
 import baro.baro.domain.notification.service.PushNotificationService;
-import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
-import baro.baro.domain.member.dto.request.InvitationRequest;
-import baro.baro.domain.member.dto.request.RejectInvitationRequest;
-import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
-import baro.baro.domain.member.dto.response.InvitationResponse;
-import baro.baro.domain.member.dto.response.MemberLocationResponse;
+import baro.baro.domain.member.dto.req.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.req.InvitationRequest;
+import baro.baro.domain.member.dto.req.RejectInvitationRequest;
+import baro.baro.domain.member.dto.res.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.res.InvitationResponse;
+import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import baro.baro.domain.member.entity.Invitation;
 import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
@@ -79,7 +81,6 @@ public class MemberServiceImpl implements MemberService {
         invitation.validateInvitee(currentUser);
 
         // 초대 상태가 PENDING인지 확인(중복 수락 방지)
-        // status가 PENDING이 아니면 예외 발생
         invitation.accept();
         invitationRepository.save(invitation);
 
@@ -137,22 +138,33 @@ public class MemberServiceImpl implements MemberService {
     @Transactional(readOnly = true)
     public List<MemberLocationResponse> getMemberLocations() {
         User currentUser = getCurrentUser();
+        return buildMemberLocationResponses(currentUser);
+    }
 
-        // 현재 사용자의 최신 위치 조회 (거리 계산용)
-        Device currentUserDevice = deviceRepository.findByUser(currentUser).stream()
+    // 특정 사용자의 관점에서 구성원 위치 목록을 조회합니다.
+    // SSE 브로드캐스트 시 사용됩니다.
+    @Override
+    @Transactional(readOnly = true)
+    public List<MemberLocationResponse> getMemberLocationsForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        return buildMemberLocationResponses(user);
+    }
+
+    // 구성원 위치 응답 목록을 생성하는 공통 메서드
+    private List<MemberLocationResponse> buildMemberLocationResponses(User user) {
+        // 사용자의 최신 위치 조회 (거리 계산용)
+        Device userDevice = deviceRepository.findByUser(user).stream()
                 .findFirst()
+                .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
+
+        GpsTrack userLocation = gpsTrackRepository.findLatestByDevice(userDevice)
                 .orElse(null);
 
-        GpsTrack currentUserLocation = null;
-        if (currentUserDevice != null) {
-            currentUserLocation = gpsTrackRepository.findLatestByDevice(currentUserDevice)
-                    .orElse(null);
-        }
-
         // 관계 목록 조회 (N+1 방지 fetch join)
-        List<Relationship> relationships = relationshipRepository.findByUserWithMember(currentUser);
+        List<Relationship> relationships = relationshipRepository.findByUserWithMember(user);
 
-        List<MemberLocationResponse> members = new ArrayList<>();
+        List<MemberLocationResponse> responses = new ArrayList<>();
         for (Relationship relationship : relationships) {
             User member = relationship.getMember();
 
@@ -174,10 +186,10 @@ public class MemberServiceImpl implements MemberService {
             }
 
             // 거리 계산
-            Double distance = 0.0;
-            if (currentUserLocation != null && currentUserLocation.getLocation() != null) {
+            double distance = 0.0;
+            if (userLocation != null && userLocation.getLocation() != null) {
                 distance = GpsUtils.calculateDistance(
-                        currentUserLocation.getLocation(),
+                        userLocation.getLocation(),
                         memberLocation.getLocation()
                 );
             }
@@ -198,9 +210,9 @@ public class MemberServiceImpl implements MemberService {
                     location
             );
 
-            members.add(memberResponse);
+            responses.add(memberResponse);
         }
 
-        return members;
+        return responses;
     }
 }

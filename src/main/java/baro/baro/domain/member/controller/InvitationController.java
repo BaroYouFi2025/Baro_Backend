@@ -1,7 +1,7 @@
 package baro.baro.domain.member.controller;
 
-import baro.baro.domain.member.dto.request.InvitationRequest;
-import baro.baro.domain.member.dto.response.InvitationResponse;
+import baro.baro.domain.member.dto.req.InvitationRequest;
+import baro.baro.domain.member.dto.res.InvitationResponse;
 import baro.baro.domain.member.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

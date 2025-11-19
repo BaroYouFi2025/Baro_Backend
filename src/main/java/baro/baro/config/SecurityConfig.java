@@ -86,6 +86,15 @@ public class SecurityConfig {
                         // 정적 리소스 - 업로드된 이미지 접근 허용
                         .requestMatchers("/images/**").permitAll()
 
+                        // Notification Controller
+                        .requestMatchers(HttpMethod.GET, "/notifications/me").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread/count").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/accept-invitation").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/reject-invitation").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/missing-person").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/sighting").permitAll()
+
                         // 기본 정책: 명시되지 않은 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 )

@@ -1,4 +1,4 @@
-package baro.baro.domain.image.dto;
+package baro.baro.domain.image.dto.res;
 
 import lombok.Data;
 

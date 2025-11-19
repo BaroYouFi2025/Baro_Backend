@@ -30,8 +30,8 @@ public class JwtTokenProvider {
         this.refreshTokenValidityMs = Duration.ofSeconds(refreshSeconds).toMillis();
     }
 
-    public String createAccessToken(String subject) {
-        return buildToken(subject, accessTokenValidityMs);
+    public String createAccessToken(String subject, String role, Long deviceId) {
+        return buildTokenWithClaims(subject, role, deviceId, accessTokenValidityMs);
     } //Access Token 생성
 
     public String createRefreshToken(String subject) {
@@ -109,5 +109,50 @@ public class JwtTokenProvider {
                 .setExpiration(expiry) //만료 시간
                 .signWith(key, SignatureAlgorithm.HS256) //키, 알고리즘으로 서명
                 .compact(); //최종적으로 문자열 JWT 생성
+    }
+
+    private String buildTokenWithClaims(String subject, String role, Long deviceId, long validityMs) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + validityMs);
+        var builder = Jwts.builder()
+                .setSubject(subject)
+                .claim("role", role)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(key, SignatureAlgorithm.HS256);
+
+        if (deviceId != null) {
+            builder.claim("deviceId", deviceId);
+        }
+
+        return builder.compact();
+    }
+
+    // JWT 토큰에서 role을 추출합니다.
+    public String getRoleFromToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.get("role", String.class);
+        } catch (ExpiredJwtException e) {
+            return e.getClaims().get("role", String.class);
+        }
+    }
+
+    // JWT 토큰에서 deviceId를 추출합니다.
+    public Long getDeviceIdFromToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.get("deviceId", Long.class);
+        } catch (ExpiredJwtException e) {
+            return e.getClaims().get("deviceId", Long.class);
+        }
     }
 }
