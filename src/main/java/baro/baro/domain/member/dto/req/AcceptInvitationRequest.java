@@ -1,10 +1,12 @@
-package baro.baro.domain.member.dto.request;
+package baro.baro.domain.member.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Schema(description = "초대 수락 요청")
 @Data
+@AllArgsConstructor
 public class AcceptInvitationRequest {
     @Schema(description = "초대 ID", example = "1")
     private Long relationshipRequestId;

@@ -1,6 +1,6 @@
 package baro.baro.domain.image.controller;
 
-import baro.baro.domain.image.dto.ImageUploadResponse;
+import baro.baro.domain.image.dto.res.ImageUploadResponse;
 import baro.baro.domain.image.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;

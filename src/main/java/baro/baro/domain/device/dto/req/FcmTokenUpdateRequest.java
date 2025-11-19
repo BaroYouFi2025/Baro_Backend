@@ -1,4 +1,4 @@
-package baro.baro.domain.device.dto.request;
+package baro.baro.domain.device.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

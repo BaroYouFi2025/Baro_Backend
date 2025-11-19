@@ -241,13 +241,13 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 locationInfo.point(),
                 locationInfo.address()
         );
-        sightingRepository.save(sighting);
+        Sighting created = sightingRepository.save(sighting);
 
         // 7. 실종자 등록자에게 푸시 알림 발송
         User missingPersonOwner = missingCase.getReportedBy();
         try {
             pushNotificationService.sendMissingPersonFoundNotification(
-                    currentUser,
+                    created.getId(),
                     missingPersonOwner,
                     missingPerson.getName(),
                     currentUser.getName(),

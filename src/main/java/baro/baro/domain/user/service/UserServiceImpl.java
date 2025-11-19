@@ -98,7 +98,11 @@ public class UserServiceImpl implements UserService {
         );
 
         // JWT 토큰 발급
-        String access = jwtTokenProvider.createAccessToken(user.getUid());
+        String access = jwtTokenProvider.createAccessToken(
+                user.getUid(),
+                user.getRole().name(),
+                null  // 회원가입 시에는 deviceId 없음
+        );
         String refresh = jwtTokenProvider.createRefreshToken(user.getUid());
         long expiresIn = jwtTokenProvider.getAccessTokenValiditySeconds();
 

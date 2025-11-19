@@ -1,11 +1,11 @@
 package baro.baro.domain.member.service;
 
 import baro.baro.domain.common.util.SecurityUtil;
-import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
-import baro.baro.domain.member.dto.request.InvitationRequest;
-import baro.baro.domain.member.dto.request.RejectInvitationRequest;
-import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
-import baro.baro.domain.member.dto.response.InvitationResponse;
+import baro.baro.domain.member.dto.req.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.req.InvitationRequest;
+import baro.baro.domain.member.dto.req.RejectInvitationRequest;
+import baro.baro.domain.member.dto.res.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.res.InvitationResponse;
 import baro.baro.domain.member.entity.Invitation;
 import baro.baro.domain.member.entity.Relationship;
 import baro.baro.domain.member.entity.RelationshipRequestStatus;
@@ -31,6 +31,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
+
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,6 +77,7 @@ class MemberServiceImplTest {
                 .birthDate(LocalDate.of(1990, 1, 1))
                 .encodedPassword("hashedPassword")
                 .build();
+        ReflectionTestUtils.setField(inviter, "id", 1L);
 
         invitee = User.builder()
                 .uid("invitee_uid")
@@ -83,6 +86,7 @@ class MemberServiceImplTest {
                 .birthDate(LocalDate.of(1995, 5, 5))
                 .encodedPassword("hashedPassword")
                 .build();
+        ReflectionTestUtils.setField(invitee, "id", 2L);
 
         invitation = Invitation.builder()
                 .id(1L)
@@ -142,9 +146,7 @@ class MemberServiceImplTest {
     @DisplayName("초대 수락 성공")
     void acceptInvitation_Success() {
         // given
-        AcceptInvitationRequest request = new AcceptInvitationRequest();
-        request.setRelationshipRequestId(1L);
-        request.setRelation("친구");
+        AcceptInvitationRequest request = new AcceptInvitationRequest(1L, "친구");
 
         Relationship originRelationship = Relationship.builder()
                 .id(1L)
@@ -186,8 +188,7 @@ class MemberServiceImplTest {
     @DisplayName("초대 수락 실패 - 초대를 찾을 수 없음")
     void acceptInvitation_InvitationNotFound() {
         // given
-        AcceptInvitationRequest request = new AcceptInvitationRequest();
-        request.setRelationshipRequestId(999L);
+        AcceptInvitationRequest request = new AcceptInvitationRequest(999L, null);
 
         when(invitationRepository.findById(999L)).thenReturn(Optional.empty());
 

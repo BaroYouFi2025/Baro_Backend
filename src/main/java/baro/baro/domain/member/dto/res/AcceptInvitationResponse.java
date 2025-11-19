@@ -1,4 +1,4 @@
-package baro.baro.domain.member.dto.response;
+package baro.baro.domain.member.dto.res;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

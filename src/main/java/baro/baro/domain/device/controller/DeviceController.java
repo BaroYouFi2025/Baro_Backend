@@ -1,10 +1,10 @@
 package baro.baro.domain.device.controller;
 
-import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
-import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
-import baro.baro.domain.device.dto.request.GpsUpdateRequest;
-import baro.baro.domain.device.dto.response.DeviceResponse;
-import baro.baro.domain.device.dto.response.GpsUpdateResponse;
+import baro.baro.domain.device.dto.req.DeviceRegisterRequest;
+import baro.baro.domain.device.dto.req.FcmTokenUpdateRequest;
+import baro.baro.domain.device.dto.req.GpsUpdateRequest;
+import baro.baro.domain.device.dto.res.DeviceResponse;
+import baro.baro.domain.device.dto.res.GpsUpdateResponse;
 import baro.baro.domain.device.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,10 +42,8 @@ public class DeviceController {
     })
     @PostMapping("/register")
     public ResponseEntity<DeviceResponse> registerDevice(
-            @Valid @RequestBody DeviceRegisterRequest request,
-            Authentication authentication) {
-        String uid = authentication.getName();
-        DeviceResponse response = deviceService.registerDevice(uid, request);
+            @Valid @RequestBody DeviceRegisterRequest request) {
+        DeviceResponse response = deviceService.registerDevice(request);
         return ResponseEntity.ok(response);
     }
 
@@ -60,13 +58,10 @@ public class DeviceController {
         @ApiResponse(responseCode = "401", description = "인증 실패"),
         @ApiResponse(responseCode = "404", description = "기기를 찾을 수 없음")
     })
-    @PostMapping("/{deviceId}/gps")
+    @PostMapping("/gps")
     public ResponseEntity<GpsUpdateResponse> updateGps(
-            @PathVariable Long deviceId,
-            @Valid @RequestBody GpsUpdateRequest request,
-            Authentication authentication) {
-        String uid = authentication.getName();
-        GpsUpdateResponse response = deviceService.updateGps(uid, deviceId, request);
+            @Valid @RequestBody GpsUpdateRequest request) {
+        GpsUpdateResponse response = deviceService.updateGps(request);
         return ResponseEntity.ok(response);
     }
 

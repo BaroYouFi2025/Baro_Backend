@@ -1,8 +1,8 @@
 package baro.baro.domain.notification.service;
 
-import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
-import baro.baro.domain.member.dto.request.RejectInvitationRequest;
-import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.req.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.req.RejectInvitationRequest;
+import baro.baro.domain.member.dto.res.AcceptInvitationResponse;
 import baro.baro.domain.member.service.MemberService;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.entity.Sighting;
@@ -99,11 +99,7 @@ public class NotificationServiceImpl implements NotificationServiceInterface {
         User currentUser = SecurityUtil.getCurrentUser();
         Notification notification = getNotificationForAction(notificationId, currentUser, NotificationType.INVITE_REQUEST);
 
-        AcceptInvitationRequest request = new AcceptInvitationRequest();
-        request.setRelationshipRequestId(notification.getRelatedEntityId());
-        request.setRelation(relation);
-
-        AcceptInvitationResponse response = memberService.acceptInvitation(request);
+        AcceptInvitationResponse response = memberService.acceptInvitation(new AcceptInvitationRequest(notification.getRelatedEntityId(),relation));
 
         // 알림을 읽음 처리
         notification.markAsRead();
