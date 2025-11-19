@@ -6,6 +6,8 @@ import baro.baro.domain.common.exception.ErrorCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Map;
+
 /**
  * Security 관련 유틸리티 클래스
  *
@@ -74,5 +76,49 @@ public class SecurityUtil {
         }
 
         return authentication.isAuthenticated() && principal instanceof User;
+    }
+
+    /**
+     * SecurityContext에서 현재 인증된 사용자의 deviceId를 반환합니다.
+     * JWT 토큰에서 추출된 값입니다.
+     *
+     * @return 현재 deviceId (없으면 null)
+     */
+    @SuppressWarnings("unchecked")
+    public static Long getCurrentDeviceId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object details = authentication.getDetails();
+        if (details instanceof Map) {
+            return (Long) ((Map<String, Object>) details).get("deviceId");
+        }
+
+        return null;
+    }
+
+    /**
+     * SecurityContext에서 현재 인증된 사용자의 role을 반환합니다.
+     * JWT 토큰에서 추출된 값입니다.
+     *
+     * @return 현재 role (없으면 null)
+     */
+    @SuppressWarnings("unchecked")
+    public static String getCurrentRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object details = authentication.getDetails();
+        if (details instanceof Map) {
+            return (String) ((Map<String, Object>) details).get("role");
+        }
+
+        return null;
     }
 }
