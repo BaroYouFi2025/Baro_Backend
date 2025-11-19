@@ -55,7 +55,7 @@ public class Invitation {
 
     // 초대된 사용자가 맞는지 검증
     public void validateInvitee(User invitee) {
-        if (!this.inviteeUser.equals(invitee)) {
+        if (!this.inviteeUser.getId().equals(invitee.getId())) {
             throw new MemberException(NOT_CORRECT_INVITEE);
         }
     }
