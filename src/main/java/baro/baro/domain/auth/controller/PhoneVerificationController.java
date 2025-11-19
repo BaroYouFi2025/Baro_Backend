@@ -4,7 +4,7 @@ import baro.baro.domain.auth.dto.req.PhoneVerificationStatusRequest;
 import baro.baro.domain.auth.dto.req.TestPhoneVerificationRequest;
 import baro.baro.domain.auth.dto.res.PhoneVerificationResponse;
 import baro.baro.domain.auth.dto.res.PhoneVerifyResponse;
-import baro.baro.domain.auth.service.EmailListener;
+import baro.baro.domain.auth.listener.EmailListener;
 import baro.baro.domain.auth.service.PhoneVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -1,7 +1,9 @@
-package baro.baro.domain.auth.service;
+package baro.baro.domain.auth.listener;
 
 import baro.baro.domain.auth.exception.EmailErrorCode;
 import baro.baro.domain.auth.exception.EmailException;
+import baro.baro.domain.auth.util.MailOtpExtractor;
+import baro.baro.domain.auth.service.PhoneVerificationService;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
