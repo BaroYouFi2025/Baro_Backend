@@ -1,4 +1,4 @@
-package baro.baro.domain.auth.service;
+package baro.baro.domain.auth.scheduler;
 
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
 import lombok.RequiredArgsConstructor;

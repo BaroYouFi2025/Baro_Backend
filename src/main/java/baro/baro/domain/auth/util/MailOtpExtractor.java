@@ -1,4 +1,4 @@
-package baro.baro.domain.auth.service;
+package baro.baro.domain.auth.util;
 
 import baro.baro.domain.auth.exception.EmailErrorCode;
 import baro.baro.domain.auth.exception.EmailException;
