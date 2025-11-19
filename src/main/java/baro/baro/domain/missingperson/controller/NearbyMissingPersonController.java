@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "NearbyMissingPerson", description = "근처 실종자 조회 API")
 @RestController
-@RequestMapping("/missing-person")
+@RequestMapping("/missing-persons")
 @RequiredArgsConstructor
 public class NearbyMissingPersonController {
 
