@@ -1,6 +1,6 @@
 package baro.baro.domain.notification.controller;
 
-import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.res.AcceptInvitationResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.dto.res.SightingDetailResponse;
 import baro.baro.domain.notification.dto.req.AcceptInvitationFromNotificationRequest;

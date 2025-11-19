@@ -1,8 +1,8 @@
 package baro.baro.domain.notification.service;
 
-import baro.baro.domain.member.dto.request.AcceptInvitationRequest;
-import baro.baro.domain.member.dto.request.RejectInvitationRequest;
-import baro.baro.domain.member.dto.response.AcceptInvitationResponse;
+import baro.baro.domain.member.dto.req.AcceptInvitationRequest;
+import baro.baro.domain.member.dto.req.RejectInvitationRequest;
+import baro.baro.domain.member.dto.res.AcceptInvitationResponse;
 import baro.baro.domain.member.service.MemberService;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
 import baro.baro.domain.missingperson.entity.Sighting;
