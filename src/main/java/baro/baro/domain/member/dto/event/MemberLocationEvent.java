@@ -1,6 +1,6 @@
 package baro.baro.domain.member.dto.event;
 
-import baro.baro.domain.member.dto.response.MemberLocationResponse;
+import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

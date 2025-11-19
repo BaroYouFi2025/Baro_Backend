@@ -1,10 +1,10 @@
 package baro.baro.domain.device.controller;
 
-import baro.baro.domain.device.dto.request.DeviceRegisterRequest;
-import baro.baro.domain.device.dto.request.FcmTokenUpdateRequest;
-import baro.baro.domain.device.dto.request.GpsUpdateRequest;
-import baro.baro.domain.device.dto.response.DeviceResponse;
-import baro.baro.domain.device.dto.response.GpsUpdateResponse;
+import baro.baro.domain.device.dto.req.DeviceRegisterRequest;
+import baro.baro.domain.device.dto.req.FcmTokenUpdateRequest;
+import baro.baro.domain.device.dto.req.GpsUpdateRequest;
+import baro.baro.domain.device.dto.res.DeviceResponse;
+import baro.baro.domain.device.dto.res.GpsUpdateResponse;
 import baro.baro.domain.device.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

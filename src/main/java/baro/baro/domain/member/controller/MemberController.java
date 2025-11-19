@@ -1,7 +1,7 @@
 package baro.baro.domain.member.controller;
 
 import baro.baro.domain.member.dto.event.MemberLocationEvent;
-import baro.baro.domain.member.dto.response.MemberLocationResponse;
+import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import baro.baro.domain.member.service.MemberLocationEmitterRegistry;
 import baro.baro.domain.member.service.MemberService;
 import com.fasterxml.jackson.databind.ObjectMapper;

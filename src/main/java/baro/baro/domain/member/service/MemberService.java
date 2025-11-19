@@ -1,8 +1,8 @@
 package baro.baro.domain.member.service;
 
 
-import baro.baro.domain.member.dto.response.*;
-import baro.baro.domain.member.dto.request.*;
+import baro.baro.domain.member.dto.res.*;
+import baro.baro.domain.member.dto.req.*;
 
 import java.util.List;
 

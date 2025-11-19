@@ -2,7 +2,7 @@ package baro.baro.domain.member.listener;
 
 import baro.baro.domain.member.dto.event.MemberLocationChangedEvent;
 import baro.baro.domain.member.dto.event.MemberLocationEvent;
-import baro.baro.domain.member.dto.response.MemberLocationResponse;
+import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import baro.baro.domain.member.repository.RelationshipRepository;
 import baro.baro.domain.member.service.MemberLocationEmitterRegistry;
 import baro.baro.domain.member.service.MemberService;
