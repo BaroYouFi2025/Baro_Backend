@@ -99,11 +99,7 @@ public class NotificationServiceImpl implements NotificationServiceInterface {
         User currentUser = SecurityUtil.getCurrentUser();
         Notification notification = getNotificationForAction(notificationId, currentUser, NotificationType.INVITE_REQUEST);
 
-        AcceptInvitationRequest request = new AcceptInvitationRequest();
-        request.setRelationshipRequestId(notification.getRelatedEntityId());
-        request.setRelation(relation);
-
-        AcceptInvitationResponse response = memberService.acceptInvitation(request);
+        AcceptInvitationResponse response = memberService.acceptInvitation(new AcceptInvitationRequest(notification.getRelatedEntityId(),relation));
 
         // 알림을 읽음 처리
         notification.markAsRead();
