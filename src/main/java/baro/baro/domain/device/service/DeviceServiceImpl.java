@@ -27,18 +27,23 @@ import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.monitoring.MetricsService;
+import baro.baro.domain.member.dto.event.MemberLocationChangedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
+import static baro.baro.domain.common.util.SecurityUtil.getCurrentDeviceId;
 
 // 기기 관리 및 GPS 위치 추적 서비스 구현 클래스
 //
@@ -60,6 +65,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final NotificationRepository notificationRepository;
     private final PushNotificationService pushNotificationService;
     private final MetricsService metricsService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // PostGIS 공간 데이터 생성을 위한 GeometryFactory
     private final GeometryFactory geometryFactory = new GeometryFactory();
@@ -85,10 +91,9 @@ public class DeviceServiceImpl implements DeviceService {
     // @throws DeviceException 이미 등록된 UUID인 경우
     @Override
     @Transactional
-    public DeviceResponse registerDevice(String uid, DeviceRegisterRequest request) {
+    public DeviceResponse registerDevice(DeviceRegisterRequest request) {
         // 1. 사용자 조회
-        User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        User user = getCurrentUser();
 
         // 2. 중복 UUID 확인 - 이미 등록된 UUID인지 검증
         deviceRepository.findByDeviceUuid(request.getDeviceUuid())
@@ -129,20 +134,22 @@ public class DeviceServiceImpl implements DeviceService {
     // GPS 좌표는 WGS84 좌표계(SRID: 4326)를 사용하며,
     // PostGIS Point 타입으로 데이터베이스에 저장됩니다.
     //
-    // @param uid 사용자 고유 ID
-    // @param deviceId 기기 ID
     // @param request GPS 위치 정보 (위도, 경도, 배터리 레벨)
     // @return GPS 업데이트 결과
     // @throws UserException 사용자를 찾을 수 없는 경우
     // @throws DeviceException 기기를 찾을 수 없거나 소유권이 없는 경우
     @Override
     @Transactional
-    public GpsUpdateResponse updateGps(String uid, Long deviceId, GpsUpdateRequest request) {
+    public GpsUpdateResponse updateGps(GpsUpdateRequest request) {
         long startTime = System.currentTimeMillis();
-        
-        // 1. 사용자 조회
-        User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        // 1. 사용자 및 deviceId 조회
+        User user = getCurrentUser();
+        Long deviceId = getCurrentDeviceId();
+
+        if (deviceId == null) {
+            throw new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND);
+        }
 
         // 2. 기기 조회 및 소유권 확인
         Device device = deviceRepository.findByIdAndUser(deviceId, user)
@@ -172,12 +179,15 @@ public class DeviceServiceImpl implements DeviceService {
         // 6. 비동기로 주변 실종자 체크 및 알림 발송
         checkNearbyMissingPersons(user, location);
 
-        // 7. 메트릭 기록: GPS 업데이트
+        // 7. 위치 변경 이벤트 발행 (SSE 브로드캐스트용)
+        eventPublisher.publishEvent(new MemberLocationChangedEvent(this, user.getId()));
+
+        // 8. 메트릭 기록: GPS 업데이트
         metricsService.recordGpsLocationUpdate();
         long duration = System.currentTimeMillis() - startTime;
         metricsService.recordGpsUpdateDuration(duration);
 
-        // 8. 응답 DTO 생성 및 반환
+        // 9. 응답 DTO 생성 및 반환
         return new GpsUpdateResponse(
                 request.getLatitude(),
                 request.getLongitude(),
@@ -275,24 +285,13 @@ public class DeviceServiceImpl implements DeviceService {
                 return;
             }
 
-            User owner = missingCase.getReportedBy();
-
             // 3. 거리 계산
             double distance = GpsUtils.calculateDistance(userLocation, missingPerson.getLocation());
 
             log.info("NEARBY_ALERT 발송 준비 - 사용자: {}, 실종자: {}, 거리: {}m",
                     user.getName(), missingPerson.getName(), distance);
 
-            // 4. 알림 발송 (등록자 + GPS 업데이트 사용자)
-            pushNotificationService.sendNearbyAlertToOwner(
-                    owner,
-                    user,
-                    missingPerson.getName(),
-                    distance,
-                    userLocation,
-                    missingPerson.getId()
-            );
-
+            // 4. GPS 업데이트 사용자에게 알림 발송
             pushNotificationService.sendNearbyAlertToReporter(
                     user,
                     missingPerson.getName(),
