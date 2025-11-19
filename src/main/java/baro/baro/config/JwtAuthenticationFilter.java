@@ -18,6 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 // JWT 인증 필터
 // 모든 HTTP 요청에서 JWT 토큰을 검증하고 인증 정보를 설정합니다.
@@ -52,6 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
+                // JWT에서 추가 정보 추출
+                Long deviceId = jwtTokenProvider.getDeviceIdFromToken(jwt);
+                String role = jwtTokenProvider.getRoleFromToken(jwt);
+
                 // 인증 객체 생성 (User 객체를 principal로 저장하여 이후 DB 재조회 방지)
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -60,13 +66,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 Collections.emptyList()
                         );
 
-                // 요청 상세 정보 설정
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // JWT에서 추출한 정보를 details에 저장
+                Map<String, Object> details = new HashMap<>();
+                details.put("deviceId", deviceId);
+                details.put("role", role);
+                authentication.setDetails(details);
 
                 // SecurityContext에 인증 정보 설정
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("JWT 인증 성공 - User ID: {}, URI: {}", userId, request.getRequestURI());
+                log.debug("JWT 인증 성공 - User ID: {}, DeviceId: {}, URI: {}", userId, deviceId, request.getRequestURI());
             }
         } catch (Exception e) {
             log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
