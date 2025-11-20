@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'baro'
@@ -73,8 +74,74 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
     testImplementation 'org.testcontainers:postgresql:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+def jacocoClassExclusions = [
+        '**/dto/**',
+        '**/entity/**',
+        '**/exception/**',
+        '**/BaroApplication.*',
+        '**/config/**',
+        '**/domain/**/constant/**',
+        '**/domain/**/type/**',
+        '**/domain/**/enums/**',
+        '**/generated/**',
+        '**/*Mapper*.*',
+        '**/*Converter*.*',
+        '**/*Scheduler*.*',
+        '**/*Listener*.*',
+        '**/client/**'
+]
+
+tasks.register('coverageReportClean') {
+    group = 'verification'
+    description = 'Deletes previous JaCoCo reports to ensure clean artifacts.'
+    doLast {
+        delete(layout.buildDirectory.dir("reports/jacoco"))
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn tasks.test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/html")
+    }
+    classDirectories.setFrom(
+            files(sourceSets.main.output.classesDirs.asFileTree.matching {
+                exclude jacocoClassExclusions
+            })
+    )
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn tasks.test
+    classDirectories.setFrom(
+            files(sourceSets.main.output.classesDirs.asFileTree.matching {
+                exclude jacocoClassExclusions
+            })
+    )
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.015
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn tasks.jacocoTestCoverageVerification
 }
