@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 // AI 이미지 생성 컨트롤러
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "AI Image", description = "AI 이미지 생성 API")
+@PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class AiImageController {
 
     private final AiImageService aiImageService;
