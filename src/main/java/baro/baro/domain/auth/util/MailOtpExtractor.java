@@ -4,6 +4,7 @@ import baro.baro.domain.auth.exception.EmailErrorCode;
 import baro.baro.domain.auth.exception.EmailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -84,7 +85,9 @@ public final class MailOtpExtractor {
             if (part.isMimeType("message/rfc822")) {
                 return text((Part) part.getContent());
             }
-        } catch (Exception ignore) {}
+        } catch (MessagingException | IOException e) {
+            return "";
+        }
         return "";
     }
 
