@@ -1,8 +1,10 @@
 package baro.baro.config;
 
+import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.service.JwtTokenProvider;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +17,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.dao.DataAccessException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -77,9 +80,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 log.debug("JWT 인증 성공 - User ID: {}, DeviceId: {}, URI: {}", userId, deviceId, request.getRequestURI());
             }
-        } catch (Exception e) {
-            log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage(), e);
-        // 예외가 발생해도 필터 체인은 계속 진행 (인증 실패로 처리됨)
+        } catch (AuthException e) {
+            log.warn("JWT 인증 실패 (도메인 오류) - URI: {}, 사유: {}", request.getRequestURI(), e.getMessage());
+        } catch (JwtException e) {
+            log.warn("JWT 토큰 파싱 중 오류 - URI: {}, 사유: {}", request.getRequestURI(), e.getMessage());
+        } catch (IllegalArgumentException | DataAccessException e) {
+            log.error("JWT 인증 처리 중 시스템 오류 - URI: {}", request.getRequestURI(), e);
         }
 
         filterChain.doFilter(request, response);
