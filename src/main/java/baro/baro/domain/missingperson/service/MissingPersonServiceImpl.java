@@ -24,6 +24,7 @@ import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.LocationUtil;
 import baro.baro.domain.common.util.SecurityUtil;
+import baro.baro.domain.notification.exception.NotificationException;
 import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.common.monitoring.MetricsService;
 import lombok.extern.slf4j.Slf4j;
@@ -253,10 +254,9 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                     currentUser.getName(),
                     locationInfo.address()
             );
-        } catch (Exception e) {
-            log.error("푸시 알림 발송 실패 - 실종자: {}, 신고자: {}, 등록자: {}, 오류: {}",
-                    missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), e.getMessage(), e);
-        // 푸시 알림 실패는 전체 트랜잭션을 롤백하지 않음
+        } catch (NotificationException e) {
+            log.warn("실종자 발견 알림 발송 실패 - 실종자:{}, 신고자:{}, 등록자:{}, 이유:{}",
+                    missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), e.getMessage());
         }
 
         log.info("실종자 발견 신고 완료 - 실종자: {}, 신고자: {}, 등록자: {}, 위치: {}",
