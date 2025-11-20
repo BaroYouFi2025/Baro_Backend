@@ -64,19 +64,7 @@ public class AiImageServiceImpl implements AiImageService {
         // 4. Google GenAI로 이미지 생성
         List<String> imageUrls;
         try {
-            if (request.getAssetType() == AssetType.AGE_PROGRESSION) {
-                // 성장/노화: 4장 생성
-                imageUrls = googleGenAiService.generateAgeProgressionImages(missingPerson);
-            } else {
-                // 인상착의: 1장 생성
-                String imageUrl = googleGenAiService.generateDescriptionImage(missingPerson);
-                imageUrls = List.of(imageUrl);
-            }
-
-            // 생성된 이미지 검증
-            if (imageUrls == null || imageUrls.isEmpty()) {
-                throw new AiException(AiErrorCode.EMPTY_RESPONSE);
-            }
+            imageUrls = googleGenAiService.generateImages(missingPerson, request.getAssetType());
 
         } catch (AiException e) {
             throw e; // AiException은 그대로 전파
@@ -97,8 +85,7 @@ public class AiImageServiceImpl implements AiImageService {
             savedAssets.add(aiAssetRepository.save(asset));
         }
 
-        // 6. 인상착의 이미지는 즉시 MissingPerson 대표 이미지로 저장
-        if (request.getAssetType() == AssetType.GENERATED_IMAGE) {
+        if (request.getAssetType() == AssetType.GENERATED_IMAGE && !imageUrls.isEmpty()) {
             missingPerson.updateAiImage(imageUrls.get(0), AssetType.GENERATED_IMAGE);
             log.info("인상착의 이미지 MissingPerson에 자동 적용 완료 - URL: {}", imageUrls.get(0));
         }
