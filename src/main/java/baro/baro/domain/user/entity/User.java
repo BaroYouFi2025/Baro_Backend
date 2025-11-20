@@ -19,7 +19,7 @@ import java.time.ZonedDateTime;
 @Entity
 @Table(name = "users", schema = "youfi")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class User {
     
     @Id
