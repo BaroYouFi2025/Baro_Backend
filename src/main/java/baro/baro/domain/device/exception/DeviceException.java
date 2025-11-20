@@ -12,6 +12,11 @@ public class DeviceException extends BusinessException {
         this.deviceErrorCode = deviceErrorCode;
     }
 
+    public DeviceException(DeviceErrorCode deviceErrorCode, Throwable cause) {
+        super(convertToErrorCode(deviceErrorCode), cause);
+        this.deviceErrorCode = deviceErrorCode;
+    }
+
     private static ErrorCode convertToErrorCode(DeviceErrorCode deviceErrorCode) {
         return switch (deviceErrorCode.getStatus()) {
             case 404 -> ErrorCode.NOT_FOUND;
