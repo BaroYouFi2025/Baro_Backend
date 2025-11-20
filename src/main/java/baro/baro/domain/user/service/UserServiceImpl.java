@@ -137,7 +137,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserProfileResponse updateProfile(UpdateProfileRequest request) {
-        User user = getCurrentUser();
+        User user = userRepository.findByUid(SecurityUtil.getCurrentUserUid())
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         // 도메인 메서드를 통한 프로필 업데이트
         user.updateProfile(
