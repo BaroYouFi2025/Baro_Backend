@@ -14,6 +14,11 @@ public class EmailException extends BusinessException {
         this.emailErrorCode = emailErrorCode;
     }
 
+    public EmailException(EmailErrorCode emailErrorCode, Throwable cause) {
+        super(convertToErrorCode(emailErrorCode), cause);
+        this.emailErrorCode = emailErrorCode;
+    }
+
     private static ErrorCode convertToErrorCode(EmailErrorCode emailErrorCode) {
         return switch (emailErrorCode.getStatus()) {
             case 400 -> ErrorCode.VALIDATION_ERROR;
