@@ -17,7 +17,9 @@ public enum ErrorCode {
     CONFLICT(409, "이미 존재하는 리소스입니다."),
     TOO_MANY_REQUESTS(429, "요청이 너무 많습니다."),
     INTERNAL_ERROR(500, "서버 내부 오류"),
-    SERVICE_UNAVAILABLE(503, "서비스를 사용할 수 없습니다.");
+    SERVICE_UNAVAILABLE(503, "서비스를 사용할 수 없습니다."),
+    API_ERROR(502, "외부 API 호출 중 오류가 발생했습니다."),
+    TIMEOUT(504, "외부 API 응답 시간이 초과되었습니다.");
 
     private final int status;
     // 메시지 설정 메서드
