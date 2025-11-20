@@ -68,8 +68,8 @@ public class JwtTokenProvider {
             log.warn("지원되지 않는 JWT 토큰입니다.");
         } catch (IllegalArgumentException e) {
             log.warn("JWT 토큰이 잘못되었습니다. Error: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("JWT 토큰 검증 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
+        } catch (JwtException e) {
+            log.error("JWT 토큰 검증 중 JWT 오류 발생: {}", e.getMessage(), e);
         }
         return false;
     }
@@ -94,7 +94,7 @@ public class JwtTokenProvider {
             // 만료된 토큰도 subject 추출 가능 (블랙리스트 등록, 로그아웃 등을 위해)
             log.debug("만료된 토큰에서 subject 추출: {}", e.getClaims().getSubject());
             return e.getClaims().getSubject();
-        } catch (Exception e) {
+        } catch (JwtException e) {
             log.error("토큰에서 subject 추출 실패: {}", e.getMessage());
             throw e;
         }
