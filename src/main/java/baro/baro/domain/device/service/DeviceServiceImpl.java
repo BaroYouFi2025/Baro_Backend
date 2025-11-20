@@ -228,35 +228,29 @@ public class DeviceServiceImpl implements DeviceService {
     @Async
     @Transactional
     public void checkNearbyMissingPersons(User user, Point location) {
-        try {
-            double latitude = location.getY();
-            double longitude = location.getX();
+        double latitude = location.getY();
+        double longitude = location.getX();
 
-            log.debug("주변 실종자 체크 시작 - 사용자: {}, 위치: ({}, {}), 반경: {}m",
-                    user.getName(), latitude, longitude, nearbyAlertRadiusMeters);
+        log.debug("주변 실종자 체크 시작 - 사용자: {}, 위치: ({}, {}), 반경: {}m",
+                user.getName(), latitude, longitude, nearbyAlertRadiusMeters);
 
-            // 1. 주변 실종자 검색 (OPEN 케이스만)
-            List<MissingPerson> nearbyPersons = missingPersonRepository.findNearbyMissingPersons(
-                    latitude,
-                    longitude,
-                    nearbyAlertRadiusMeters
-            );
+        // 1. 주변 실종자 검색 (OPEN 케이스만)
+        List<MissingPerson> nearbyPersons = missingPersonRepository.findNearbyMissingPersons(
+                latitude,
+                longitude,
+                nearbyAlertRadiusMeters
+        );
 
-            if (nearbyPersons.isEmpty()) {
-                log.debug("주변에 실종자가 없습니다 - 사용자: {}", user.getName());
-                return;
-            }
+        if (nearbyPersons.isEmpty()) {
+            log.debug("주변에 실종자가 없습니다 - 사용자: {}", user.getName());
+            return;
+        }
 
-            log.info("주변 실종자 발견 - 사용자: {}, 발견 수: {}", user.getName(), nearbyPersons.size());
+        log.info("주변 실종자 발견 - 사용자: {}, 발견 수: {}", user.getName(), nearbyPersons.size());
 
-            // 2. 각 실종자에 대해 중복 체크 및 알림 발송
-            for (MissingPerson missingPerson : nearbyPersons) {
-                processMissingPersonAlert(user, missingPerson, location);
-            }
-
-        } catch (Exception e) {
-            log.error("주변 실종자 체크 중 오류 발생 - 사용자: {}, 오류: {}",
-                    user.getName(), e.getMessage(), e);
+        // 2. 각 실종자에 대해 중복 체크 및 알림 발송
+        for (MissingPerson missingPerson : nearbyPersons) {
+            processMissingPersonAlert(user, missingPerson, location);
         }
     }
 
@@ -266,44 +260,38 @@ public class DeviceServiceImpl implements DeviceService {
     // @param missingPerson 발견된 실종자
     // @param userLocation 사용자 현재 위치
     private void processMissingPersonAlert(User user, MissingPerson missingPerson, Point userLocation) {
-        try {
-            // 1. 중복 체크: 최근 24시간 이내 알림이 있는지 확인
-            if (!shouldSendNearbyAlert(user, missingPerson, userLocation)) {
-                log.debug("NEARBY_ALERT 중복 차단 - 사용자: {}, 실종자: {}",
-                        user.getName(), missingPerson.getName());
-                return;
-            }
-
-            // 2. 실종자 등록자 조회 (OPEN 케이스)
-            MissingCase missingCase = missingCaseRepository.findByMissingPersonAndCaseStatus(
-                    missingPerson,
-                    CaseStatusType.OPEN
-            ).orElse(null);
-
-            if (missingCase == null) {
-                log.warn("OPEN 상태의 케이스를 찾을 수 없음 - 실종자: {}", missingPerson.getName());
-                return;
-            }
-
-            // 3. 거리 계산
-            double distance = GpsUtils.calculateDistance(userLocation, missingPerson.getLocation());
-
-            log.info("NEARBY_ALERT 발송 준비 - 사용자: {}, 실종자: {}, 거리: {}m",
-                    user.getName(), missingPerson.getName(), distance);
-
-            // 4. GPS 업데이트 사용자에게 알림 발송
-            pushNotificationService.sendNearbyAlertToReporter(
-                    user,
-                    missingPerson.getName(),
-                    distance,
-                    userLocation,
-                    missingPerson.getId()
-            );
-
-        } catch (Exception e) {
-            log.error("실종자 알림 처리 중 오류 발생 - 사용자: {}, 실종자: {}, 오류: {}",
-                    user.getName(), missingPerson.getName(), e.getMessage(), e);
+        // 1. 중복 체크: 최근 24시간 이내 알림이 있는지 확인
+        if (!shouldSendNearbyAlert(user, missingPerson, userLocation)) {
+            log.debug("NEARBY_ALERT 중복 차단 - 사용자: {}, 실종자: {}",
+                    user.getName(), missingPerson.getName());
+            return;
         }
+
+        // 2. 실종자 등록자 조회 (OPEN 케이스)
+        MissingCase missingCase = missingCaseRepository.findByMissingPersonAndCaseStatus(
+                missingPerson,
+                CaseStatusType.OPEN
+        ).orElse(null);
+
+        if (missingCase == null) {
+            log.warn("OPEN 상태의 케이스를 찾을 수 없음 - 실종자: {}", missingPerson.getName());
+            return;
+        }
+
+        // 3. 거리 계산
+        double distance = GpsUtils.calculateDistance(userLocation, missingPerson.getLocation());
+
+        log.info("NEARBY_ALERT 발송 준비 - 사용자: {}, 실종자: {}, 거리: {}m",
+                user.getName(), missingPerson.getName(), distance);
+
+        // 4. GPS 업데이트 사용자에게 알림 발송
+        pushNotificationService.sendNearbyAlertToReporter(
+                user,
+                missingPerson.getName(),
+                distance,
+                userLocation,
+                missingPerson.getId()
+        );
     }
 
     // NEARBY_ALERT 알림을 발송해야 하는지 판단합니다.
