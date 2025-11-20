@@ -73,7 +73,7 @@ public class MissingPerson {
     @Schema(hidden = true) // Swagger 문서에서 제외 (JTS Point 타입은 직렬화 불가)
     @Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
-    
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
