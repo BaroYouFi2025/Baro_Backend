@@ -35,9 +35,6 @@ public class AiImageServiceImpl implements AiImageService {
     private final GoogleGenAiService googleGenAiService;
     
     // AI 이미지 생성
-    // @param request 이미지 생성 요청 (실종자 ID, 에셋 타입)
-    // @return 생성된 이미지 URL 목록
-    // @throws MissingPersonException 실종자를 찾을 수 없는 경우
     @Override
     @Transactional
     public GenerateAiImageResponse generateImage(GenerateAiImageRequest request) {
@@ -63,15 +60,7 @@ public class AiImageServiceImpl implements AiImageService {
 
         // 4. Google GenAI로 이미지 생성
         List<String> imageUrls;
-        try {
-            imageUrls = googleGenAiService.generateImages(missingPerson, request.getAssetType());
-
-        } catch (AiException e) {
-            throw e; // AiException은 그대로 전파
-        } catch (Exception e) {
-            log.error("이미지 생성 중 예외 발생", e);
-            throw new AiException(AiErrorCode.IMAGE_GENERATION_FAILED);
-        }
+        imageUrls = googleGenAiService.generateImages(missingPerson, request.getAssetType());
 
         // 5. AiAsset에 저장 (여러 레코드)
         List<AiAsset> savedAssets = new ArrayList<>();

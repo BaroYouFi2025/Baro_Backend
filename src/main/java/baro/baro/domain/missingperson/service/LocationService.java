@@ -20,21 +20,8 @@ public class LocationService {
     private final GeocodingService geocodingService;
 
     // 좌표를 주소로 변환
-    // @param latitude 위도
-    // @param longitude 경도
-    // @return 주소 문자열
-    // @throws MissingPersonException 주소 조회 실패 시
     public String getAddressFromCoordinates(Double latitude, Double longitude) {
-        try {
-            return geocodingService.getAddressFromCoordinates(latitude, longitude);
-        } catch (BusinessException e) {
-            // common 패키지의 BusinessException을 missingperson 도메인의 MissingPersonException으로 변환 (도메인 격리)
-            log.error("주소 조회 실패: lat={}, lon={}, errorCode={}", latitude, longitude, e.getErrorCode(), e);
-            throw new MissingPersonException(MissingPersonErrorCode.GEOCODING_SERVICE_ERROR);
-        } catch (Exception e) {
-            log.error("주소 조회 중 예상치 못한 오류: lat={}, lon={}", latitude, longitude, e);
-            throw new MissingPersonException(MissingPersonErrorCode.GEOCODING_SERVICE_ERROR);
-        }
+        return geocodingService.getAddressFromCoordinates(latitude, longitude);
     }
 
     // 좌표에서 Point 객체 생성 (검증 포함)
