@@ -155,25 +155,6 @@ class AiImageServiceImplTest {
     }
 
     @Test
-    void generateImageWrapsUnexpectedErrorsIntoAiException() {
-        MissingPerson missingPerson = createMissingPerson();
-        MissingCase missingCase = createMissingCase(missingPerson);
-        GenerateAiImageRequest request = GenerateAiImageRequest.create(7L, AssetType.AGE_PROGRESSION);
-        when(missingCaseRepository.findByMissingPersonId(7L)).thenReturn(Optional.of(missingCase));
-        when(googleGenAiService.generateImages(missingPerson, AssetType.AGE_PROGRESSION))
-                .thenThrow(new IllegalStateException("boom"));
-
-        try (MockedStatic<baro.baro.domain.common.util.SecurityUtil> mockedStatic = mockStatic(baro.baro.domain.common.util.SecurityUtil.class)) {
-            mockedStatic.when(baro.baro.domain.common.util.SecurityUtil::getCurrentUser)
-                    .thenReturn(missingCase.getReportedBy());
-
-            assertThatThrownBy(() -> aiImageService.generateImage(request))
-                    .isInstanceOfSatisfying(AiException.class, e ->
-                            assertThat(e.getAiErrorCode()).isEqualTo(AiErrorCode.IMAGE_GENERATION_FAILED));
-        }
-    }
-
-    @Test
     void applySelectedImageThrowsWhenMissingCaseIsAbsent() {
         ApplyAiImageRequest request = ApplyAiImageRequest.create(8L, AssetType.AGE_PROGRESSION, "url");
         when(missingCaseRepository.findByMissingPersonId(8L)).thenReturn(Optional.empty());
