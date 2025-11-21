@@ -36,29 +36,6 @@ public class AiImageController {
     // AI 이미지 생성
     // 실종자 정보를 기반으로 AI 이미지를 생성
     // 에셋 타입에 따라 생성되는 이미지 개수가 달라짐
-    //
-    // 에셋 타입별 생성 개수:
-    // - AGE_PROGRESSION: 4장 (정면 사진 4개 변형)
-    // - GENERATED_IMAGE: 1장 (인상착의 기반 전신 이미지)
-    //
-    // 요청 예시:
-    // POST /ai/images/generate
-    // {
-    //   "missingPersonId": 1,
-    //   "assetType": "AGE_PROGRESSION"
-    // }
-    //
-    // 응답 예시:
-    // {
-    //   "assetType": "AGE_PROGRESSION",
-    //   "imageUrls": [
-    //     "http://localhost:8080/images/ai/image1.png",
-    //     "http://localhost:8080/images/ai/image2.png",
-    //     "http://localhost:8080/images/ai/image3.png",
-    //     "http://localhost:8080/images/ai/image4.png"
-    //   ]
-    // }
-    //
     @PostMapping("/generate")
     @Operation(summary = "AI 이미지 생성", description = "실종자 정보 기반으로 AI 이미지를 생성합니다. (성장/노화: 3장, 인상착의: 1장)")
     public ResponseEntity<GenerateAiImageResponse> generateAiImage(
