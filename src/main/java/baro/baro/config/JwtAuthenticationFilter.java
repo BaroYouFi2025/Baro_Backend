@@ -20,9 +20,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.dao.DataAccessException;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 // JWT 인증 필터
 // 모든 HTTP 요청에서 JWT 토큰을 검증하고 인증 정보를 설정합니다.
@@ -61,12 +65,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long deviceId = jwtTokenProvider.getDeviceIdFromToken(jwt);
                 String role = jwtTokenProvider.getRoleFromToken(jwt);
 
+                // Role을 GrantedAuthority로 변환 (Spring Security가 인가 체크에 사용)
+                List<GrantedAuthority> authorities = new ArrayList<>();
+                if (StringUtils.hasText(role)) {
+                    // "ROLE_" 접두사가 없으면 추가
+                    String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                    authorities.add(new SimpleGrantedAuthority(roleWithPrefix));
+                }
+
                 // 인증 객체 생성 (User 객체를 principal로 저장하여 이후 DB 재조회 방지)
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 user,  // User 객체를 principal로 저장
                                 null,
-                                Collections.emptyList()
+                                authorities  // Role 기반 권한 설정
                         );
 
                 // JWT에서 추출한 정보를 details에 저장
@@ -78,7 +90,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // SecurityContext에 인증 정보 설정
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("JWT 인증 성공 - User ID: {}, DeviceId: {}, URI: {}", userId, deviceId, request.getRequestURI());
+                log.debug("JWT 인증 성공 - User ID: {}, Role: {}, DeviceId: {}, URI: {}", userId, role, deviceId, request.getRequestURI());
             }
         } catch (AuthException e) {
             log.warn("JWT 인증 실패 (도메인 오류) - URI: {}, 사유: {}", request.getRequestURI(), e.getMessage());
