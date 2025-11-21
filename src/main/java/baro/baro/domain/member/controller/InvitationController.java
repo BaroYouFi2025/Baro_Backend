@@ -12,14 +12,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Invitation", description = "멤버 초대 관리 API")
 @RestController
 @RequestMapping("/members/invitations")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class InvitationController {
 
     private final MemberService memberService;
