@@ -1,9 +1,8 @@
 package baro.baro.domain.common.geocoding.service;
 
-import baro.baro.domain.common.exception.BusinessException;
-import baro.baro.domain.common.exception.ErrorCode;
-import baro.baro.domain.common.exception.ExternalApiException;
 import baro.baro.domain.common.geocoding.dto.GeocodingResponse;
+import baro.baro.domain.common.geocoding.exception.GeocodingErrorCode;
+import baro.baro.domain.common.geocoding.exception.GeocodingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,24 +62,24 @@ class GoogleMapsGeocodingServiceTest {
     }
 
     @Test
-    void getAddressFromCoordinates_invalidLatitudeThrowsBusinessException() {
+    void getAddressFromCoordinates_invalidLatitudeThrowsGeocodingException() {
         assertThatThrownBy(() -> geocodingService.getAddressFromCoordinates(120.0, 10.0))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.BAD_REQUEST);
+                .isInstanceOf(GeocodingException.class)
+                .extracting("geocodingErrorCode")
+                .isEqualTo(GeocodingErrorCode.INVALID_COORDINATES);
     }
 
     @Test
-    void getAddressFromCoordinates_nonOkResponseThrowsExternalApiException() {
+    void getAddressFromCoordinates_nonOkResponseThrowsGeocodingException() {
         GeocodingResponse response = new GeocodingResponse();
         response.setStatus("ZERO_RESULTS");
         response.setResults(Collections.emptyList());
         when(responseSpec.body(GeocodingResponse.class)).thenReturn(response);
 
         assertThatThrownBy(() -> geocodingService.getAddressFromCoordinates(37.0, 127.0))
-                .isInstanceOf(ExternalApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.API_ERROR);
+                .isInstanceOf(GeocodingException.class)
+                .extracting("geocodingErrorCode")
+                .isEqualTo(GeocodingErrorCode.ADDRESS_NOT_FOUND);
     }
 
     @Test
@@ -88,9 +87,9 @@ class GoogleMapsGeocodingServiceTest {
         when(responseSpec.body(GeocodingResponse.class)).thenThrow(new RestClientException("timeout"));
 
         assertThatThrownBy(() -> geocodingService.getAddressFromCoordinates(37.0, 127.0))
-                .isInstanceOf(ExternalApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.SERVICE_UNAVAILABLE);
+                .isInstanceOf(GeocodingException.class)
+                .extracting("geocodingErrorCode")
+                .isEqualTo(GeocodingErrorCode.GEOCODING_SERVICE_UNAVAILABLE);
     }
 
     @Test
@@ -105,24 +104,24 @@ class GoogleMapsGeocodingServiceTest {
     }
 
     @Test
-    void getPointFromAddress_blankAddressThrowsBusinessException() {
+    void getPointFromAddress_blankAddressThrowsGeocodingException() {
         assertThatThrownBy(() -> geocodingService.getPointFromAddress("   "))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.BAD_REQUEST);
+                .isInstanceOf(GeocodingException.class)
+                .extracting("geocodingErrorCode")
+                .isEqualTo(GeocodingErrorCode.INVALID_ADDRESS);
     }
 
     @Test
-    void getPointFromAddress_nonOkResponseThrowsExternalApiException() {
+    void getPointFromAddress_nonOkResponseThrowsGeocodingException() {
         GeocodingResponse response = new GeocodingResponse();
         response.setStatus("ZERO_RESULTS");
         response.setResults(Collections.emptyList());
         when(responseSpec.body(GeocodingResponse.class)).thenReturn(response);
 
         assertThatThrownBy(() -> geocodingService.getPointFromAddress("없는 주소"))
-                .isInstanceOf(ExternalApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.API_ERROR);
+                .isInstanceOf(GeocodingException.class)
+                .extracting("geocodingErrorCode")
+                .isEqualTo(GeocodingErrorCode.COORDINATES_NOT_FOUND);
     }
 
     private GeocodingResponse successResponse(String formattedAddress, double lat, double lng) {
