@@ -1,9 +1,8 @@
 package baro.baro.domain.common.geocoding.service;
 
-import baro.baro.domain.common.exception.BusinessException;
-import baro.baro.domain.common.exception.ErrorCode;
-import baro.baro.domain.common.exception.ExternalApiException;
 import baro.baro.domain.common.geocoding.dto.GeocodingResponse;
+import baro.baro.domain.common.geocoding.exception.GeocodingErrorCode;
+import baro.baro.domain.common.geocoding.exception.GeocodingException;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -35,13 +34,13 @@ public class GoogleMapsGeocodingService implements GeocodingService {
     public String getAddressFromCoordinates(Double latitude, Double longitude) {
         if (latitude == null || longitude == null) {
             log.warn("위도 또는 경도가 null입니다.");
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new GeocodingException(GeocodingErrorCode.NULL_COORDINATES);
         }
 
         // 좌표 유효성 검증
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
             log.warn("유효하지 않은 좌표: latitude={}, longitude={}", latitude, longitude);
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new GeocodingException(GeocodingErrorCode.INVALID_COORDINATES);
         }
 
         // API URL 구성
@@ -68,17 +67,12 @@ public class GoogleMapsGeocodingService implements GeocodingService {
                 return address;
             } else {
                 log.warn("주소 변환 실패: status={}", response != null ? response.getStatus() : "null");
-                throw new ExternalApiException(ErrorCode.API_ERROR);
+                throw new GeocodingException(GeocodingErrorCode.ADDRESS_NOT_FOUND);
             }
 
         } catch (RestClientException e) {
             log.error("Geocoding API 네트워크 오류: {}", e.getMessage(), e);
-            throw new ExternalApiException(ErrorCode.SERVICE_UNAVAILABLE, e);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Geocoding API 호출 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
-            throw new ExternalApiException(ErrorCode.API_ERROR, e);
+            throw new GeocodingException(GeocodingErrorCode.GEOCODING_SERVICE_UNAVAILABLE, e);
         }
     }
 
@@ -86,7 +80,7 @@ public class GoogleMapsGeocodingService implements GeocodingService {
     public Point getPointFromAddress(String address) {
         if (address == null || address.trim().isEmpty()) {
             log.warn("주소가 null이거나 빈 문자열입니다.");
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new GeocodingException(GeocodingErrorCode.INVALID_ADDRESS);
         }
 
         // 주소 정규화: 불필요한 공백 제거, 괄호 내용 제거
@@ -125,17 +119,12 @@ public class GoogleMapsGeocodingService implements GeocodingService {
                 return point;
             } else {
                 log.warn("좌표 변환 실패: status={}", response != null ? response.getStatus() : "null");
-                throw new ExternalApiException(ErrorCode.API_ERROR);
+                throw new GeocodingException(GeocodingErrorCode.COORDINATES_NOT_FOUND);
             }
 
         } catch (RestClientException e) {
             log.error("Geocoding API 네트워크 오류: {}", e.getMessage(), e);
-            throw new ExternalApiException(ErrorCode.SERVICE_UNAVAILABLE, e);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Geocoding API 호출 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
-            throw new ExternalApiException(ErrorCode.API_ERROR, e);
+            throw new GeocodingException(GeocodingErrorCode.GEOCODING_SERVICE_UNAVAILABLE, e);
         }
     }
 }
