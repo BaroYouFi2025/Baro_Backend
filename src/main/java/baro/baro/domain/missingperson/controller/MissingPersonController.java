@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -52,7 +51,6 @@ public class MissingPersonController {
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PostMapping("/register")
     public ResponseEntity<RegisterMissingPersonResponse> registerMissingPerson(@Valid @RequestBody RegisterMissingPersonRequest request) {
         RegisterMissingPersonResponse response = missingPersonService.registerMissingPerson(request);
@@ -75,7 +73,6 @@ public class MissingPersonController {
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PutMapping("/register/{id}")
     public ResponseEntity<RegisterMissingPersonResponse> updateMissingPerson(@PathVariable Long id, @Valid @RequestBody UpdateMissingPersonRequest request) {
         RegisterMissingPersonResponse response = missingPersonService.updateMissingPerson(id, request);
@@ -118,7 +115,6 @@ public class MissingPersonController {
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping("/me")
     public ResponseEntity<List<MissingPersonResponse>> getMyMissingPersons() {
         List<MissingPersonResponse> response = missingPersonService.getMyMissingPersons();
@@ -168,7 +164,6 @@ public class MissingPersonController {
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
             content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
     })
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PostMapping("/sightings")
     public ResponseEntity<ReportSightingResponse> reportSighting(
             @Valid @RequestBody ReportSightingRequest request) {
