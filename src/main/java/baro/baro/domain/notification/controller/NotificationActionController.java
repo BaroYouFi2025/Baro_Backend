@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 // 알림 액션 REST API 컨트롤러
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class NotificationActionController {
 
     private final NotificationServiceInterface notificationService;
