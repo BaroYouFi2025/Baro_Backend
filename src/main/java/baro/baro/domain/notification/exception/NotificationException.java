@@ -12,6 +12,11 @@ public class NotificationException extends BusinessException {
         this.notificationErrorCode = notificationErrorCode;
     }
 
+    public NotificationException(NotificationErrorCode notificationErrorCode, Throwable cause) {
+        super(convertToErrorCode(notificationErrorCode), cause);
+        this.notificationErrorCode = notificationErrorCode;
+    }
+
     private static ErrorCode convertToErrorCode(NotificationErrorCode notificationErrorCode) {
         return switch (notificationErrorCode.getStatus()) {
             case 404 -> ErrorCode.NOT_FOUND;

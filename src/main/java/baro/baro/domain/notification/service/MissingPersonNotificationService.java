@@ -1,10 +1,12 @@
 package baro.baro.domain.notification.service;
 
 import baro.baro.domain.device.entity.Device;
-import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.notification.entity.NotificationType;
+import baro.baro.domain.notification.exception.NotificationErrorCode;
+import baro.baro.domain.notification.exception.NotificationException;
 import baro.baro.domain.user.entity.User;
 import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.FirebaseMessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
@@ -21,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MissingPersonNotificationService {
 
-    private final DeviceRepository deviceRepository;
+    private final NotificationDeviceService notificationDeviceService;
     private final FcmDispatchService fcmDispatchService;
     private final NotificationPersistenceService persistenceService;
 
@@ -44,7 +46,7 @@ public class MissingPersonNotificationService {
 
         persistenceService.save(missingPersonOwner, NotificationType.FOUND_REPORT, title, message, sightingId);
 
-        List<Device> devices = getActiveDevicesWithToken(missingPersonOwner);
+        List<Device> devices = notificationDeviceService.getActiveDevicesWithToken(missingPersonOwner);
         if (devices.isEmpty()) {
             log.warn("실종자 등록자 {}의 활성 기기가 없습니다. 앱내 알림만 저장됩니다.", missingPersonOwner.getName());
             return;
@@ -74,7 +76,7 @@ public class MissingPersonNotificationService {
         persistenceService.saveWithLocation(reporter, NotificationType.NEARBY_ALERT, title, message,
                                             missingPersonId, reporterLocation);
 
-        List<Device> devices = getActiveDevicesWithToken(reporter);
+        List<Device> devices = notificationDeviceService.getActiveDevicesWithToken(reporter);
         if (devices.isEmpty()) {
             log.warn("GPS 업데이트 사용자 {}의 활성 기기가 없습니다. 앱내 알림만 저장됩니다.", reporter.getName());
             return;
@@ -92,10 +94,4 @@ public class MissingPersonNotificationService {
                 reporter.getName(), missingPersonName, distance);
     }
 
-    private List<Device> getActiveDevicesWithToken(User user) {
-        return deviceRepository.findByUser(user).stream()
-                .filter(Device::isActive)
-                .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
-                .toList();
-    }
 }

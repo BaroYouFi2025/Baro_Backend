@@ -1,7 +1,6 @@
 package baro.baro.domain.notification.service;
 
 import baro.baro.domain.device.entity.Device;
-import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.user.entity.User;
 import com.google.firebase.messaging.Message;
@@ -20,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InvitationNotificationService {
 
-    private final DeviceRepository deviceRepository;
+    private final NotificationDeviceService notificationDeviceService;
     private final FcmDispatchService fcmDispatchService;
     private final NotificationPersistenceService persistenceService;
 
@@ -32,7 +31,7 @@ public class InvitationNotificationService {
 
         persistenceService.save(invitee, NotificationType.INVITE_REQUEST, title, message, invitationId);
 
-        List<Device> devices = getActiveDevicesWithToken(invitee);
+        List<Device> devices = notificationDeviceService.getActiveDevicesWithToken(invitee);
         if (devices.isEmpty()) {
             log.warn("초대받은 사용자 {}의 활성 기기가 없습니다. 앱내 알림만 저장됩니다.", invitee.getName());
             return;
@@ -57,7 +56,7 @@ public class InvitationNotificationService {
 
         persistenceService.save(inviter, NotificationType.INVITE_REQUEST, title, message, null);
 
-        List<Device> devices = getActiveDevicesWithToken(inviter);
+        List<Device> devices = notificationDeviceService.getActiveDevicesWithToken(inviter);
         if (devices.isEmpty()) {
             log.warn("초대한 사용자 {}의 활성 기기가 없습니다. 앱내 알림만 저장됩니다.", inviter.getName());
             return;
@@ -75,10 +74,4 @@ public class InvitationNotificationService {
         log.info("초대 응답 알림 발송 완료 - 초대한 사용자: {}, 수락여부: {}", inviter.getName(), isAccepted);
     }
 
-    private List<Device> getActiveDevicesWithToken(User user) {
-        return deviceRepository.findByUser(user).stream()
-                .filter(Device::isActive)
-                .filter(device -> device.getFcmToken() != null && !device.getFcmToken().isEmpty())
-                .toList();
-    }
 }

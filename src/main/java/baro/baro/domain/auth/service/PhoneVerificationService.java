@@ -68,14 +68,8 @@ public class PhoneVerificationService {
             throw new PhoneVerificationException(PhoneVerificationErrorCode.TOKEN_EXPIRED);
         }
 
-        try {
-            pv.verifyPhoneNumber(phoneNumber);
-            log.info("토큰 인증 성공: token={}, phoneNumber={}", token, phoneNumber);
-        } catch (Exception e) {
-            log.error("토큰 인증 중 예상치 못한 오류: token={}, phoneNumber={}, error={}",
-                     token, phoneNumber, e.getMessage());
-            throw new PhoneVerificationException(PhoneVerificationErrorCode.VERIFICATION_FAILED);
-        }
+        pv.verifyPhoneNumber(phoneNumber);
+        log.info("토큰 인증 성공: token={}, phoneNumber={}", token, phoneNumber);
     }
 
     // 전화번호 인증 상태 확인
