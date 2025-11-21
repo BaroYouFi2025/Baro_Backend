@@ -1,10 +1,12 @@
 package baro.baro.domain.image.service;
 
 import baro.baro.domain.image.entity.Image;
+import baro.baro.domain.image.exception.ImageErrorCode;
+import baro.baro.domain.image.exception.ImageException;
 import baro.baro.domain.image.repository.ImageRepository;
 import baro.baro.domain.user.entity.User;
-import baro.baro.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,34 +17,36 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ImageServiceImpl implements ImageService {
-    
+
+    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+    private static final Set<String> ALLOWED_EXTENSIONS =
+        Set.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+
     private final ImageRepository imageRepository;
-    
+
     @Value("${file.upload.dir}")
     private String uploadDir;
-    
+
     @Value("${file.upload.base-url}")
     private String baseUrl;
-    
+
     @Override
     public String uploadImage(MultipartFile file) {
-        // 현재 로그인한 사용자 조회
         User user = getCurrentUser();
-        
-        // 파일 검증
-        validateFile(file);
-        
-        // 파일 저장 경로 생성 (년/월/일 구조)
-        String savedPath = saveFile(file);
-        
-        // DB에 이미지 정보 저장
+
+        String extension = validateFile(file);
+        String savedPath = saveFile(file, extension);
+
         Image image = Image.create(
             savedPath,
             file.getOriginalFilename(),
@@ -51,110 +55,123 @@ public class ImageServiceImpl implements ImageService {
             user
         );
         imageRepository.save(image);
-        
-        // 접근 가능한 URL 반환
+
         return baseUrl + savedPath;
     }
-    
-    // 파일 유효성 검증
-    private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+
+    private String validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ImageException(ImageErrorCode.EMPTY_FILE);
         }
-        
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("이미지 파일만 업로드 가능합니다.");
-        }
-        
-        // 파일 크기 제한 (10MB)
-        long maxSize = 10 * 1024 * 1024;
-        if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
-        }
+
+        validateMimeType(file.getContentType());
+        validateFileSize(file.getSize());
+        return resolveExtension(file.getOriginalFilename());
     }
-    
+
     @Override
     public String saveImageFromBytes(byte[] imageData, String filename, String mimeType) {
-        // 파일 데이터 검증
-        if (imageData == null || imageData.length == 0) {
-            throw new IllegalArgumentException("이미지 데이터가 비어있습니다.");
-        }
-
-        // 파일 크기 제한 (10MB)
-        long maxSize = 10 * 1024 * 1024;
-        if (imageData.length > maxSize) {
-            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
-        }
-
-        // 파일 저장
-        String savedPath = saveFileFromBytes(imageData, filename);
-
-        // 접근 가능한 URL 반환
+        String extension = validateImageBytes(imageData, filename, mimeType);
+        String uniqueFilename = UUID.randomUUID().toString() + extension;
+        String savedPath = saveFileFromBytes(imageData, uniqueFilename);
         return baseUrl + savedPath;
     }
 
-    // 파일을 로컬에 저장하고 저장 경로 반환
-    private String saveFile(MultipartFile file) {
+    private String validateImageBytes(byte[] imageData, String filename, String mimeType) {
+        if (imageData == null || imageData.length == 0) {
+            throw new ImageException(ImageErrorCode.EMPTY_FILE);
+        }
+
+        validateFileSize(imageData.length);
+        validateMimeType(mimeType);
+        return resolveExtension(filename);
+    }
+
+    private void validateMimeType(String contentType) {
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ImageException(ImageErrorCode.INVALID_FILE_TYPE);
+        }
+    }
+
+    private void validateFileSize(long size) {
+        if (size > MAX_FILE_SIZE) {
+            throw new ImageException(ImageErrorCode.FILE_TOO_LARGE);
+        }
+    }
+
+    private String resolveExtension(String filename) {
+        if (filename == null || filename.isBlank() || !filename.contains(".")) {
+            throw new ImageException(ImageErrorCode.INVALID_FILE_TYPE);
+        }
+
+        String extension = filename.substring(filename.lastIndexOf("."))
+            .toLowerCase(Locale.ROOT);
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new ImageException(ImageErrorCode.INVALID_FILE_TYPE);
+        }
+        return extension;
+    }
+
+    private String saveFile(MultipartFile file, String extension) {
         try {
-            // 현재 날짜 기반 디렉토리 생성 (예: /uploads/images/2025/01/26/)
             LocalDate now = LocalDate.now();
             String datePath = String.format("%d/%02d/%02d",
                 now.getYear(), now.getMonth().getValue(), now.getDayOfMonth());
 
-            String relativePath = "/images/" + datePath;
-            Path directoryPath = Paths.get(uploadDir + relativePath);
+            String relativeDirectory = "images/" + datePath;
+            Path directoryPath = resolveDirectory(relativeDirectory);
 
-            // 디렉토리 생성
             if (!Files.exists(directoryPath)) {
                 Files.createDirectories(directoryPath);
             }
 
-            // 고유한 파일명 생성 (UUID + 원본 확장자)
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
             String uniqueFilename = UUID.randomUUID().toString() + extension;
 
-            // 파일 저장
             Path filePath = directoryPath.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // 상대 경로 반환
-            return relativePath + "/" + uniqueFilename;
+            return buildPublicPath(relativeDirectory, uniqueFilename);
 
         } catch (IOException e) {
-            throw new RuntimeException("파일 저장 중 오류가 발생했습니다.", e);
+            log.error("Failed to save uploaded image", e);
+            throw new ImageException(ImageErrorCode.FILE_SAVE_FAILED);
         }
     }
 
-    // byte[] 데이터를 로컬에 저장하고 저장 경로 반환 (AI 생성 이미지용)
     private String saveFileFromBytes(byte[] imageData, String filename) {
         try {
-            // 현재 날짜 기반 디렉토리 생성 + ai 폴더
             LocalDate now = LocalDate.now();
             String datePath = String.format("%d/%02d/%02d",
                 now.getYear(), now.getMonth().getValue(), now.getDayOfMonth());
 
-            String relativePath = "/images/ai/" + datePath;
-            Path directoryPath = Paths.get(uploadDir + relativePath);
+            String relativeDirectory = "images/ai/" + datePath;
+            Path directoryPath = resolveDirectory(relativeDirectory);
 
-            // 디렉토리 생성
             if (!Files.exists(directoryPath)) {
                 Files.createDirectories(directoryPath);
             }
 
-            // 파일 저장
             Path filePath = directoryPath.resolve(filename);
             Files.write(filePath, imageData);
 
-            // 상대 경로 반환
-            return relativePath + "/" + filename;
+            return buildPublicPath(relativeDirectory, filename);
 
         } catch (IOException e) {
-            throw new RuntimeException("이미지 저장 중 오류가 발생했습니다.", e);
+            log.error("Failed to save AI generated image", e);
+            throw new ImageException(ImageErrorCode.FILE_SAVE_FAILED);
         }
+    }
+
+    private Path resolveDirectory(String relativeDirectory) {
+        Path rootPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path targetPath = rootPath.resolve(relativeDirectory).normalize();
+        if (!targetPath.startsWith(rootPath)) {
+            throw new ImageException(ImageErrorCode.FILE_SAVE_FAILED);
+        }
+        return targetPath;
+    }
+
+    private String buildPublicPath(String relativeDirectory, String filename) {
+        return "/" + relativeDirectory + "/" + filename;
     }
 }

@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.event;
 
+import baro.baro.domain.image.exception.ImageException;
 import baro.baro.domain.image.service.ImageService;
 import baro.baro.domain.missingperson.entity.MissingPersonPolice;
 import baro.baro.domain.missingperson.repository.MissingPersonPoliceRepository;
@@ -98,9 +99,8 @@ public class PhotoProcessingEventListener {
                 entity.setPhotoUrl(null);
                 policeRepository.save(entity);
             }
-        } catch (Exception e) {
-            log.error("실종자 사진 저장 실패 (ID: {}): {}", id, e.getMessage());
-            log.debug("사진 저장 실패 상세", e);
+        } catch (ImageException e) {
+            log.error("실종자 사진 저장 실패 (ID: {}): {}", id, e.getMessage(), e);
             if (!preserveExisting) {
                 entity.setPhotoUrl(null);
                 policeRepository.save(entity);

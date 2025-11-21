@@ -93,7 +93,7 @@ public class EmailListener {
                     log.error("이메일 인증 실패: {}", e.getMessage());
                     throw new EmailException(EmailErrorCode.CONNECTION_FAILED);
                 }
-                catch (Exception e) {
+                catch (MessagingException e) {
                     retryCount++;
                     if (retryCount >= 3) {
                         log.error("IMAP 연결 실패 ({}회 재시도)", retryCount, e);
@@ -139,8 +139,6 @@ public class EmailListener {
 
                 } catch (EmailException e) {
                     log.error("메시지 {} 이메일 처리 중 EmailException 발생: {}", i + 1, e.getMessage());
-                } catch (Exception e) {
-                    log.error("메시지 {} 처리 중 예상치 못한 오류: {}", i + 1, e.getMessage(), e);
                 }
             }
 
@@ -154,8 +152,6 @@ public class EmailListener {
             log.error("이메일 처리 중 EmailException 오류: {} (ErrorCode: {})", e.getMessage(), e.getEmailErrorCode());
         } catch (MessagingException e) {
             log.error("메일 서버 연결 또는 메시지 처리 중 MessagingException 오류: {}", e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("메일확인 중 예상치 못한 오류가 발생했습니다.", e);
         } finally {
             // 안전한 연결 종료
             try {
@@ -165,7 +161,7 @@ public class EmailListener {
                 if (store != null && store.isConnected()) {
                     store.close();
                 }
-            } catch (Exception e) {
+            } catch (MessagingException e) {
                 log.warn("메일 연결 종료 중 오류: {}", e.getMessage());
             }
         }
