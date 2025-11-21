@@ -23,6 +23,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -43,6 +45,11 @@ public class SecurityConfig {
 
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
+
                 // 인증 규칙 설정
                 .authorizeHttpRequests(auth -> auth
                         // Auth Controller - 인증 불필요
@@ -56,15 +63,14 @@ public class SecurityConfig {
                         // User Controller - 회원가입은 인증 불필요
                         .requestMatchers(HttpMethod.POST, "/users/register").permitAll()
 
-                        // Member Controller - 초대 관련 엔드포인트 (인증 불필요)
+                        // Member Controller - 초대 수락/거절은 인증 불필요
                         .requestMatchers(HttpMethod.POST, "/members/invitations/acceptance").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/members/invitations/rejection").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/members/invitations").permitAll()
 
                         // MissingPerson Controller - 공개 조회 엔드포인트
                         .requestMatchers(HttpMethod.GET, "/missing-person/nearby").permitAll()
                         .requestMatchers(HttpMethod.GET, "/missing-persons/search").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/missing-persons/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/missing-persons/{id:\\d+}").permitAll()
 
                         // Police API Controller - 경찰청 공개 데이터 조회
                         .requestMatchers(HttpMethod.GET, "/missing/police/missing-persons").permitAll()
@@ -84,16 +90,34 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
 
                         // 정적 리소스 - 업로드된 이미지 접근 허용
-                        .requestMatchers("/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
 
-                        // Notification Controller
-                        .requestMatchers(HttpMethod.GET, "/notifications/me").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread/count").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/accept-invitation").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/reject-invitation").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/missing-person").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/sighting").permitAll()
+                        // 인증 필수 엔드포인트 (ADMIN/USER)
+                        .requestMatchers(HttpMethod.POST, "/devices/register").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/devices/gps").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/devices/fcm-token").hasAnyRole("ADMIN", "USER")
+
+                        .requestMatchers(HttpMethod.POST, "/ai/images/**").hasAnyRole("ADMIN", "USER")
+
+                        .requestMatchers(HttpMethod.POST, "/images/**").hasAnyRole("ADMIN", "USER")
+
+                        .requestMatchers(HttpMethod.POST, "/members/invitations").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/members/locations").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/members/locations/stream").hasAnyRole("ADMIN", "USER")
+
+                        .requestMatchers(HttpMethod.POST, "/missing-persons/register").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.PUT, "/missing-persons/register/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/missing-persons/me").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/missing-persons/sightings").hasAnyRole("ADMIN", "USER")
+
+                        .requestMatchers(HttpMethod.GET, "/notifications/me").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/notifications/me/unread/count").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.PUT, "/notifications/{notificationId}/read").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/accept-invitation").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/notifications/{notificationId}/reject-invitation").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/missing-person").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/notifications/{notificationId}/sighting").hasAnyRole("ADMIN", "USER")
 
                         // 기본 정책: 명시되지 않은 모든 요청은 인증 필요
                         .anyRequest().authenticated()
