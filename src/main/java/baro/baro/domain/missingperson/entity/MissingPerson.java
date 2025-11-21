@@ -133,27 +133,21 @@ public class MissingPerson {
             Integer weight,
             Point location,
             String address) {
-
-        try {
-
-            return MissingPerson.builder()
-                    .name(name)
-                    .birthDate(LocalDate.parse(birthDate))
-                    .gender(gender != null ? GenderType.valueOf(gender) : null)
-                    .missingDate(LocalDateTime.parse(missingDate))
-                    .body(body)
-                    .bodyEtc(bodyEtc)
-                    .clothesTop(clothesTop)
-                    .clothesBottom(clothesBottom)
-                    .clothesEtc(clothesEtc)
-                    .height(height)
-                    .weight(weight)
-                    .location(location)
-                    .address(address)
-                    .build();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("실종자 정보 생성 중 오류가 발생했습니다: " + e.getMessage(), e);
-        }
+        return MissingPerson.builder()
+                .name(name)
+                .birthDate(LocalDate.parse(birthDate))
+                .gender(gender != null ? GenderType.valueOf(gender) : null)
+                .missingDate(LocalDateTime.parse(missingDate))
+                .body(body)
+                .bodyEtc(bodyEtc)
+                .clothesTop(clothesTop)
+                .clothesBottom(clothesBottom)
+                .clothesEtc(clothesEtc)
+                .height(height)
+                .weight(weight)
+                .location(location)
+                .address(address)
+                .build();
     }
 
     // 실종자 정보 업데이트
@@ -171,47 +165,18 @@ public class MissingPerson {
             Point location,
             String address,
             String missingDate) {
-
-        try {
-            if (name != null) {
-                this.name = name;
-            }
-            if (birthDate != null && !birthDate.isEmpty()) {
-                this.birthDate = LocalDate.parse(birthDate);
-            }
-            if (body != null) {
-                this.body = body;
-            }
-            if (bodyEtc != null) {
-                this.bodyEtc = bodyEtc;
-            }
-            if (clothesTop != null) {
-                this.clothesTop = clothesTop;
-            }
-            if (clothesBottom != null) {
-                this.clothesBottom = clothesBottom;
-            }
-            if (clothesEtc != null) {
-                this.clothesEtc = clothesEtc;
-            }
-            if (height != null) {
-                this.height = height;
-            }
-            if (weight != null) {
-                this.weight = weight;
-            }
-            if (location != null) {
-                this.location = location;
-            }
-            if (address != null) {
-                this.address = address;
-            }
-            if (missingDate != null && !missingDate.isEmpty()) {
-                this.missingDate = LocalDateTime.parse(missingDate);
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("실종자 정보 수정 중 오류가 발생했습니다: " + e.getMessage(), e);
-        }
+        if (name != null) this.name = name;
+        if (birthDate != null && !birthDate.isEmpty()) this.birthDate = LocalDate.parse(birthDate);
+        if (body != null) this.body = body;
+        if (bodyEtc != null) this.bodyEtc = bodyEtc;
+        if (clothesTop != null) this.clothesTop = clothesTop;
+        if (clothesBottom != null) this.clothesBottom = clothesBottom;
+        if (clothesEtc != null) this.clothesEtc = clothesEtc;
+        if (height != null) this.height = height;
+        if (weight != null) this.weight = weight;
+        if (location != null) this.location = location;
+        if (address != null) this.address = address;
+        if (missingDate != null && !missingDate.isEmpty()) this.missingDate = LocalDateTime.parse(missingDate);
     }
 
     // 위치 정보만 업데이트
