@@ -73,4 +73,30 @@ public class MissingCase {
     public void close() {
         changeStatus(CaseStatusType.CLOSED);
     }
+
+    // 등록자가 케이스를 종료합니다.
+    // 등록자만 케이스를 종료할 수 있습니다.
+    //
+    // @param user 종료 요청자
+    // @throws MissingPersonException 등록자가 아닌 경우 (UNAUTHORIZED_ACCESS)
+    // @throws MissingPersonException 이미 종료된 케이스인 경우 (CASE_ALREADY_CLOSED)
+    public void closeBy(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("사용자 정보는 필수입니다.");
+        }
+        if (!isReportedBy(user)) {
+            throw new baro.baro.domain.missingperson.exception.MissingPersonException(
+                    baro.baro.domain.missingperson.exception.MissingPersonErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        if (this.caseStatus == CaseStatusType.CLOSED) {
+            throw new baro.baro.domain.missingperson.exception.MissingPersonException(
+                    baro.baro.domain.missingperson.exception.MissingPersonErrorCode.CASE_ALREADY_CLOSED);
+        }
+        close();
+    }
+
+    // 등록자 여부를 확인합니다.
+    public boolean isReportedBy(User user) {
+        return this.reportedBy.getId().equals(user.getId());
+    }
 }

@@ -23,4 +23,10 @@ public interface MissingPersonService {
     // @param request 발견 신고 요청 정보
     // @return 발견 신고 응답 정보
     ReportSightingResponse reportSighting(ReportSightingRequest request);
+
+    // 실종 케이스를 종료합니다.
+    // 등록자만 케이스를 종료할 수 있습니다.
+    //
+    // @param missingPersonId 실종자 ID
+    void closeMissingCase(Long missingPersonId);
 }
