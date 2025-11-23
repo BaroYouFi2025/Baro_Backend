@@ -138,6 +138,7 @@ public class MissingPerson {
             String clothesEtc,
             Integer height,
             Integer weight,
+            String photoUrl,
             Point location,
             String address) {
         return MissingPerson.builder()
@@ -152,6 +153,7 @@ public class MissingPerson {
                 .clothesEtc(clothesEtc)
                 .height(height)
                 .weight(weight)
+                .photoUrl(photoUrl)
                 .location(location)
                 .address(address)
                 .build();
