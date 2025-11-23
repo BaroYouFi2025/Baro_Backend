@@ -37,7 +37,6 @@ public class GeminiImageResponse {
     @Schema(description = "생성된 후보 결과 리스트")
     private List<Candidate> candidates;
 
-    // 후보 결과
     @Schema(description = "후보 결과")
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -45,6 +44,14 @@ public class GeminiImageResponse {
         // 콘텐츠 (이미지 또는 텍스트)
         @Schema(description = "콘텐츠")
         private Content content;
+
+        // 종료 이유 (STOP, NO_IMAGE, SAFETY 등)
+        @Schema(description = "종료 이유", example = "STOP")
+        private String finishReason;
+
+        // 인덱스
+        @Schema(description = "후보 인덱스")
+        private Integer index;
     }
 
     // 콘텐츠
@@ -128,5 +135,21 @@ public class GeminiImageResponse {
     // 이미지 데이터 존재 여부
     public boolean hasImage() {
         return getFirstImageBase64() != null;
+    }
+
+
+    // 첫 번째 후보의 종료 이유 가져오기
+    public String getFinishReason() {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        Candidate firstCandidate = candidates.get(0);
+        return firstCandidate != null ? firstCandidate.getFinishReason() : null;
+    }
+
+    // 이미지 생성이 안전 필터에 의해 차단되었는지 확인
+    public boolean isBlockedByFilter() {
+        String reason = getFinishReason();
+        return "NO_IMAGE".equals(reason) || "SAFETY".equals(reason);
     }
 }

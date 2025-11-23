@@ -29,6 +29,7 @@ public enum AiErrorCode {
     DAILY_LIMIT_EXCEEDED(429, "일일 요청 한도를 초과했습니다. 내일 다시 시도해주세요."),
 
     // 500 서버 내부 오류
+    IMAGE_BLOCKED_BY_FILTER(500, "AI 안전 필터에 의해 이미지 생성이 차단되었습니다. 다시 시도해주세요."),
     IMAGE_GENERATION_FAILED(500, "이미지 생성에 실패했습니다."),
     INSUFFICIENT_IMAGES_GENERATED(500, "요청한 이미지 개수를 생성하지 못했습니다. 최소 요구 개수를 충족하지 못했습니다."),
     IMAGE_SAVE_FAILED(500, "이미지 저장에 실패했습니다."),
