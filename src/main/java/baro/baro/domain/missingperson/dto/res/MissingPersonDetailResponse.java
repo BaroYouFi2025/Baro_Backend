@@ -52,6 +52,12 @@ public class MissingPersonDetailResponse {
     @Schema(description = "사진 URL", example = "https://example.com/photo.jpg")
     private String photoUrl;
 
+    @Schema(description = "AI 생성 성장/노화 예측 이미지 URL", example = "https://example.com/predicted.jpg")
+    private String predictedFaceUrl;
+
+    @Schema(description = "AI 생성 인상착의 기반 전신 이미지 URL", example = "https://example.com/appearance.jpg")
+    private String appearanceImageUrl;
+
     public static MissingPersonDetailResponse from(MissingPerson missingPerson) {
         MissingPersonDetailResponse response = new MissingPersonDetailResponse();
         response.missingPersonId = missingPerson.getId();
@@ -72,7 +78,9 @@ public class MissingPersonDetailResponse {
         response.clothesEtc = missingPerson.getClothesEtc();
         response.latitude = missingPerson.getLatitude();
         response.longitude = missingPerson.getLongitude();
-        response.photoUrl = missingPerson.getPhotoUrl(); // TODO: PersonMedia 엔티티와 연결하여 photo_url 가져오기
+        response.photoUrl = missingPerson.getPhotoUrl();
+        response.predictedFaceUrl = missingPerson.getPredictedFaceUrl();
+        response.appearanceImageUrl = missingPerson.getAppearanceImageUrl();
         return response;
     }
 
@@ -80,7 +88,8 @@ public class MissingPersonDetailResponse {
             Long missingPersonId, String name, String birthDate, String address,
             String missingDate, Integer height, Integer weight, String body,
             String bodyEtc, String clothesTop, String clothesBottom,
-            String clothesEtc, Double latitude, Double longitude, String photoUrl) {
+            String clothesEtc, Double latitude, Double longitude, String photoUrl,
+            String predictedFaceUrl, String appearanceImageUrl) {
         MissingPersonDetailResponse response = new MissingPersonDetailResponse();
         response.missingPersonId = missingPersonId;
         response.name = name;
@@ -97,6 +106,8 @@ public class MissingPersonDetailResponse {
         response.latitude = latitude;
         response.longitude = longitude;
         response.photoUrl = photoUrl;
+        response.predictedFaceUrl = predictedFaceUrl;
+        response.appearanceImageUrl = appearanceImageUrl;
         return response;
     }
 }
