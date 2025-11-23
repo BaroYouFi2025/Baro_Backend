@@ -58,7 +58,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
         User currentUser = getCurrentUser();
 
-        long registeredCount = missingCaseRepository.countByReportedById(currentUser.getId());
+        long registeredCount = missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN);
         if (registeredCount >= 4) {
             throw new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_LIMIT_EXCEEDED);
         }
@@ -82,6 +82,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 request.getClothesEtc(),
                 request.getHeight(),
                 request.getWeight(),
+                request.getPhotoUrl(),
                 locationInfo.point(),
                 locationInfo.address()
         );
