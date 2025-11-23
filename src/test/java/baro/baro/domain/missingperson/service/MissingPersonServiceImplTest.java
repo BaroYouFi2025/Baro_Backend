@@ -98,7 +98,7 @@ class MissingPersonServiceImplTest {
 
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getCurrentUser).thenReturn(currentUser);
-            when(missingCaseRepository.countByReportedById(currentUser.getId())).thenReturn(2L);
+            when(missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN)).thenReturn(2L);
             when(locationService.createLocationInfo(request.getLatitude(), request.getLongitude()))
                     .thenReturn(locationInfo);
             when(missingPersonRepository.save(any(MissingPerson.class))).thenReturn(
@@ -125,7 +125,7 @@ class MissingPersonServiceImplTest {
 
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getCurrentUser).thenReturn(currentUser);
-            when(missingCaseRepository.countByReportedById(currentUser.getId())).thenReturn(4L);
+            when(missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN)).thenReturn(4L);
 
             MissingPersonException exception = assertThrows(
                     MissingPersonException.class,

@@ -30,6 +30,7 @@ class MissingPersonEntityTest {
                 "빨간 운동화",
                 140,
                 35,
+                "https://jjm.jojaemin.com/images/2025/11/23/b6e3968f-4ea2-48de-8fa2-eca5c60adc87.jpeg",
                 location,
                 "서울시"
         );
