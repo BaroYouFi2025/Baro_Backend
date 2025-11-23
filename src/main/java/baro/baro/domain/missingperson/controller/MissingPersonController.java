@@ -170,4 +170,30 @@ public class MissingPersonController {
         ReportSightingResponse response = missingPersonService.reportSighting(request);
         return ResponseEntity.ok(response);
     }
+
+    @Operation(
+        summary = "실종 케이스 종료",
+        description = "실종 케이스를 종료합니다. 등록자만 케이스를 종료할 수 있습니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "실종 케이스 종료 성공"),
+        @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "케이스 종료 권한이 없음 (등록자가 아님)",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "실종자 또는 활성 케이스를 찾을 수 없음",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+            content = @Content(schema = @Schema(implementation = baro.baro.domain.common.exception.ApiErrorResponse.class)))
+    })
+    @PostMapping("/{id}/close")
+    public ResponseEntity<Void> closeMissingCase(
+            @Parameter(description = "실종자 ID", example = "1", required = true)
+            @PathVariable Long id) {
+        missingPersonService.closeMissingCase(id);
+        return ResponseEntity.ok().build();
+    }
 }

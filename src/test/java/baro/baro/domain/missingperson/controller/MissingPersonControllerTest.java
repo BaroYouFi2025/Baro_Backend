@@ -104,7 +104,7 @@ class MissingPersonControllerTest {
     void getMissingPersonDetailReturnsDto() throws Exception {
         MissingPersonDetailResponse response = MissingPersonDetailResponse.create(
                 10L, "홍길동", "2010-01-01", "부산", "2024-01-01T00:00:00",
-                150, 40, "체형", "특징", "상의", "하의", "기타", 37.5, 127.0, "url");
+                150, 40, "체형", "특징", "상의", "하의", "기타", 37.5, 127.0, "url", null, null);
         when(missingPersonService.getMissingPersonDetail(10L)).thenReturn(response);
 
         mockMvc.perform(get("/missing-persons/{id}", 10L))

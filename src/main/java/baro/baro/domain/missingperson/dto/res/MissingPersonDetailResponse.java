@@ -1,5 +1,6 @@
 package baro.baro.domain.missingperson.dto.res;
 
+import baro.baro.domain.missingperson.entity.GenderType;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -15,6 +16,9 @@ public class MissingPersonDetailResponse {
 
     @Schema(description = "생년월일", example = "2015-09-12")
     private String birthDate;
+
+    @Schema(description = "성별", example = "")
+    private String gender;
 
     @Schema(description = "주소", example = "대한민국 부산광역시 사상구 삼락동 29-6")
     private String address;
@@ -52,6 +56,12 @@ public class MissingPersonDetailResponse {
     @Schema(description = "사진 URL", example = "https://example.com/photo.jpg")
     private String photoUrl;
 
+    @Schema(description = "AI 생성 성장/노화 예측 이미지 URL", example = "https://example.com/predicted.jpg")
+    private String predictedFaceUrl;
+
+    @Schema(description = "AI 생성 인상착의 기반 전신 이미지 URL", example = "https://example.com/appearance.jpg")
+    private String appearanceImageUrl;
+
     public static MissingPersonDetailResponse from(MissingPerson missingPerson) {
         MissingPersonDetailResponse response = new MissingPersonDetailResponse();
         response.missingPersonId = missingPerson.getId();
@@ -59,6 +69,9 @@ public class MissingPersonDetailResponse {
         response.birthDate = missingPerson.getBirthDate() != null
                 ? missingPerson.getBirthDate().toString()
                 : null;
+        response.gender = missingPerson.getGender() == null ?
+                "알수없음" : (missingPerson.getGender().equals(GenderType.FEMALE)) ?
+                "여성" : "남성";
         response.address = missingPerson.getAddress();
         response.missingDate = missingPerson.getMissingDate() != null
                 ? missingPerson.getMissingDate().toString()
@@ -72,7 +85,9 @@ public class MissingPersonDetailResponse {
         response.clothesEtc = missingPerson.getClothesEtc();
         response.latitude = missingPerson.getLatitude();
         response.longitude = missingPerson.getLongitude();
-        response.photoUrl = missingPerson.getPhotoUrl(); // TODO: PersonMedia 엔티티와 연결하여 photo_url 가져오기
+        response.photoUrl = missingPerson.getPhotoUrl();
+        response.predictedFaceUrl = missingPerson.getPredictedFaceUrl();
+        response.appearanceImageUrl = missingPerson.getAppearanceImageUrl();
         return response;
     }
 
@@ -80,7 +95,8 @@ public class MissingPersonDetailResponse {
             Long missingPersonId, String name, String birthDate, String address,
             String missingDate, Integer height, Integer weight, String body,
             String bodyEtc, String clothesTop, String clothesBottom,
-            String clothesEtc, Double latitude, Double longitude, String photoUrl) {
+            String clothesEtc, Double latitude, Double longitude, String photoUrl,
+            String predictedFaceUrl, String appearanceImageUrl) {
         MissingPersonDetailResponse response = new MissingPersonDetailResponse();
         response.missingPersonId = missingPersonId;
         response.name = name;
@@ -97,6 +113,8 @@ public class MissingPersonDetailResponse {
         response.latitude = latitude;
         response.longitude = longitude;
         response.photoUrl = photoUrl;
+        response.predictedFaceUrl = predictedFaceUrl;
+        response.appearanceImageUrl = appearanceImageUrl;
         return response;
     }
 }
