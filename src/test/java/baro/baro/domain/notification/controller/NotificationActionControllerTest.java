@@ -76,7 +76,7 @@ class NotificationActionControllerTest {
         MissingPersonDetailResponse detail = MissingPersonDetailResponse.create(
                 10L, "홍길동", "2010-01-01", "부산",
                 "2024-01-01T00:00:00", 150, 40, "마른", "흉터",
-                "파랑", "청바지", "모자", 37.5, 127.0, "http://photo"
+                "파랑", "청바지", "모자", 37.5, 127.0, "http://photo", null, null
         );
         when(notificationService.getMissingPersonDetailFromNotification(7L)).thenReturn(detail);
 

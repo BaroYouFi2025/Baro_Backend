@@ -202,7 +202,7 @@ class NotificationServiceImplTest {
         when(notificationRepository.findById(60L)).thenReturn(Optional.of(notification));
         MissingPersonDetailResponse response = MissingPersonDetailResponse.create(
                 600L, "홍길동", "2010-01-01", "부산", "2024-01-01T00:00:00",
-                120, 30, "마름", "특이사항", "파란", "검정", "모자", 37.5, 126.9, "http://photo"
+                120, 30, "마름", "특이사항", "파란", "검정", "모자", 37.5, 126.9, "http://photo", null, null
         );
         when(missingPersonService.getMissingPersonDetail(600L)).thenReturn(response);
 
