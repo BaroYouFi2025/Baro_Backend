@@ -267,4 +267,26 @@ public class MissingPersonServiceImpl implements MissingPersonService {
 
         return ReportSightingResponse.success();
     }
+
+
+    @Override
+    @Transactional
+    public void closeMissingCase(Long missingPersonId) {
+        User currentUser = getCurrentUser();
+
+        // 1. 실종자 조회
+        MissingPerson missingPerson = missingPersonRepository.findById(missingPersonId)
+                .orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_NOT_FOUND));
+
+        // 2. 활성 케이스 조회
+        MissingCase missingCase = missingCaseRepository.findByMissingPersonAndCaseStatus(
+                missingPerson,
+                CaseStatusType.OPEN
+        ).orElseThrow(() -> new MissingPersonException(MissingPersonErrorCode.NO_ACTIVE_CASE_FOUND));
+
+        // 3. 도메인 로직 실행 (권한 검증 + 케이스 종료)
+        missingCase.closeBy(currentUser);
+
+        log.info("실종 케이스 종료 완료 - 실종자: {}, 종료자: {}", missingPerson.getName(), currentUser.getName());
+    }
 }
