@@ -107,14 +107,21 @@ public class MissingPerson {
     }
 
 
-    // 실종자의 신체 설명을 반환합니다.
-    // body 필드의 별칭(alias) 메서드입니다.
-    //
-    // <p>AI 이미지 생성 시 프롬프트에 사용됩니다.</p>
-    //
-    // @return 실종자의 신체 설명 (얼굴 특징, 체형 등)
     public String getDescription() {
-        return this.body;
+        if (this.body == null && this.bodyEtc == null) {
+            return null;
+        }
+        StringBuilder description = new StringBuilder();
+        if (this.body != null && !this.body.isEmpty()) {
+            description.append(this.body);
+        }
+        if (this.bodyEtc != null && !this.bodyEtc.isEmpty()) {
+            if (description.length() > 0) {
+                description.append(", ");
+            }
+            description.append(this.bodyEtc);
+        }
+        return description.length() > 0 ? description.toString() : null;
     }
 
     // 실종자 정보 생성 (Factory Method)

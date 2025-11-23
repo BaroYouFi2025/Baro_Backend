@@ -71,15 +71,33 @@ public class GeminiApiClient {
 
         return Mono.fromCallable(() -> requestImage(base64Image, mimeType, prompt))
                 .retryWhen(Retry.backoff(maxRetryAttempts, Duration.ofSeconds(retryDelaySeconds))
-                        .filter(throwable -> throwable instanceof AiQuotaExceededException)
+                        .filter(throwable -> {
+                            // Quota 초과 또는 안전 필터 차단 시 재시도
+                            if (throwable instanceof AiQuotaExceededException) {
+                                return true;
+                            }
+                            if (throwable instanceof AiException) {
+                                AiException aiEx = (AiException) throwable;
+                                return aiEx.getAiErrorCode() == AiErrorCode.IMAGE_BLOCKED_BY_FILTER;
+                            }
+                            return false;
+                        })
                         .doBeforeRetry(retrySignal -> {
-                            AiQuotaExceededException ex = (AiQuotaExceededException) retrySignal.failure();
-                            Integer suggestedDelay = ex.getRetryAfterSeconds();
-                            log.warn("Gemini API Quota 초과 - Retry {}/{}, {}초 후 재시도 (API 제안: {}초)",
-                                    retrySignal.totalRetries() + 1,
-                                    maxRetryAttempts,
-                                    retryDelaySeconds * (retrySignal.totalRetries() + 1),
-                                    suggestedDelay);
+                            Throwable failure = retrySignal.failure();
+                            if (failure instanceof AiQuotaExceededException) {
+                                AiQuotaExceededException ex = (AiQuotaExceededException) failure;
+                                Integer suggestedDelay = ex.getRetryAfterSeconds();
+                                log.warn("Gemini API Quota 초과 - Retry {}/{}, {}초 후 재시도 (API 제안: {}초)",
+                                        retrySignal.totalRetries() + 1,
+                                        maxRetryAttempts,
+                                        retryDelaySeconds * (retrySignal.totalRetries() + 1),
+                                        suggestedDelay);
+                            } else if (failure instanceof AiException) {
+                                log.warn("Gemini API 안전 필터 차단 (NO_IMAGE) - Retry {}/{}, {}초 후 재시도",
+                                        retrySignal.totalRetries() + 1,
+                                        maxRetryAttempts,
+                                        retryDelaySeconds * (retrySignal.totalRetries() + 1));
+                            }
                         })
                 )
                 .onErrorResume(throwable -> {
@@ -140,8 +158,15 @@ public class GeminiApiClient {
             log.warn("Gemini API 응답 텍스트: {}", textMessage);
         }
 
+        // NO_IMAGE 응답 처리 (안전 필터 차단)
+        String finishReason = response.getFinishReason();
+        if (response.isBlockedByFilter()) {
+            log.warn("Gemini API 이미지 생성 차단 - finishReason: {}, 텍스트 메시지: {}", finishReason, textMessage);
+            throw new AiException(AiErrorCode.IMAGE_BLOCKED_BY_FILTER);
+        }
+
         if (!response.hasImage()) {
-            log.error("Gemini API에서 이미지가 반환되지 않음. 텍스트 메시지: {}", textMessage);
+            log.error("Gemini API에서 이미지가 반환되지 않음. finishReason: {}, 텍스트 메시지: {}", finishReason, textMessage);
             throw new AiException(AiErrorCode.EMPTY_RESPONSE);
         }
 
