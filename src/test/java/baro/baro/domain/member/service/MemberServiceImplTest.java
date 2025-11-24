@@ -20,7 +20,8 @@ import baro.baro.domain.member.repository.InvitationRepository;
 import baro.baro.domain.member.repository.RelationshipRepository;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.member.dto.event.InvitationCreatedEvent;
+import baro.baro.domain.member.dto.event.InvitationResponseEvent;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
@@ -33,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,7 +72,7 @@ class MemberServiceImplTest {
     private GpsTrackRepository gpsTrackRepository;
 
     @Mock
-    private PushNotificationService pushNotificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private MemberServiceImpl memberService;
@@ -130,6 +132,7 @@ class MemberServiceImplTest {
             assertThat(response.getRelationshipRequestId()).isEqualTo(1L);
             verify(userRepository, times(1)).findById(2L);
             verify(invitationRepository, times(1)).save(any(Invitation.class));
+            verify(eventPublisher).publishEvent(any(InvitationCreatedEvent.class));
         }
     }
 
@@ -192,6 +195,7 @@ class MemberServiceImplTest {
             verify(invitationRepository, times(1)).findById(1L);
             verify(invitationRepository, times(1)).save(any(Invitation.class));
             verify(relationshipRepository, times(2)).save(any(Relationship.class));
+            verify(eventPublisher).publishEvent(any(InvitationResponseEvent.class));
         }
     }
 
@@ -234,6 +238,7 @@ class MemberServiceImplTest {
             // then
             verify(invitationRepository, times(1)).findById(1L);
             verify(invitationRepository, times(1)).save(any(Invitation.class));
+            verify(eventPublisher).publishEvent(any(InvitationResponseEvent.class));
         }
     }
 

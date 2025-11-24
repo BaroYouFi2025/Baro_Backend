@@ -7,7 +7,8 @@ import baro.baro.domain.device.exception.DeviceException;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.device.repository.GpsTrackRepository;
 import baro.baro.domain.common.util.GpsUtils;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.member.dto.event.InvitationCreatedEvent;
+import baro.baro.domain.member.dto.event.InvitationResponseEvent;
 import baro.baro.domain.member.dto.req.AcceptInvitationRequest;
 import baro.baro.domain.member.dto.req.InvitationRequest;
 import baro.baro.domain.member.dto.req.RejectInvitationRequest;
@@ -26,6 +27,7 @@ import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
 import baro.baro.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +46,7 @@ public class MemberServiceImpl implements MemberService {
     private final InvitationRepository invitationRepository;
     private final DeviceRepository deviceRepository;
     private final GpsTrackRepository gpsTrackRepository;
-    private final PushNotificationService pushNotificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional // 구성원 초대 생성 메서드
@@ -62,9 +64,7 @@ public class MemberServiceImpl implements MemberService {
                 .build();
 
         Invitation created = invitationRepository.save(invitationRequest);
-
-        // 푸시 알림 발송 (초대 ID 포함)
-        pushNotificationService.sendInvitationNotification(invitee, currentUser, request.getRelation(), created.getId());
+        eventPublisher.publishEvent(new InvitationCreatedEvent(this, invitee, currentUser, request.getRelation(), created.getId()));
 
         return new InvitationResponse(created.getId());
     }
@@ -104,9 +104,8 @@ public class MemberServiceImpl implements MemberService {
 
         originRelationship = relationshipRepository.save(originRelationship);
         reverseRelationship = relationshipRepository.save(reverseRelationship);
-        
-        // 초대 수락 푸시 알림 발송
-        pushNotificationService.sendInvitationResponseNotification(inviter, currentUser, true, request.getRelation());
+
+        eventPublisher.publishEvent(new InvitationResponseEvent(this, inviter, currentUser, true, request.getRelation()));
         
         return AcceptInvitationResponse.of(originRelationship.getId(), reverseRelationship.getId());
     }
@@ -125,10 +124,9 @@ public class MemberServiceImpl implements MemberService {
         // 초대 상태가 PENDING인지 확인(중복 거절 방지)
         invitation.reject();
         invitationRepository.save(invitation);
-        
-        // 초대 거절 푸시 알림 발송
+
         User inviter = invitation.getInviterUser();
-        pushNotificationService.sendInvitationResponseNotification(inviter, currentUser, false, invitation.getRelation());
+        eventPublisher.publishEvent(new InvitationResponseEvent(this, inviter, currentUser, false, invitation.getRelation()));
     }
 
 
