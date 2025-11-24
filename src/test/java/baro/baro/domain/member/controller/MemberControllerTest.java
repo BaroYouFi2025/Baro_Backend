@@ -1,11 +1,13 @@
 package baro.baro.domain.member.controller;
 
 import baro.baro.config.JwtAuthenticationFilter;
+import baro.baro.domain.auth.service.JwtTokenProvider;
 import baro.baro.domain.common.monitoring.MetricsService;
 import baro.baro.domain.member.dto.res.LocationInfo;
 import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import baro.baro.domain.member.service.MemberLocationEmitterRegistry;
 import baro.baro.domain.member.service.MemberService;
+import baro.baro.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +56,12 @@ class MemberControllerTest {
 
     @MockitoBean
     private MetricsService metricsService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("구성원 위치 조회 성공 시 200과 위치 목록을 반환한다")
