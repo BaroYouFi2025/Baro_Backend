@@ -1,9 +1,12 @@
 package baro.baro.domain.member.controller;
 
+import baro.baro.domain.auth.service.JwtTokenProvider;
 import baro.baro.domain.member.dto.event.MemberLocationEvent;
 import baro.baro.domain.member.dto.res.MemberLocationResponse;
 import baro.baro.domain.member.service.MemberLocationEmitterRegistry;
 import baro.baro.domain.member.service.MemberService;
+import baro.baro.domain.user.entity.User;
+import baro.baro.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -14,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
+
 
 @Slf4j
 @Tag(name = "Member", description = "멤버 조회 API")
@@ -43,6 +47,8 @@ public class MemberController {
     private final MemberService memberService;
     private final MemberLocationEmitterRegistry emitterRegistry;
     private final ObjectMapper objectMapper;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Operation(summary = "구성원 위치 조회", description = "사용자와 관계가 있는 구성원들의 위치, 배터리, 거리 정보를 조회합니다.")
     @ApiResponses({
@@ -69,8 +75,18 @@ public class MemberController {
         @ApiResponse(responseCode = "401", description = "인증 실패")
     })
     @GetMapping(value = "/locations/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamMemberLocations() {
-        Long userId = getCurrentUser().getId();
+    public SseEmitter streamMemberLocations(
+            @RequestParam("token") String token
+    ) {
+        // 토큰 검증 및 사용자 조회
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
+        }
+        
+        String uid = jwtTokenProvider.getSubjectFromToken(token);
+        User user = userRepository.findByUid(uid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        Long userId = user.getId();
 
         // SseEmitter 생성 (타임아웃 30분)
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
@@ -97,7 +113,7 @@ public class MemberController {
 
         // 초기 데이터 전송
         try {
-            List<MemberLocationResponse> initialData = memberService.getMemberLocations();
+            List<MemberLocationResponse> initialData = memberService.getMemberLocationsForUser(userId);
             MemberLocationEvent initialEvent = MemberLocationEvent.initial(initialData);
             String eventData = objectMapper.writeValueAsString(initialEvent);
 

@@ -103,7 +103,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/members/invitations").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.GET, "/members/locations").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.GET, "/members/locations/stream").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/members/locations/stream").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/missing-persons/register").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.PUT, "/missing-persons/register/**").hasAnyRole("ADMIN", "USER")
