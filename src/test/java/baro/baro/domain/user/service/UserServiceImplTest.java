@@ -194,14 +194,21 @@ class UserServiceImplTest {
 
     @Test
     void searchUsers_withUidDelegatesToRepository() {
+        User currentUser = sampleUser("current");
+        ReflectionTestUtils.setField(currentUser, "id", 100L);
+        setAuthentication(currentUser);
+        when(userRepository.findByUid("current")).thenReturn(Optional.of(currentUser));
+
         UserSearchRequest request = UserSearchRequest.builder()
                 .uid("target")
                 .page(0)
                 .size(2)
                 .build();
         Pageable pageable = PageRequest.of(0, 2);
-        Slice<User> users = new SliceImpl<>(List.of(sampleUser("target-uid")), pageable, false);
-        when(userRepository.findByUidContainingAndIsActiveTrue("target", pageable)).thenReturn(users);
+        User targetUser = sampleUser("target-uid");
+        ReflectionTestUtils.setField(targetUser, "id", 101L);
+        Slice<User> users = new SliceImpl<>(List.of(targetUser), pageable, false);
+        when(userRepository.findByUidContainingAndIsActiveTrueAndIdNot("target", 100L, pageable)).thenReturn(users);
 
         Slice<UserPublicProfileResponse> result = userService.searchUsers(request);
 
@@ -212,13 +219,16 @@ class UserServiceImplTest {
     @Test
     void searchUsers_withoutUidFallsBackToNearbySearch() {
         User currentUser = sampleUser("current");
+        ReflectionTestUtils.setField(currentUser, "id", 200L);
         setAuthentication(currentUser);
         when(userRepository.findByUid("current")).thenReturn(Optional.of(currentUser));
         when(gpsTrackRepository.findLatestByUser(currentUser)).thenReturn(Optional.empty());
 
         Pageable pageable = PageRequest.of(0, 1);
-        Slice<User> fallbackUsers = new SliceImpl<>(List.of(sampleUser("neighbor")), pageable, false);
-        when(userRepository.findAllByIsActiveTrue(pageable)).thenReturn(fallbackUsers);
+        User neighborUser = sampleUser("neighbor");
+        ReflectionTestUtils.setField(neighborUser, "id", 201L);
+        Slice<User> fallbackUsers = new SliceImpl<>(List.of(neighborUser), pageable, false);
+        when(userRepository.findAllByIsActiveTrueAndIdNot(200L, pageable)).thenReturn(fallbackUsers);
 
         UserSearchRequest request = UserSearchRequest.builder()
                 .uid(null)
