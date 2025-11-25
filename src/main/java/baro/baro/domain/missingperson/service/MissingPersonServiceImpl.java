@@ -56,7 +56,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     public RegisterMissingPersonResponse registerMissingPerson(RegisterMissingPersonRequest request) {
         User currentUser = getCurrentUser();
 
-        long registeredCount = missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN);
+        // 비관적 락을 사용한 카운트 조회로 동시성 제어
+        long registeredCount = missingCaseRepository.countByReportedByAndCaseStatusWithLock(currentUser, CaseStatusType.OPEN);
         if (registeredCount >= 4) {
             throw new MissingPersonException(MissingPersonErrorCode.MISSING_PERSON_LIMIT_EXCEEDED);
         }
@@ -215,8 +216,9 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         }
 
         // 4. 중복 신고 체크 (최근 10분 이내 같은 실종자에 대한 신고 방지)
+        // 비관적 락을 사용하여 동시성 제어
         java.time.ZonedDateTime tenMinutesAgo = java.time.ZonedDateTime.now().minusMinutes(10);
-        boolean hasRecentReport = sightingRepository.existsRecentSightingByReporter(
+        boolean hasRecentReport = sightingRepository.existsRecentSightingWithLock(
                 missingCase,
                 currentUser,
                 tenMinutesAgo

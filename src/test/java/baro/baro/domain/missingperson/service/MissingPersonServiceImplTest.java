@@ -95,7 +95,7 @@ class MissingPersonServiceImplTest {
 
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getCurrentUser).thenReturn(currentUser);
-            when(missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN)).thenReturn(2L);
+            when(missingCaseRepository.countByReportedByAndCaseStatusWithLock(currentUser, CaseStatusType.OPEN)).thenReturn(2L);
             when(locationService.createLocationInfo(request.getLatitude(), request.getLongitude()))
                     .thenReturn(locationInfo);
             when(missingPersonRepository.save(any(MissingPerson.class))).thenReturn(
@@ -122,7 +122,7 @@ class MissingPersonServiceImplTest {
 
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getCurrentUser).thenReturn(currentUser);
-            when(missingCaseRepository.countByReportedById(currentUser.getId(), CaseStatusType.OPEN)).thenReturn(4L);
+            when(missingCaseRepository.countByReportedByAndCaseStatusWithLock(currentUser, CaseStatusType.OPEN)).thenReturn(4L);
 
             MissingPersonException exception = assertThrows(
                     MissingPersonException.class,
@@ -289,7 +289,7 @@ class MissingPersonServiceImplTest {
                     .thenReturn(java.util.Optional.of(missingPerson));
             when(missingCaseRepository.findByMissingPersonAndCaseStatus(missingPerson, CaseStatusType.OPEN))
                     .thenReturn(java.util.Optional.of(missingCase));
-            when(sightingRepository.existsRecentSightingByReporter(
+            when(sightingRepository.existsRecentSightingWithLock(
                     eq(missingCase),
                     eq(currentUser),
                     any()))
@@ -415,7 +415,7 @@ class MissingPersonServiceImplTest {
                     .thenReturn(java.util.Optional.of(missingPerson));
             when(missingCaseRepository.findByMissingPersonAndCaseStatus(missingPerson, CaseStatusType.OPEN))
                     .thenReturn(java.util.Optional.of(missingCase));
-            when(sightingRepository.existsRecentSightingByReporter(eq(missingCase), eq(currentUser), any()))
+            when(sightingRepository.existsRecentSightingWithLock(eq(missingCase), eq(currentUser), any()))
                     .thenReturn(false);
             when(locationService.createLocationInfo(request.getLatitude(), request.getLongitude()))
                     .thenReturn(locationInfo);

@@ -30,4 +30,15 @@ public interface RelationshipRepository extends JpaRepository<Relationship, Long
     // @return 해당 구성원과 관계를 맺은 사용자 ID 목록
     @Query("SELECT r.user.id FROM Relationship r WHERE r.member.id = :memberId")
     List<Long> findUserIdsByMemberId(@Param("memberId") Long memberId);
+
+    // 두 사용자 간 관계가 이미 존재하는지 확인 (양방향)
+    //
+    // @param user1Id 첫 번째 사용자 ID
+    // @param user2Id 두 번째 사용자 ID
+    // @return 관계가 존재하면 true, 아니면 false
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+            "FROM Relationship r " +
+            "WHERE (r.user.id = :user1Id AND r.member.id = :user2Id) " +
+            "OR (r.user.id = :user2Id AND r.member.id = :user1Id)")
+    boolean existsRelationshipBetween(@Param("user1Id") Long user1Id, @Param("user2Id") Long user2Id);
 }

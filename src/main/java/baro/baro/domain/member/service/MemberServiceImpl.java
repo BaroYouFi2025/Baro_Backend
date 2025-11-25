@@ -55,6 +55,28 @@ public class MemberServiceImpl implements MemberService {
         User invitee = userRepository.findById(request.getInviteeUserId())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
+        // 자기 자신에게 초대 불가
+        if (currentUser.getId().equals(invitee.getId())) {
+            throw new MemberException(MemberErrorCode.DUPLICATE_INVITATION);
+        }
+
+        // 이미 관계가 존재하는지 확인 (양방향)
+        if (relationshipRepository.existsRelationshipBetween(currentUser.getId(), invitee.getId())) {
+            throw new MemberException(MemberErrorCode.DUPLICATE_INVITATION);
+        }
+
+        // 대기 중인 초대가 있는지 확인 (양방향)
+        boolean hasPendingInvitation = invitationRepository
+                .findByInviterUserAndInviteeUserAndStatus(currentUser, invitee, RelationshipRequestStatus.PENDING)
+                .isPresent()
+                || invitationRepository
+                .findByInviterUserAndInviteeUserAndStatus(invitee, currentUser, RelationshipRequestStatus.PENDING)
+                .isPresent();
+
+        if (hasPendingInvitation) {
+            throw new MemberException(MemberErrorCode.DUPLICATE_INVITATION);
+        }
+
         Invitation invitationRequest = Invitation.builder()
                 .inviterUser(currentUser)
                 .inviteeUser(invitee)
@@ -151,8 +173,10 @@ public class MemberServiceImpl implements MemberService {
 
     // 구성원 위치 응답 목록을 생성하는 공통 메서드
     private List<MemberLocationResponse> buildMemberLocationResponses(User user) {
-        // 사용자의 최신 위치 조회 (거리 계산용)
+        // 사용자의 최신 위치 조회 (거리 계산용) - 활성 기기 우선
         Device userDevice = deviceRepository.findByUser(user).stream()
+                .filter(Device::isActive)
+                .sorted((d1, d2) -> d2.getRegisteredAt().compareTo(d1.getRegisteredAt()))
                 .findFirst()
                 .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
 
@@ -166,13 +190,23 @@ public class MemberServiceImpl implements MemberService {
         for (Relationship relationship : relationships) {
             User member = relationship.getMember();
 
-            // 구성원의 기기 조회
+            // 구성원의 기기 조회 (활성 기기 우선, 최신 등록 순)
             Device memberDevice = deviceRepository.findByUser(member).stream()
+                    .filter(Device::isActive)  // 활성 기기만
+                    .sorted((d1, d2) -> d2.getRegisteredAt().compareTo(d1.getRegisteredAt()))  // 최신 등록 순
                     .findFirst()
                     .orElse(null);
 
             if (memberDevice == null) {
-                continue;
+                // 활성 기기가 없으면 비활성 기기 중 최신 것 선택
+                memberDevice = deviceRepository.findByUser(member).stream()
+                        .sorted((d1, d2) -> d2.getRegisteredAt().compareTo(d1.getRegisteredAt()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (memberDevice == null) {
+                    continue;
+                }
             }
 
             // 구성원의 최신 GPS 위치 조회

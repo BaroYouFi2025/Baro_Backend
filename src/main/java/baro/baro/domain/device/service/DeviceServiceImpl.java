@@ -18,7 +18,6 @@ import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
-import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.notification.dto.event.NearbyAlertNotificationEvent;
@@ -44,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentDeviceId;
@@ -97,13 +97,46 @@ public class DeviceServiceImpl implements DeviceService {
         // 1. 사용자 조회
         User user = getCurrentUser();
 
-        // 2. 중복 UUID 확인 - 이미 등록된 UUID인지 검증
+        // 2. 같은 사용자의 같은 UUID 기기가 이미 있는지 확인
+        Optional<Device> existingDevice = deviceRepository.findByUserAndDeviceUuid(user, request.getDeviceUuid());
+        if (existingDevice.isPresent()) {
+            Device device = existingDevice.get();
+            // 이미 활성화된 기기면 중복 에러
+            if (device.isActive()) {
+                throw new DeviceException(DeviceErrorCode.DEVICE_ALREADY_REGISTERED);
+            }
+            // 비활성화된 기기면 재활성화
+            device.reactivate();
+            device.updateFcmToken(request.getFcmToken());
+            Device savedDevice = deviceRepository.save(device);
+
+            log.info("기기 재활성화 - 사용자: {}, UUID: {}", user.getName(), request.getDeviceUuid());
+
+            return new DeviceResponse(
+                    savedDevice.getId(),
+                    savedDevice.getDeviceUuid(),
+                    savedDevice.getBatteryLevel(),
+                    savedDevice.getOsType(),
+                    savedDevice.getOsVersion(),
+                    savedDevice.isActive(),
+                    savedDevice.getRegisteredAt(),
+                    savedDevice.getFcmToken()
+            );
+        }
+
+        // 3. 다른 사용자가 이미 등록한 UUID인지 확인
         deviceRepository.findByDeviceUuid(request.getDeviceUuid())
                 .ifPresent(device -> {
                     throw new DeviceException(DeviceErrorCode.DEVICE_ALREADY_REGISTERED);
                 });
 
-        // 3. 기기 엔티티 생성
+        // 4. 사용자의 활성 기기 개수 확인 (최대 3개 제한)
+        long activeDeviceCount = deviceRepository.countByUserAndIsActiveTrue(user);
+        if (activeDeviceCount >= 3) {
+            throw new DeviceException(DeviceErrorCode.DEVICE_LIMIT_EXCEEDED);
+        }
+
+        // 5. 기기 엔티티 생성
         Device device = Device.builder()
                 .user(user)
                 .deviceUuid(request.getDeviceUuid())
@@ -115,10 +148,13 @@ public class DeviceServiceImpl implements DeviceService {
                 .registeredAt(LocalDateTime.now())
                 .build();
 
-        // 4. 데이터베이스에 저장
+        // 6. 데이터베이스에 저장
         Device savedDevice = deviceRepository.save(device);
 
-        // 5. 응답 DTO 생성 및 반환
+        log.info("새 기기 등록 - 사용자: {}, UUID: {}, 활성 기기 수: {}/3",
+                user.getName(), request.getDeviceUuid(), activeDeviceCount + 1);
+
+        // 7. 응답 DTO 생성 및 반환
         return new DeviceResponse(
                 savedDevice.getId(),
                 savedDevice.getDeviceUuid(),
@@ -229,7 +265,7 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = deviceRepository.findById(event.getDeviceId())
                 .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
 
-        device.deleteFcmToken();
+        device.logout();
         deviceRepository.save(device);
     }
 
@@ -309,43 +345,35 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     // NEARBY_ALERT 알림을 발송해야 하는지 판단합니다.
-    // 중복 방지 로직: 24시간 + 500m 복합 조건
+    // 중복 방지 로직: 24시간 + 500m 복합 조건 (PostGIS 공간 쿼리 사용)
     //
     // @param user 사용자
     // @param missingPerson 실종자
     // @param currentLocation 현재 위치
     // @return 알림 발송 여부
     private boolean shouldSendNearbyAlert(User user, MissingPerson missingPerson, Point currentLocation) {
-        // 1. 최근 24시간 이내의 NEARBY_ALERT 조회
         LocalDateTime threshold = LocalDateTime.now().minusHours(nearbyAlertCooldownHours);
-        List<Notification> recentAlerts =
-                notificationRepository.findRecentNearbyAlerts(
-                        user,
-                        missingPerson.getId(),
-                        NotificationType.NEARBY_ALERT,
-                        threshold
-                );
+        double latitude = currentLocation.getY();
+        double longitude = currentLocation.getX();
 
-        if (recentAlerts.isEmpty()) {
-            return true; // 최근 알림 없음 → 발송 ✅
+        // PostGIS 공간 쿼리로 한 번에 확인: 24시간 이내 + 500m 이내 알림 존재 여부
+        boolean hasDuplicate = notificationRepository.existsRecentNearbyAlertWithinDistance(
+                user.getId(),
+                missingPerson.getId(),
+                NotificationType.NEARBY_ALERT.name(),
+                threshold,
+                latitude,
+                longitude,
+                nearbyAlertDistanceThresholdMeters
+        );
+
+        if (hasDuplicate) {
+            log.debug("NEARBY_ALERT 중복 차단 - 사용자: {}, 실종자: {}, 24시간 이내 + 500m 이내 알림 존재",
+                    user.getName(), missingPerson.getName());
+            return false;
         }
 
-        // 2. 이전 알림 위치 중 현재 위치에서 500m 이내가 있는지 확인
-        for (Notification alert : recentAlerts) {
-            if (alert.getRelatedLocation() != null) {
-                double distance = GpsUtils.calculateDistance(
-                        alert.getRelatedLocation(),
-                        currentLocation
-                );
-                if (distance < nearbyAlertDistanceThresholdMeters) {
-                    log.debug("NEARBY_ALERT 중복 - 거리: {}m (임계값: {}m)",
-                            distance, nearbyAlertDistanceThresholdMeters);
-                    return false; // 500m 이내 이전 알림 있음 → 차단 ❌
-                }
-            }
-        }
-
-        return true; // 모든 이전 알림이 500m 이상 떨어짐 → 발송 ✅
+        return true; // 중복 알림 없음 → 발송 ✅
     }
 
 }
