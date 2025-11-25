@@ -171,6 +171,7 @@ public class MissingPerson {
             String clothesEtc,
             Integer height,
             Integer weight,
+            String photoUrl,
             Point location,
             String address,
             String missingDate) {
@@ -183,6 +184,7 @@ public class MissingPerson {
         if (clothesEtc != null) this.clothesEtc = clothesEtc;
         if (height != null) this.height = height;
         if (weight != null) this.weight = weight;
+        if (photoUrl != null) this.photoUrl = photoUrl;
         if (location != null) this.location = location;
         if (address != null) this.address = address;
         if (missingDate != null && !missingDate.isEmpty()) this.missingDate = LocalDateTime.parse(missingDate);
