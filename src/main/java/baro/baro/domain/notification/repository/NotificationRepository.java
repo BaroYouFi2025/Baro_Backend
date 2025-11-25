@@ -48,4 +48,38 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("type") NotificationType type,
         @Param("threshold") LocalDateTime threshold
     );
+
+    // PostGIS 공간 쿼리를 사용한 중복 알림 확인 (성능 개선)
+    // 24시간 이내 + 500m 이내 알림이 있는지 한 번의 쿼리로 확인
+    //
+    // @param user 사용자
+    // @param missingPersonId 실종자 ID
+    // @param type 알림 타입 (NEARBY_ALERT)
+    // @param threshold 시간 임계값
+    // @param latitude 현재 위도
+    // @param longitude 현재 경도
+    // @param distanceMeters 거리 임계값 (미터)
+    // @return 중복 알림 존재 여부
+    @Query(value = "SELECT EXISTS(" +
+           "SELECT 1 FROM youfi.notifications n " +
+           "WHERE n.user_id = :userId " +
+           "AND n.related_entity_id = :missingPersonId " +
+           "AND n.type = CAST(:type AS youfi.notification_type) " +
+           "AND n.created_at > :threshold " +
+           "AND n.related_location IS NOT NULL " +
+           "AND ST_DWithin(" +
+           "    n.related_location::geography, " +
+           "    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, " +
+           "    :distanceMeters" +
+           ")" +
+           ")", nativeQuery = true)
+    boolean existsRecentNearbyAlertWithinDistance(
+        @Param("userId") Long userId,
+        @Param("missingPersonId") Long missingPersonId,
+        @Param("type") String type,
+        @Param("threshold") LocalDateTime threshold,
+        @Param("latitude") double latitude,
+        @Param("longitude") double longitude,
+        @Param("distanceMeters") double distanceMeters
+    );
 }

@@ -167,61 +167,69 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Slice<UserPublicProfileResponse> searchUsers(UserSearchRequest request) {
-        log.debug("사용자 검색 - UID: {}, page: {}, size: {}", 
+        String currentUid = SecurityUtil.getCurrentUserUid();
+        User currentUser = userRepository.findByUid(currentUid)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        log.debug("사용자 검색 - UID: {}, page: {}, size: {}",
                   request.getUid(), request.getPage(), request.getSize());
-        
+
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         Slice<User> users;
-        
-        // UID가 비어있으면 자신의 위치 기준으로 가까운 사용자 조회
+
+        // UID가 비어있으면 자신의 위치 기준으로 가까운 사용자 조회 (본인 제외)
         if (request.getUid() == null || request.getUid().trim().isEmpty()) {
-            users = searchNearbyUsers(pageable);
+            users = searchNearbyUsers(pageable, currentUser.getId());
         } else {
-            // UID로 검색 (부분 일치)
-            users = userRepository.findByUidContainingAndIsActiveTrue(request.getUid(), pageable);
+            // UID로 검색 (부분 일치, 본인 제외)
+            users = userRepository.findByUidContainingAndIsActiveTrueAndIdNot(
+                    request.getUid(),
+                    currentUser.getId(),
+                    pageable
+            );
         }
-        
+
         log.debug("사용자 검색 결과 - 조회된 사용자 수: {}", users.getNumberOfElements());
-        
+
         return users.map(user -> UserPublicProfileResponse
                 .of(user.getId(),user.getUid(), user.getName(), user.getProfileUrl()));
     }
     
-    // 현재 로그인한 사용자의 GPS 위치 기준으로 가까운 사용자를 조회합니다.
-    private Slice<User> searchNearbyUsers(Pageable pageable) {
+    // 현재 로그인한 사용자의 GPS 위치 기준으로 가까운 사용자를 조회합니다 (본인 제외).
+    private Slice<User> searchNearbyUsers(Pageable pageable, Long currentUserId) {
         // 1. 현재 로그인한 사용자의 최근 GPS 위치 조회
         String currentUid = SecurityUtil.getCurrentUserUid();
         User currentUser = userRepository.findByUid(currentUid)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        
+
         GpsTrack currentLocation = gpsTrackRepository.findLatestByUser(currentUser)
                 .orElse(null);
-        
-        // 2. GPS 위치가 없으면 일반 조회
+
+        // 2. GPS 위치가 없으면 일반 조회 (본인 제외)
         if (currentLocation == null || currentLocation.getLocation() == null) {
-            log.debug("현재 사용자의 GPS 위치 없음 - 일반 조회로 대체");
-            return userRepository.findAllByIsActiveTrue(pageable);
+            log.debug("현재 사용자의 GPS 위치 없음 - 일반 조회로 대체 (본인 제외)");
+            return userRepository.findAllByIsActiveTrueAndIdNot(currentUserId, pageable);
         }
-        
-        // 3. GPS 위치 기준으로 가까운 사용자 조회
+
+        // 3. GPS 위치 기준으로 가까운 사용자 조회 (본인 제외)
         double latitude = currentLocation.getLocation().getY();
         double longitude = currentLocation.getLocation().getX();
-        
-        log.debug("현재 위치 기준 사용자 검색 - Lat: {}, Lon: {}", latitude, longitude);
-        
+
+        log.debug("현재 위치 기준 사용자 검색 - Lat: {}, Lon: {} (본인 제외)", latitude, longitude);
+
         int offset = pageable.getPageNumber() * pageable.getPageSize();
         int limit = pageable.getPageSize() + 1; // Slice를 위해 +1개 조회
-        
-        java.util.List<User> userList = userRepository.findNearbyActiveUsers(
-                latitude, longitude, limit, offset
+
+        java.util.List<User> userList = userRepository.findNearbyActiveUsersExcludingSelf(
+                latitude, longitude, currentUserId, limit, offset
         );
-        
+
         // 4. Slice 생성 (다음 페이지 존재 여부 확인)
         boolean hasNext = userList.size() > pageable.getPageSize();
         if (hasNext) {
             userList = userList.subList(0, pageable.getPageSize());
         }
-        
+
         return new org.springframework.data.domain.SliceImpl<>(userList, pageable, hasNext);
     }
 }

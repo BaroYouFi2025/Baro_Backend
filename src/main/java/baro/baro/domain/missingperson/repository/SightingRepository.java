@@ -3,7 +3,9 @@ package baro.baro.domain.missingperson.repository;
 import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.entity.Sighting;
 import baro.baro.domain.user.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -70,5 +72,18 @@ public interface SightingRepository extends JpaRepository<Sighting, Long> {
             ZonedDateTime since) {
         return !findRecentSightingsByReporter(missingCase, reporter, since).isEmpty();
     }
+
+    // 비관적 락을 사용한 중복 신고 확인 (동시성 제어)
+    // 10분 이내 같은 실종 케이스에 대한 같은 신고자의 신고가 있는지 확인
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT COUNT(s) > 0 FROM Sighting s " +
+           "WHERE s.missingCase = :missingCase " +
+           "AND s.reporter = :reporter " +
+           "AND s.createdAt > :since")
+    boolean existsRecentSightingWithLock(
+            @Param("missingCase") MissingCase missingCase,
+            @Param("reporter") User reporter,
+            @Param("since") ZonedDateTime since
+    );
 }
 

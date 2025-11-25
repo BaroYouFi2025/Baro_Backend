@@ -74,4 +74,10 @@ public class Device {
     public void deleteFcmToken() {
         this.fcmToken = null;
     }
+
+    // 비활성화된 기기를 재활성화합니다.
+    public void reactivate() {
+        this.isActive = true;
+        this.registeredAt = LocalDateTime.now();
+    }
 }
