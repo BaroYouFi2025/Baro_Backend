@@ -18,7 +18,6 @@ import baro.baro.domain.missingperson.entity.MissingCase;
 import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
-import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
 import baro.baro.domain.notification.dto.event.NearbyAlertNotificationEvent;
@@ -44,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentUser;
 import static baro.baro.domain.common.util.SecurityUtil.getCurrentDeviceId;
@@ -265,7 +265,7 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = deviceRepository.findById(event.getDeviceId())
                 .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
 
-        device.deleteFcmToken();
+        device.logout();
         deviceRepository.save(device);
     }
 

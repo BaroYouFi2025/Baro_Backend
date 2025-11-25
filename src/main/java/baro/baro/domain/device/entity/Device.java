@@ -71,8 +71,9 @@ public class Device {
         this.fcmToken = fcmToken;
     }
 
-    public void deleteFcmToken() {
+    public void logout() {
         this.fcmToken = null;
+        this.isActive = false;
     }
 
     // 비활성화된 기기를 재활성화합니다.
