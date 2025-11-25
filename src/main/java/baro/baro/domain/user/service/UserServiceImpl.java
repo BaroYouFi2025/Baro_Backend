@@ -183,12 +183,8 @@ public class UserServiceImpl implements UserService {
         
         log.debug("사용자 검색 결과 - 조회된 사용자 수: {}", users.getNumberOfElements());
         
-        return users.map(user -> UserPublicProfileResponse.builder()
-                .uid(user.getUid())
-                .name(user.getName())
-                .profileUrl(user.getProfileUrl())
-                .profileBackgroundColor(user.getProfileBackgroundColor())
-                .build());
+        return users.map(user -> UserPublicProfileResponse
+                .of(user.getId(),user.getUid(), user.getName(), user.getProfileUrl()));
     }
     
     // 현재 로그인한 사용자의 GPS 위치 기준으로 가까운 사용자를 조회합니다.
