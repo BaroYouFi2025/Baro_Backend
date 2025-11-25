@@ -245,6 +245,7 @@ class MissingPersonServiceImplTest {
                 eq(request.getClothesEtc()),
                 eq(request.getHeight()),
                 eq(request.getWeight()),
+                eq(request.getPhotoUrl()),
                 eq(locationInfo.point()),
                 eq(locationInfo.address()),
                 eq(request.getMissingDate())

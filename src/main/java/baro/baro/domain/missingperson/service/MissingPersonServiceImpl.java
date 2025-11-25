@@ -129,6 +129,7 @@ public class MissingPersonServiceImpl implements MissingPersonService {
                 request.getClothesEtc(),
                 request.getHeight(),
                 request.getWeight(),
+                request.getPhotoUrl(),
                 location,
                 address,
                 request.getMissingDate()
