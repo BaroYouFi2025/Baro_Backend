@@ -21,7 +21,7 @@ import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.notification.dto.event.NearbyAlertNotificationEvent;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.exception.UserException;
 import baro.baro.domain.user.repository.UserRepository;
@@ -53,6 +53,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,9 +78,6 @@ class DeviceServiceImplTest {
     private NotificationRepository notificationRepository;
 
     @Mock
-    private PushNotificationService pushNotificationService;
-
-    @Mock
     private MetricsService metricsService;
 
     @Mock
@@ -98,7 +96,6 @@ class DeviceServiceImplTest {
                 missingPersonRepository,
                 missingCaseRepository,
                 notificationRepository,
-                pushNotificationService,
                 metricsService,
                 eventPublisher
         );
@@ -182,8 +179,7 @@ class DeviceServiceImplTest {
             verify(metricsService).recordGpsUpdateDuration(anyLong());
             verify(missingPersonRepository)
                     .findNearbyMissingPersons(request.getLatitude(), request.getLongitude(), 1000);
-            verify(pushNotificationService, never()).sendNearbyAlertToReporter(
-                    any(User.class), any(), anyDouble(), any(Point.class), anyLong());
+            verifyNoMoreInteractions(eventPublisher);
         }
     }
 
@@ -289,12 +285,7 @@ class DeviceServiceImplTest {
 
         deviceService.checkNearbyMissingPersons(user, userLocation);
 
-        verify(pushNotificationService).sendNearbyAlertToReporter(
-                eq(user),
-                eq(missingPerson.getName()),
-                anyDouble(),
-                eq(userLocation),
-                eq(missingPerson.getId()));
+        verify(eventPublisher).publishEvent(any(NearbyAlertNotificationEvent.class));
     }
 
     @Test
@@ -326,8 +317,7 @@ class DeviceServiceImplTest {
 
         deviceService.checkNearbyMissingPersons(user, userLocation);
 
-        verify(pushNotificationService, never()).sendNearbyAlertToReporter(
-                any(User.class), any(), anyDouble(), any(Point.class), anyLong());
+        verify(eventPublisher, never()).publishEvent(any());
         verify(missingCaseRepository, never())
                 .findByMissingPersonAndCaseStatus(missingPerson, CaseStatusType.OPEN);
     }

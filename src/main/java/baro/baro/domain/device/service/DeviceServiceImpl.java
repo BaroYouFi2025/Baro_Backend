@@ -21,7 +21,7 @@ import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.notification.entity.Notification;
 import baro.baro.domain.notification.entity.NotificationType;
 import baro.baro.domain.notification.repository.NotificationRepository;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.notification.dto.event.NearbyAlertNotificationEvent;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.exception.UserErrorCode;
 import baro.baro.domain.user.exception.UserException;
@@ -63,7 +63,6 @@ public class DeviceServiceImpl implements DeviceService {
     private final MissingPersonRepository missingPersonRepository;
     private final MissingCaseRepository missingCaseRepository;
     private final NotificationRepository notificationRepository;
-    private final PushNotificationService pushNotificationService;
     private final MetricsService metricsService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -285,13 +284,14 @@ public class DeviceServiceImpl implements DeviceService {
                 user.getName(), missingPerson.getName(), distance);
 
         // 4. GPS 업데이트 사용자에게 알림 발송
-        pushNotificationService.sendNearbyAlertToReporter(
+        eventPublisher.publishEvent(new NearbyAlertNotificationEvent(
+                this,
                 user,
                 missingPerson.getName(),
                 distance,
                 userLocation,
                 missingPerson.getId()
-        );
+        ));
     }
 
     // NEARBY_ALERT 알림을 발송해야 하는지 판단합니다.
