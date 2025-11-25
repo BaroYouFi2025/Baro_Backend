@@ -70,4 +70,8 @@ public class Device {
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
+
+    public void deleteFcmToken() {
+        this.fcmToken = null;
+    }
 }

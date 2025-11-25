@@ -35,7 +35,10 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+
+import baro.baro.domain.device.dto.event.LogoutSuccessEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -216,6 +219,17 @@ public class DeviceServiceImpl implements DeviceService {
 
         // 3. FCM 토큰 업데이트
         device.updateFcmToken(request.getFcmToken());
+        deviceRepository.save(device);
+    }
+
+    @Override
+    @EventListener
+    @Transactional
+    public void handleLogout(LogoutSuccessEvent event) {
+        Device device = deviceRepository.findById(event.getDeviceId())
+                .orElseThrow(() -> new DeviceException(DeviceErrorCode.DEVICE_NOT_FOUND));
+
+        device.deleteFcmToken();
         deviceRepository.save(device);
     }
 

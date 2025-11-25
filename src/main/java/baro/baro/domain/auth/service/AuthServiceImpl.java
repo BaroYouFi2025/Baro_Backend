@@ -8,18 +8,18 @@ import baro.baro.domain.auth.entity.BlacklistedToken;
 import baro.baro.domain.auth.exception.AuthErrorCode;
 import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
+import baro.baro.domain.device.dto.event.LogoutSuccessEvent;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.repository.DeviceRepository;
 import baro.baro.domain.user.entity.User;
 import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.monitoring.MetricsService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +33,8 @@ public class AuthServiceImpl implements AuthService {
     private final DeviceRepository deviceRepository;
     private final MetricsService metricsService;
     private final PasswordEncoder passwordEncoder;
-    
+    private final ApplicationEventPublisher eventPublisher;
+
     @Value("${cookie.secure}")
     private boolean cookieSecure;
 
@@ -83,6 +84,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 토큰에서 사용자 정보 및 만료 시간 추출
         String uid = jwtTokenProvider.getSubjectFromToken(refreshToken);
+        Long deviceId = jwtTokenProvider.getDeviceIdFromToken(refreshToken);
         long validityMs = jwtTokenProvider.getRefreshTokenValidityMs();
         LocalDateTime expiresAt = LocalDateTime.now().plusNanos(validityMs * 1_000_000);
 
@@ -94,6 +96,8 @@ public class AuthServiceImpl implements AuthService {
                 uid
         );
         blacklistedTokenRepository.save(blacklistedToken);
+
+        eventPublisher.publishEvent(new LogoutSuccessEvent(this, deviceId));
 
         return new LogoutResponse("로그아웃 되었습니다.");
     }

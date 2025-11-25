@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
@@ -47,6 +48,8 @@ class AuthServiceImplTest {
     private MetricsService metricsService;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private AuthServiceImpl authService;
 
@@ -58,7 +61,8 @@ class AuthServiceImplTest {
                 blacklistedTokenRepository,
                 deviceRepository,
                 metricsService,
-                passwordEncoder
+                passwordEncoder,
+                eventPublisher
         );
         ReflectionTestUtils.setField(authService, "cookieSecure", false);
     }
