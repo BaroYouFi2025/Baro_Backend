@@ -5,31 +5,29 @@ import baro.baro.domain.missingperson.dto.req.UpdateMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.SearchMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.NearbyMissingPersonRequest;
 import baro.baro.domain.missingperson.dto.req.ReportSightingRequest;
-import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
-import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.MissingPersonDetailResponse;
-import baro.baro.domain.missingperson.entity.CaseStatusType;
+import baro.baro.domain.missingperson.dto.res.MissingPersonResponse;
+import baro.baro.domain.missingperson.dto.res.RegisterMissingPersonResponse;
 import baro.baro.domain.missingperson.dto.res.ReportSightingResponse;
-import baro.baro.domain.missingperson.entity.MissingPerson;
-import baro.baro.domain.missingperson.entity.MissingCase;
-import baro.baro.domain.missingperson.entity.Sighting;
 import baro.baro.domain.missingperson.entity.CaseStatusType;
+import baro.baro.domain.missingperson.entity.MissingCase;
+import baro.baro.domain.missingperson.entity.MissingPerson;
 import baro.baro.domain.missingperson.entity.Sighting;
 import baro.baro.domain.missingperson.exception.MissingPersonErrorCode;
 import baro.baro.domain.missingperson.exception.MissingPersonException;
-import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
+import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.missingperson.repository.SightingRepository;
-import baro.baro.domain.user.entity.User;
-import baro.baro.domain.user.repository.UserRepository;
 import baro.baro.domain.common.util.LocationUtil;
 import baro.baro.domain.common.util.SecurityUtil;
-import baro.baro.domain.notification.exception.NotificationException;
-import baro.baro.domain.notification.service.PushNotificationService;
+import baro.baro.domain.notification.dto.event.MissingPersonFoundNotificationEvent;
 import baro.baro.domain.common.monitoring.MetricsService;
+import baro.baro.domain.user.entity.User;
+import baro.baro.domain.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -50,8 +48,8 @@ public class MissingPersonServiceImpl implements MissingPersonService {
     private final MissingCaseRepository missingCaseRepository;
     private final SightingRepository sightingRepository;
     private final LocationService locationService;
-    private final PushNotificationService pushNotificationService;
     private final MetricsService metricsService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -245,19 +243,19 @@ public class MissingPersonServiceImpl implements MissingPersonService {
         );
         Sighting created = sightingRepository.save(sighting);
 
-        // 7. 실종자 등록자에게 푸시 알림 발송
+        // 7. 실종자 등록자에게 푸시 알림 발송 이벤트 게시
         User missingPersonOwner = missingCase.getReportedBy();
         try {
-            pushNotificationService.sendMissingPersonFoundNotification(
+            eventPublisher.publishEvent(new MissingPersonFoundNotificationEvent(
+                    this,
                     created.getId(),
                     missingPersonOwner,
                     missingPerson.getName(),
                     currentUser.getName(),
                     locationInfo.address()
-            );
-        } catch (NotificationException e) {
-            log.warn("실종자 발견 알림 발송 실패 - 실종자:{}, 신고자:{}, 등록자:{}, 이유:{}",
-                    missingPerson.getName(), currentUser.getName(), missingPersonOwner.getName(), e.getMessage());
+            ));
+        } catch (Exception e) {
+            log.error("실종자 발견 알림 이벤트 발행 실패 - sightingId: {}", created.getId(), e);
         }
 
         log.info("실종자 발견 신고 완료 - 실종자: {}, 신고자: {}, 등록자: {}, 위치: {}",

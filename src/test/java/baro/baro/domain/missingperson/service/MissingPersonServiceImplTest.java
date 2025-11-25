@@ -18,11 +18,7 @@ import baro.baro.domain.missingperson.exception.MissingPersonException;
 import baro.baro.domain.missingperson.repository.MissingCaseRepository;
 import baro.baro.domain.missingperson.repository.MissingPersonRepository;
 import baro.baro.domain.missingperson.repository.SightingRepository;
-import baro.baro.domain.notification.exception.NotificationErrorCode;
-import baro.baro.domain.notification.exception.NotificationException;
-import baro.baro.domain.notification.service.PushNotificationService;
 import baro.baro.domain.user.entity.User;
-import com.google.firebase.messaging.FirebaseMessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -68,10 +65,10 @@ class MissingPersonServiceImplTest {
     private LocationService locationService;
 
     @Mock
-    private PushNotificationService pushNotificationService;
+    private MetricsService metricsService;
 
     @Mock
-    private MetricsService metricsService;
+    private ApplicationEventPublisher eventPublisher;
 
     private MissingPersonService missingPersonService;
 
@@ -84,8 +81,8 @@ class MissingPersonServiceImplTest {
                 missingCaseRepository,
                 sightingRepository,
                 locationService,
-                pushNotificationService,
-                metricsService
+                metricsService,
+                eventPublisher
         );
     }
 
@@ -381,7 +378,7 @@ class MissingPersonServiceImplTest {
     }
 
     @Test
-    void reportSightingStillSucceedsWhenNotificationFails() throws FirebaseMessagingException {
+    void reportSightingStillSucceedsWhenNotificationEventPublishFails() {
         ReportSightingRequest request = ReportSightingRequest.builder()
                 .missingPersonId(7L)
                 .latitude(37.55)
@@ -422,15 +419,9 @@ class MissingPersonServiceImplTest {
             when(locationService.createLocationInfo(request.getLatitude(), request.getLongitude()))
                     .thenReturn(locationInfo);
             when(sightingRepository.save(any(Sighting.class))).thenReturn(savedSighting);
-            doThrow(new NotificationException(NotificationErrorCode.SIGHTING_NOT_FOUND))
-                    .when(pushNotificationService)
-                    .sendMissingPersonFoundNotification(
-                            savedSighting.getId(),
-                            owner,
-                            missingPerson.getName(),
-                            currentUser.getName(),
-                            locationInfo.address()
-                    );
+            doThrow(new RuntimeException("FCM publish failed"))
+                    .when(eventPublisher)
+                    .publishEvent(any());
 
             ReportSightingResponse response = missingPersonService.reportSighting(request);
 
@@ -438,6 +429,7 @@ class MissingPersonServiceImplTest {
             verify(locationService).createLocationInfo(request.getLatitude(), request.getLongitude());
             verify(sightingRepository).save(any(Sighting.class));
             verify(metricsService).recordMissingPersonFound();
+            verify(eventPublisher).publishEvent(any());
         }
     }
 
