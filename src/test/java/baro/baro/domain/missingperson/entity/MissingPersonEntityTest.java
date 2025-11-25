@@ -65,6 +65,7 @@ class MissingPersonEntityTest {
                 null,
                 150,
                 40,
+                "",
                 newLocation,
                 "부산",
                 "2024-02-01T12:00:00"
