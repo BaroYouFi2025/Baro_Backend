@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -276,12 +277,15 @@ class DeviceServiceImplTest {
                 .thenReturn(List.of(missingPerson));
         when(missingCaseRepository.findByMissingPersonAndCaseStatus(missingPerson, CaseStatusType.OPEN))
                 .thenReturn(Optional.of(missingCase));
-        when(notificationRepository.findRecentNearbyAlerts(
-                eq(user),
-                eq(missingPerson.getId()),
-                eq(NotificationType.NEARBY_ALERT),
-                any()))
-                .thenReturn(List.of());
+        when(notificationRepository.existsRecentNearbyAlertWithinDistance(
+                anyLong(),
+                anyLong(),
+                anyString(),
+                any(),
+                anyDouble(),
+                anyDouble(),
+                anyDouble()))
+                .thenReturn(false);
 
         deviceService.checkNearbyMissingPersons(user, userLocation);
 
@@ -297,29 +301,24 @@ class DeviceServiceImplTest {
                 .name("실종자")
                 .location(createPoint(127.01, 37.51))
                 .build();
-        Notification recentAlert = Notification.builder()
-                .id(1L)
-                .user(user)
-                .type(NotificationType.NEARBY_ALERT)
-                .relatedEntityId(missingPerson.getId())
-                .relatedLocation(createPoint(127.001, 37.501))
-                .createdAt(LocalDateTime.now())
-                .build();
 
         when(missingPersonRepository.findNearbyMissingPersons(anyDouble(), anyDouble(), anyInt()))
                 .thenReturn(List.of(missingPerson));
-        when(notificationRepository.findRecentNearbyAlerts(
-                eq(user),
-                eq(missingPerson.getId()),
-                eq(NotificationType.NEARBY_ALERT),
-                any()))
-                .thenReturn(List.of(recentAlert));
+        when(notificationRepository.existsRecentNearbyAlertWithinDistance(
+                anyLong(),
+                anyLong(),
+                anyString(),
+                any(),
+                anyDouble(),
+                anyDouble(),
+                anyDouble()))
+                .thenReturn(true);
 
         deviceService.checkNearbyMissingPersons(user, userLocation);
 
         verify(eventPublisher, never()).publishEvent(any());
         verify(missingCaseRepository, never())
-                .findByMissingPersonAndCaseStatus(missingPerson, CaseStatusType.OPEN);
+                .findByMissingPersonAndCaseStatus(any(), any());
     }
 
     private DeviceRegisterRequest createRegisterRequest() {
