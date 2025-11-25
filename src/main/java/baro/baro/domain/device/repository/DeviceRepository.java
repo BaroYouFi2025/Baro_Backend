@@ -13,4 +13,10 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     Optional<Device> findByDeviceUuid(String deviceUuid);
     List<Device> findByUser(User user);
     Optional<Device> findByIdAndUser(Long id, User user);
+
+    // 사용자의 활성 기기 개수 조회
+    long countByUserAndIsActiveTrue(User user);
+
+    // 사용자의 특정 UUID 기기 조회
+    Optional<Device> findByUserAndDeviceUuid(User user, String deviceUuid);
 }
