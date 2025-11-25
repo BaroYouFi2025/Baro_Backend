@@ -133,12 +133,7 @@ class UserControllerTest {
     @Test
     void searchUsersWithoutBodyUsesDefaultRequest() throws Exception {
         Slice<UserPublicProfileResponse> slice = new SliceImpl<>(
-                List.of(UserPublicProfileResponse.builder()
-                        .uid("friend")
-                        .name("친구")
-                        .profileUrl("https://img")
-                        .profileBackgroundColor("#fff")
-                        .build()),
+                List.of(UserPublicProfileResponse.of(1L, "friend", "친구", "https://img")),
                 PageRequest.of(0, 20),
                 false
         );
