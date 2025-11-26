@@ -64,7 +64,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
            "SELECT 1 FROM youfi.notifications n " +
            "WHERE n.user_id = :userId " +
            "AND n.related_entity_id = :missingPersonId " +
-           "AND n.type = CAST(:type AS youfi.notification_type) " +
+           "AND n.type = :type " +
            "AND n.created_at > :threshold " +
            "AND n.related_location IS NOT NULL " +
            "AND ST_DWithin(" +
