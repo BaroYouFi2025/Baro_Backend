@@ -269,6 +269,26 @@ public class DeviceServiceImpl implements DeviceService {
         deviceRepository.save(device);
     }
 
+    @EventListener
+    @Transactional
+    public void handleLogin(baro.baro.domain.device.dto.event.LoginSuccessEvent event) {
+        if (event.getDeviceUuid() == null) {
+            return;
+        }
+
+        User user = userRepository.findByUid(event.getUid())
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        deviceRepository.findByUserAndDeviceUuid(user, event.getDeviceUuid())
+                .ifPresent(device -> {
+                    if (!device.isActive()) {
+                        device.reactivate();
+                        deviceRepository.save(device);
+                        log.info("로그인 시 기기 활성화 - 사용자: {}, 기기 UUID: {}", user.getName(), event.getDeviceUuid());
+                    }
+                });
+    }
+
     // 주변 실종자를 체크하고 NEARBY_ALERT 알림을 발송합니다.
     // GPS 업데이트 시 비동기로 실행됩니다.
     //

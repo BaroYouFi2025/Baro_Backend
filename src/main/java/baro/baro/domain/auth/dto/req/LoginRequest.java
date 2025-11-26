@@ -18,4 +18,7 @@ public class LoginRequest {
     @Schema(description = "비밀번호", example = "barobaro")
     @NotBlank(message = "Password is required")
     private String password;
+
+    @Schema(description = "기기 UUID (선택사항, 제공 시 해당 기기 활성화)", example = "550e8400-e29b-41d4-a716-446655440000")
+    private String deviceUuid;
 }
