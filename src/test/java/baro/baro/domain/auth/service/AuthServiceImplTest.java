@@ -216,6 +216,51 @@ class AuthServiceImplTest {
                 .isInstanceOf(AuthException.class);
     }
 
+    @Test
+    void loginPublishesEventWhenDeviceUuidProvided() {
+        LoginRequest request = new LoginRequest();
+        request.setUid("user");
+        request.setPassword("password");
+        request.setDeviceUuid("device-123");
+
+        User activeUser = createUser("user", true);
+        Device activeDevice = createDevice(124L, true);
+
+        when(userRepository.findByUid("user")).thenReturn(Optional.of(activeUser));
+        when(passwordEncoder.matches("password", activeUser.getPasswordHash())).thenReturn(true);
+        when(deviceRepository.findByUser(activeUser)).thenReturn(List.of(activeDevice));
+        when(jwtTokenProvider.createAccessToken(eq("user"), anyString(), eq(124L))).thenReturn("access");
+        when(jwtTokenProvider.createRefreshToken("user")).thenReturn("refresh");
+        when(jwtTokenProvider.getAccessTokenValiditySeconds()).thenReturn(3600L);
+
+        AuthTokensResponse response = authService.login(request);
+
+        assertThat(response.getAccessToken()).isEqualTo("access");
+        verify(eventPublisher).publishEvent(any(baro.baro.domain.device.dto.event.LoginSuccessEvent.class));
+    }
+
+    @Test
+    void loginDoesNotPublishEventWhenDeviceUuidNotProvided() {
+        LoginRequest request = new LoginRequest();
+        request.setUid("user");
+        request.setPassword("password");
+
+        User activeUser = createUser("user", true);
+        Device activeDevice = createDevice(125L, true);
+
+        when(userRepository.findByUid("user")).thenReturn(Optional.of(activeUser));
+        when(passwordEncoder.matches("password", activeUser.getPasswordHash())).thenReturn(true);
+        when(deviceRepository.findByUser(activeUser)).thenReturn(List.of(activeDevice));
+        when(jwtTokenProvider.createAccessToken(eq("user"), anyString(), eq(125L))).thenReturn("access");
+        when(jwtTokenProvider.createRefreshToken("user")).thenReturn("refresh");
+        when(jwtTokenProvider.getAccessTokenValiditySeconds()).thenReturn(3600L);
+
+        AuthTokensResponse response = authService.login(request);
+
+        assertThat(response.getAccessToken()).isEqualTo("access");
+        verify(eventPublisher, never()).publishEvent(any(baro.baro.domain.device.dto.event.LoginSuccessEvent.class));
+    }
+
     private User createUser(String uid, boolean active) {
         User user = User.builder()
                 .uid(uid)
@@ -230,10 +275,11 @@ class AuthServiceImplTest {
     }
 
     private Device createDevice(Long id, boolean active) {
-        return Device.builder()
-                .id(id)
+        Device device = Device.builder()
                 .deviceUuid("device-" + id)
                 .isActive(active)
                 .build();
+        ReflectionTestUtils.setField(device, "id", id);
+        return device;
     }
 }

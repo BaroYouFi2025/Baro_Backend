@@ -8,6 +8,7 @@ import baro.baro.domain.auth.entity.BlacklistedToken;
 import baro.baro.domain.auth.exception.AuthErrorCode;
 import baro.baro.domain.auth.exception.AuthException;
 import baro.baro.domain.auth.repository.BlacklistedTokenRepository;
+import baro.baro.domain.device.dto.event.LoginSuccessEvent;
 import baro.baro.domain.device.dto.event.LogoutSuccessEvent;
 import baro.baro.domain.device.entity.Device;
 import baro.baro.domain.device.repository.DeviceRepository;
@@ -50,6 +51,13 @@ public class AuthServiceImpl implements AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // deviceUuid가 제공된 경우 기기 활성화 이벤트 발행 (Device 도메인으로 위임)
+        if (request.getDeviceUuid() != null) {
+            eventPublisher.publishEvent(
+                    new LoginSuccessEvent(this, user.getUid(), request.getDeviceUuid())
+            );
         }
 
         // 사용자의 활성 기기 조회
