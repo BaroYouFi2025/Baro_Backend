@@ -1,0 +1,233 @@
+name: Build & Deploy Baro Application
+
+# 워크플로우 트리거 설정
+on:
+  pull_request:
+    types: [closed]  # PR이 닫힐 때만 트리거
+    branches:
+      - develop  # develop 브랜치로의 PR
+
+
+# 전역 환경변수 설정
+env:
+  JAVA_VERSION: '17'  # 사용할 Java 버전
+
+jobs:
+  # 빌드 실행 Job (develop 브랜치에서만 실행)
+  build:
+    runs-on: ubuntu-latest
+    # PR이 실제로 병합된 경우에만 실행
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
+
+    steps:
+      # 소스코드 체크아웃
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Java 환경 설정
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'  # Eclipse Temurin OpenJDK 사용
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # Gradle 설정 및 캐시 (의존성/래퍼 자동 캐시)
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # Gradle wrapper 실행 권한 부여
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+
+      # 애플리케이션 빌드 (테스트 제외)
+      - name: Build (bootJar)
+        run: ./gradlew bootJar -x test --no-daemon
+
+      # 빌드된 JAR 파일을 아티팩트로 업로드
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baro # 고정된 이름
+          path: build/libs/*.jar
+          retention-days: 3  # 3일간 보관
+
+  # 테스트 서버 배포 실행 Job (develop 브랜치에서만 실행)
+  deploy-test:
+    needs: build  # build job 완료 후 실행
+    runs-on: ubuntu-latest
+    # 병합된 PR에 대해서만 배포 진행 (build 통과 후)
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
+
+    steps:
+      # 소스코드 체크아웃
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 빌드된 아티팩트 다운로드
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: baro
+          path: build/libs
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          if [ -n "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" ]; then
+            echo "Using TEST_SSH_PRIVATE_KEY_B64"
+            echo "${{ secrets.TEST_SSH_PRIVATE_KEY_B64 }}" | base64 -d | tr -d '\r' > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+            ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null 2>&1 || { echo "❌ Invalid ed25519 private key"; exit 1; }
+            echo "SSH_KEY_PATH=$HOME/.ssh/id_ed25519" >> $GITHUB_ENV
+          elif [ -n "${{ secrets.TEST_SSH_PRIVATE_KEY }}" ]; then
+            echo "Using TEST_SSH_PRIVATE_KEY"
+            echo "${{ secrets.TEST_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keygen -y -f ~/.ssh/id_rsa >/dev/null 2>&1 || { echo "❌ Invalid RSA private key"; exit 1; }
+            echo "SSH_KEY_PATH=$HOME/.ssh/id_rsa" >> $GITHUB_ENV
+          else
+            echo "❌ No SSH private key secret provided (TEST_SSH_PRIVATE_KEY_B64 or TEST_SSH_PRIVATE_KEY)."
+            exit 1
+          fi
+
+      - name: Add known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.TEST_SERVER_PORT }}" -H "${{ secrets.TEST_SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+        # SSH 연결 테스트
+      - name: Test SSH Connection
+        run: |
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -i "${{ env.SSH_KEY_PATH }}" \
+              ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} "echo 'SSH Connected to Test Server!'"
+      # 테스트 서버에 애플리케이션 배포
+      - name: Deploy to Test Server
+        run: |
+          # JAR 파일명 확인 (build.gradle의 bootJar 설정과 일치)
+          JAR_FILE="build/libs/baro-app.jar"
+          if [ ! -f "$JAR_FILE" ]; then
+            echo "❌ JAR file not found!"
+            exit 1
+          fi
+
+          echo "📦 Deploying JAR file to Test Server: $JAR_FILE"
+
+          # 테스트 서버로 JAR 파일 전송
+          scp -P ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" "$JAR_FILE" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_DIR }}/baro-app.jar
+
+          # 테스트 서버에서 애플리케이션 배포
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+            cd ${{ secrets.TEST_DEPLOY_DIR }}
+
+            echo "📋 배포 전 환경 확인..."
+            echo "  - 작업 디렉토리: $(pwd)"
+            echo "  - JAR 파일: $(ls -lh baro-app.jar 2>/dev/null || echo 'Not found yet')"
+            echo "  - .env 파일: $(test -f .env && echo 'Exists' || echo 'Missing')"
+
+            echo ""
+            echo "📌 기존 앱 컨테이너 중지 및 제거..."
+            docker compose stop app || echo "App container not running"
+            docker compose rm -f app || echo "App container not found"
+
+            echo ""
+            echo "📌 Docker 이미지 정리..."
+            docker image prune -f || echo "No images to remove"
+
+            echo ""
+            echo "📌 PostgreSQL 상태 확인..."
+            docker compose ps postgres
+
+            # PostgreSQL이 healthy 상태인지 확인
+            if docker inspect --format='{{.State.Health.Status}}' youfi-postgres 2>/dev/null | grep -q "healthy"; then
+              echo "  ✅ PostgreSQL is healthy"
+            else
+              echo "  ⚠️ PostgreSQL is not healthy, waiting..."
+              docker compose up -d postgres
+              sleep 10
+            fi
+
+            echo ""
+            echo "📌 새로운 애플리케이션 빌드 및 시작... (deps 건드리지 않음)"
+            docker compose up -d --no-deps --build app prometheus grafana
+
+            echo ""
+            echo "📊 테스트 서버 배포 상태 확인..."
+            docker compose ps
+
+            echo ""
+            echo "📦 볼륨 현황 확인 (PostgreSQL 데이터 유지 확인)"
+            docker volume ls | grep baro || true
+
+            echo ""
+            echo "🚀 테스트 서버 배포 완료!"
+          EOF
+
+      # 테스트 서버 배포 후 헬스체크
+      - name: Test Server Health Check
+        run: |
+          echo "🔍 테스트 서버 애플리케이션 상태 확인 중..."
+
+          # Health check 수행 (재시도 로직 포함)
+          ssh -p ${{ secrets.TEST_SERVER_PORT }} -i "${{ env.SSH_KEY_PATH }}" ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'EOF'
+            cd ${{ secrets.TEST_DEPLOY_DIR }}
+
+            echo "📊 현재 컨테이너 상태:"
+            docker compose ps
+
+            echo ""
+            echo "⏳ 애플리케이션 healthcheck 대기 중 (최대 2분)..."
+
+            # 최대 120초 동안 10초 간격으로 health check 확인
+            MAX_ATTEMPTS=12
+            ATTEMPT=1
+
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "  시도 $ATTEMPT/$MAX_ATTEMPTS..."
+
+              # Docker healthcheck 상태 확인
+              HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' baro-app 2>/dev/null || echo "no-healthcheck")
+
+              if [ "$HEALTH_STATUS" = "healthy" ]; then
+                echo "✅ 애플리케이션이 healthy 상태입니다!"
+
+                # 추가 검증: actuator endpoint 직접 확인
+                echo "🔍 Actuator health endpoint 확인 중..."
+                if docker exec baro-app wget -qO- http://localhost:10080/actuator/health | grep -q '"status":"UP"'; then
+                  echo "✅ Actuator health check 성공!"
+                  echo ""
+                  echo "📊 최종 상태:"
+                  docker compose ps app
+                  exit 0
+                else
+                  echo "⚠️ Actuator health check 실패, 재시도 중..."
+                fi
+              elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+                echo "❌ 애플리케이션이 unhealthy 상태입니다."
+                echo ""
+                echo "📋 애플리케이션 로그 (마지막 100줄):"
+                docker compose logs --tail=100 app
+                echo ""
+                echo "🔍 Health check 실패 원인:"
+                docker inspect --format='{{range .State.Health.Log}}{{.Output}}{{end}}' baro-app || echo "Health log not available"
+                exit 1
+              else
+                echo "  상태: $HEALTH_STATUS (대기 중...)"
+                sleep 10
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            # 타임아웃
+            echo "❌ Health check 타임아웃 (2분 초과)"
+            echo ""
+            echo "📊 현재 컨테이너 상태:"
+            docker compose ps
+            echo ""
+            echo "📋 애플리케이션 로그 (마지막 100줄):"
+            docker compose logs --tail=100 app
+            exit 1
+          EOF

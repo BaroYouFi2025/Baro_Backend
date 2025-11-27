@@ -2,10 +2,16 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'baro'
-version = '0.0.1-SNAPSHOT'
+version = ''
+
+bootJar {
+    archiveFileName = 'baro-app.jar'
+}
+jar { enabled = false }
 
 java {
     toolchain {
@@ -19,25 +25,123 @@ configurations {
     }
 }
 
+configurations.all {
+    exclude group: 'commons-logging', module: 'commons-logging'
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    // Spring Boot Core
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    compileOnly 'org.projectlombok:lombok'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // Database
     runtimeOnly 'org.postgresql:postgresql'
-    // testImplementation 'org.springframework.security:spring-security-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.hibernate:hibernate-spatial:6.6.11.Final'
+    implementation 'org.locationtech.jts:jts-core:1.19.0'
+
+    // Security & JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Swagger/OpenAPI - API 문서 자동 생성 (Spring Boot 3.x 호환 버전)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+
+    // Utilities
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    implementation 'com.sun.mail:jakarta.mail:2.0.1'
+
+    // Firebase Cloud Messaging
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+    // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+def jacocoClassExclusions = [
+        '**/dto/**',
+        '**/entity/**',
+        '**/exception/**',
+        '**/BaroApplication.*',
+        '**/config/**',
+        '**/domain/**/constant/**',
+        '**/domain/**/type/**',
+        '**/domain/**/enums/**',
+        '**/generated/**',
+        '**/*Mapper*.*',
+        '**/*Converter*.*',
+        '**/*Scheduler*.*',
+        '**/*Listener*.*',
+        '**/client/**'
+]
+
+tasks.register('coverageReportClean') {
+    group = 'verification'
+    description = 'Deletes previous JaCoCo reports to ensure clean artifacts.'
+    doLast {
+        delete(layout.buildDirectory.dir("reports/jacoco"))
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn tasks.test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/html")
+    }
+    classDirectories.setFrom(
+            files(sourceSets.main.output.classesDirs.asFileTree.matching {
+                exclude jacocoClassExclusions
+            })
+    )
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn tasks.test
+    classDirectories.setFrom(
+            files(sourceSets.main.output.classesDirs.asFileTree.matching {
+                exclude jacocoClassExclusions
+            })
+    )
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.015
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn tasks.jacocoTestCoverageVerification
 }
